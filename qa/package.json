@@ -1,0 +1,9 @@
+{
+  "name": "pacific-qa",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end checks that drive the real app in a browser and over HTTP. Not part of the build.",
+  "dependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}

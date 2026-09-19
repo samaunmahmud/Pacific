@@ -1,5 +1,6 @@
 package com.pacific.marketplace.web;
 
+import com.pacific.marketplace.service.CheckoutService;
 import com.pacific.marketplace.service.OrderService;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutRequest;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutResponse;
@@ -22,15 +23,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     private final OrderService orders;
+    private final CheckoutService checkouts;
 
-    public OrderController(OrderService orders) {
+    public OrderController(OrderService orders, CheckoutService checkouts) {
         this.orders = orders;
+        this.checkouts = checkouts;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CheckoutResponse checkout(@Valid @RequestBody CheckoutRequest req, @AuthenticationPrincipal Jwt jwt) {
-        return orders.checkout(CurrentUser.id(jwt), req);
+        return checkouts.checkout(CurrentUser.id(jwt), req);
     }
 
     @GetMapping

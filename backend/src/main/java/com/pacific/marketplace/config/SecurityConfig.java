@@ -39,6 +39,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login",
                                 "/api/auth/admin/login").permitAll()
+                        // Stripe calls this itself (no login); the handler verifies the request's signature.
+                        .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
                         // Public storefront reads. A bearer token is still honoured if sent, so
                         // the review list can show the viewer's own vote and their own reviews.
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/*",
@@ -46,8 +48,9 @@ public class SecurityConfig {
                                 "/api/sellers/*").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // Sellers are ordinary customer accounts; approval is checked per request in the service.
-                        .requestMatchers("/api/cart/**", "/api/orders/**", "/api/me/**", "/api/reviews/**",
-                                "/api/wishlist/**", "/api/seller/**", "/api/sellers/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/cart/**", "/api/orders/**", "/api/payments/**", "/api/me/**",
+                                "/api/reviews/**", "/api/wishlist/**", "/api/seller/**", "/api/sellers/**")
+                        .hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.POST, "/api/products/*/reviews", "/api/products/*/questions")
                         .hasRole("CUSTOMER")
                         // Admins moderate Q&A too, so they may answer and delete.

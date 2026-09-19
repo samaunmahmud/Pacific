@@ -3,6 +3,7 @@ package com.pacific.marketplace.web.dto;
 import com.pacific.marketplace.domain.Order;
 import com.pacific.marketplace.domain.OrderItem;
 import com.pacific.marketplace.domain.OrderStatus;
+import com.pacific.marketplace.domain.PaymentMethod;
 import com.pacific.marketplace.domain.ShippingAddress;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,7 +24,9 @@ public final class OrderDtos {
             @Size(max = 160) String line2,
             @NotBlank(message = "Please enter the town or city.") @Size(max = 80) String city,
             @NotBlank(message = "Please enter the postcode.") @Size(max = 20) String postcode,
-            @NotBlank(message = "Please enter the country.") @Size(max = 80) String country) {
+            @NotBlank(message = "Please enter the country.") @Size(max = 80) String country,
+            /** Pay on delivery when omitted. */
+            PaymentMethod paymentMethod) {
     }
 
     public record StatusRequest(@NotNull(message = "Status is required.") OrderStatus status) {
@@ -62,7 +65,11 @@ public final class OrderDtos {
         }
     }
 
-    /** One checkout can produce several orders: one per seller. */
-    public record CheckoutResponse(String checkoutRef, List<OrderDto> orders, BigDecimal total) {
+    /** One checkout can produce several orders: one per seller. payment is null for pay on delivery. */
+    public record CheckoutResponse(String checkoutRef, List<OrderDto> orders, BigDecimal total,
+                                   PaymentDtos.PaymentDto payment) {
+        public CheckoutResponse withPayment(PaymentDtos.PaymentDto payment) {
+            return new CheckoutResponse(checkoutRef, orders, total, payment);
+        }
     }
 }

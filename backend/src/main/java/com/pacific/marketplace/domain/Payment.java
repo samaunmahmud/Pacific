@@ -83,6 +83,12 @@ public class Payment {
         updatedAt = Instant.now();
     }
 
+    /** Records the provider's hosted checkout once it has been created (the payment row exists before that). */
+    public void attachSession(String providerSessionId, String checkoutUrl) {
+        this.providerSessionId = providerSessionId;
+        this.checkoutUrl = checkoutUrl;
+    }
+
     public void markPaid(String providerPaymentRef) {
         this.status = PaymentStatus.PAID;
         this.providerPaymentRef = providerPaymentRef;

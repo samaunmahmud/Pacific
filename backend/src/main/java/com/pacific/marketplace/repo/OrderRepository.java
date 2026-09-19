@@ -16,10 +16,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    @EntityGraph(attributePaths = {"items", "user", "seller"})
+    @EntityGraph(attributePaths = {"items", "items.product", "items.product.category", "user", "seller"})
     List<Order> findByUserIdOrderByCreatedAtDescIdDesc(Long userId);
 
-    @EntityGraph(attributePaths = {"items", "user", "seller"})
+    @EntityGraph(attributePaths = {"items", "items.product", "items.product.category", "user", "seller"})
     Optional<Order> findWithItemsById(Long id);
 
     /** Serialises concurrent status changes/cancellations on one order so stock is restored at most once. */

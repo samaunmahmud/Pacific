@@ -97,6 +97,8 @@ export interface OrderItem {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  imageUrl: string | null;
+  categoryName: string | null;
 }
 
 export interface Order {

@@ -1,14 +1,42 @@
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Order } from '../api/types';
+import type { Order, OrderStatus } from '../api/types';
 import { useCart } from '../cart/CartContext';
-import { dateTime, money, statusLabel } from '../ui/format';
+import { ProductImage } from '../components/ProductImage';
+import { dateOnly, dateTime, money, statusLabel } from '../ui/format';
 import { useToast } from '../ui/Toast';
 import { useAsync } from '../ui/useAsync';
 
 export function StatusPill({ status }: { status: string }) {
   return <span className={`status-pill status-${status}`}>{statusLabel(status)}</span>;
+}
+
+const HEADLINE: Record<OrderStatus, string> = {
+  AWAITING_PAYMENT: 'Waiting for your card payment',
+  PLACED: 'Order placed',
+  PROCESSING: 'Being prepared',
+  SHIPPED: 'On its way',
+  DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled',
+};
+
+const STEPS: OrderStatus[] = ['PLACED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+
+/** Placed -> Processing -> Shipped -> Delivered, with the current step highlighted. */
+function Tracker({ status }: { status: OrderStatus }) {
+  const at = STEPS.indexOf(status);
+  if (at < 0) return null; // cancelled / awaiting payment have no progress to show
+  return (
+    <ol className="tracker" aria-label="Order progress">
+      {STEPS.map((step, n) => (
+        <li key={step} className={n < at ? 'done' : n === at ? 'now' : ''} aria-current={n === at ? 'step' : undefined}>
+          <span className="dot" aria-hidden="true">{n < at ? '✓' : n + 1}</span>
+          <span>{statusLabel(step)}</span>
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 /** Orders from one checkout are shown together, since a basket with several sellers becomes several orders. */
@@ -21,34 +49,64 @@ function groupByCheckout(orders: Order[]): Order[][] {
   return [...groups.values()];
 }
 
+function OrderCard({ o }: { o: Order }) {
+  return (
+    <article className="order-card">
+      <header className="order-head">
+        <div><span>Order placed</span><b>{dateOnly(o.createdAt)}</b></div>
+        <div><span>Total</span><b>{money(o.total)}</b></div>
+        <div><span>Ship to</span><b>{o.address.name}</b></div>
+        <div className="order-no"><span>Order # {o.id}</span><Link to={`/orders/${o.id}`}>View order details</Link></div>
+      </header>
+      <div className="order-body">
+        <div className="order-main">
+          <h2 className={`order-status s-${o.status}`}>{HEADLINE[o.status]}</h2>
+          {o.status === 'AWAITING_PAYMENT' && <p className="order-note">Your items are reserved for a short time while you pay.</p>}
+          {o.items.map((i) => (
+            <div key={i.productId} className="order-item">
+              <Link to={`/products/${i.productId}`} className="order-thumb" aria-label={i.productName}>
+                <ProductImage imageUrl={i.imageUrl} categoryName={i.categoryName} alt={i.productName} />
+              </Link>
+              <div>
+                <Link to={`/products/${i.productId}`} className="order-item-name">{i.productName}</Link>
+                <div className="order-item-sub">Sold by {o.sellerName} · Qty {i.quantity} · {money(i.unitPrice)} each</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="order-actions">
+          {o.status === 'AWAITING_PAYMENT' && o.checkoutRef && <Link to={`/pay/return?ref=${o.checkoutRef}`} className="cart-btn link-btn">Complete payment</Link>}
+          <Link to={`/orders/${o.id}`} className="side-btn">View order</Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function OrdersPage() {
   const { data, error, loading } = useAsync(() => api<Order[]>('/orders'), []);
   const placed = (useLocation().state as { placed?: number } | null)?.placed;
   return (
-    <div className="page page-narrow">
-      <h1 className="page-title">Returns and Orders</h1>
-      {placed && <div className="notice ok" role="status">Thank you! We've placed {placed} order{placed === 1 ? '' : 's'} — one per seller. You'll pay on delivery.</div>}
+    <div className="orders-page">
+      <h1>Your orders</h1>
+      {placed && <div className="notice ok" role="status">Thank you! We've placed {placed} order{placed === 1 ? '' : 's'}, one per seller. You'll pay on delivery.</div>}
       {error && <div className="notice error">{error}</div>}
       {loading && !data ? <div className="loading">Loading…</div> : data && data.length === 0 ? (
-        <div className="empty"><p>You haven't placed any orders yet.</p><Link className="submit-btn" to="/products">Start shopping</Link></div>
+        <div className="cart-empty">
+          <div className="cart-empty-art" aria-hidden="true">📦</div>
+          <div>
+            <h2>No orders yet</h2>
+            <p>When you place an order it will show up here.</p>
+            <Link className="cart-btn big link-btn" to="/products">Start shopping</Link>
+          </div>
+        </div>
       ) : (
-        <div className="stack">
+        <div className="orders-list">
           {data && groupByCheckout(data).map((group) => (
-            <div key={group[0].checkoutRef ?? group[0].id} className="stack" style={{ gap: 8 }}>
-              {group.length > 1 && <div className="muted" style={{ fontSize: 12 }}>Placed together · {dateTime(group[0].createdAt)} · {money(group.reduce((s, o) => s + o.total, 0))} in total</div>}
-              {group.map((o) => (
-                <Link key={o.id} to={`/orders/${o.id}`} className="square-review-box row-wrap" style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div>
-                    <div style={{ fontWeight: 'bold' }}>Order #{o.id} <span className="muted" style={{ fontWeight: 'normal' }}>· Sold by {o.sellerName}</span></div>
-                    <div className="muted">{dateTime(o.createdAt)} · {o.itemCount} item{o.itemCount === 1 ? '' : 's'}</div>
-                    <div className="muted" style={{ fontSize: 12 }}>{o.items.map((i) => i.productName).join(', ')}</div>
-                  </div>
-                  <span className="spacer" />
-                  <StatusPill status={o.status} />
-                  <span className="product-price">{money(o.total)}</span>
-                </Link>
-              ))}
-            </div>
+            <section key={group[0].checkoutRef ?? group[0].id} className="order-group">
+              {group.length > 1 && <div className="order-group-note">Placed together on {dateTime(group[0].createdAt)}: {group.length} orders, {money(group.reduce((s, o) => s + o.total, 0))} in total</div>}
+              {group.map((o) => <OrderCard key={o.id} o={o} />)}
+            </section>
           ))}
         </div>
       )}
@@ -80,18 +138,16 @@ export function OrderDetail() {
     }
   }
 
-  if (error && !data) return <div className="page page-narrow"><div className="notice error">{error}</div><Link to="/orders" className="submit-btn" style={{ alignSelf: 'flex-start' }}>All orders</Link></div>;
+  if (error && !data) return <div className="orders-page"><div className="notice error">{error}</div><Link to="/orders" className="cart-btn link-btn" style={{ alignSelf: 'flex-start' }}>All orders</Link></div>;
   if (loading && !data) return <div className="loading">Loading…</div>;
   if (!data) return null;
   const o = data;
+  const a = o.address;
 
   return (
-    <div className="page page-narrow">
-      <div className="row">
-        <Link to="/orders" className="back-btn" aria-label="Back to orders">←</Link>
-        <h1 className="page-title">Order #{o.id}</h1>
-        <StatusPill status={o.status} />
-      </div>
+    <div className="orders-page">
+      <nav className="crumbs"><Link to="/orders">Your orders</Link> <span aria-hidden="true">›</span> Order #{o.id}</nav>
+      <h1>Order details</h1>
       {justPlaced && <div className="notice ok" role="status">Thank you! Your order has been placed. You'll pay on delivery.</div>}
       {o.status === 'AWAITING_PAYMENT' && o.checkoutRef && (
         <div className="notice" role="status">
@@ -99,41 +155,60 @@ export function OrderDetail() {
           <Link to={`/pay/return?ref=${o.checkoutRef}`}><b>Complete payment</b></Link>
         </div>
       )}
-      <div className="square-review-box static stack">
-        <div className="muted">
-          Placed {dateTime(o.createdAt)} · Sold and shipped by{' '}
-          {o.sellerSlug ? <Link to={`/sellers/${o.sellerSlug}`}>{o.sellerName}</Link> : <b>{o.sellerName}</b>}
-          {' · '}Payment: {o.paymentMethod === 'CARD' ? 'card' : 'on delivery'}
+
+      <div className="order-card">
+        <header className="order-head">
+          <div><span>Ordered on</span><b>{dateTime(o.createdAt)}</b></div>
+          <div><span>Order #</span><b>{o.id}</b></div>
+          <div><span>Sold and shipped by</span><b>{o.sellerSlug ? <Link to={`/sellers/${o.sellerSlug}`}>{o.sellerName}</Link> : o.sellerName}</b></div>
+          <div className="order-no"><StatusPill status={o.status} /></div>
+        </header>
+        <div className="order-detail-grid">
+          <section>
+            <h3>Delivering to</h3>
+            <address>{a.name}<br />{a.line1}<br />{a.line2 && <>{a.line2}<br /></>}{a.city} {a.postcode}<br />{a.country}</address>
+          </section>
+          <section>
+            <h3>Payment</h3>
+            <p>{o.paymentMethod === 'CARD' ? 'Card, paid online' : 'Pay on delivery'}</p>
+          </section>
+          <section className="order-summary">
+            <h3>Order summary</h3>
+            <div><span>Items</span><span>{money(o.subtotal)}</span></div>
+            <div><span>Delivery</span><span>{o.shipping === 0 ? 'FREE' : money(o.shipping)}</span></div>
+            <div className="grand"><span>Order total</span><span>{money(o.total)}</span></div>
+          </section>
         </div>
-        {o.items.map((i) => (
-          <div key={i.productId} className="row">
-            <Link to={`/products/${i.productId}`} style={{ fontWeight: 'bold' }}>{i.productName}</Link>
-            <span className="muted">{i.quantity} × {money(i.unitPrice)}</span>
-            <span className="spacer" />
-            <span>{money(i.lineTotal)}</span>
+      </div>
+
+      <div className="order-card">
+        <div className="order-body single">
+          <div className="order-main">
+            <h2 className={`order-status s-${o.status}`}>{HEADLINE[o.status]}</h2>
+            <Tracker status={o.status} />
+            {o.items.map((i) => (
+              <div key={i.productId} className="order-item">
+                <Link to={`/products/${i.productId}`} className="order-thumb" aria-label={i.productName}>
+                  <ProductImage imageUrl={i.imageUrl} categoryName={i.categoryName} alt={i.productName} />
+                </Link>
+                <div>
+                  <Link to={`/products/${i.productId}`} className="order-item-name">{i.productName}</Link>
+                  <div className="order-item-sub">Qty {i.quantity} · {money(i.unitPrice)} each</div>
+                  <div className="order-item-sub"><b>{money(i.lineTotal)}</b></div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-        <hr />
-        <div className="totals">
-          <div className="line"><span>Subtotal</span><span>{money(o.subtotal)}</span></div>
-          <div className="line"><span>Shipping</span><span>{o.shipping === 0 ? 'FREE' : money(o.shipping)}</span></div>
-          <div className="line grand"><span>Total</span><span>{money(o.total)}</span></div>
         </div>
       </div>
-      <div className="square-review-box static">
-        <h2 style={{ marginTop: 0 }}>Delivering to</h2>
-        <address style={{ fontStyle: 'normal' }}>
-          {o.address.name}<br />{o.address.line1}<br />{o.address.line2 && <>{o.address.line2}<br /></>}
-          {o.address.city} {o.address.postcode}<br />{o.address.country}
-        </address>
-      </div>
+
       {o.status === 'DELIVERED' && (
         <div className="notice">
           Delivered! <Link to="/account/reviews">Review what you bought</Link>
           {o.sellerSlug && <> or <Link to={`/sellers/${o.sellerSlug}`}>rate {o.sellerName}</Link></>}.
         </div>
       )}
-      {o.cancellableByCustomer && <div><button className="ghost-btn" onClick={cancel} disabled={busy}>{busy ? 'Cancelling…' : 'Cancel order'}</button></div>}
+      {o.cancellableByCustomer && <div><button className="side-btn" onClick={cancel} disabled={busy}>{busy ? 'Cancelling…' : 'Cancel order'}</button></div>}
     </div>
   );
 }

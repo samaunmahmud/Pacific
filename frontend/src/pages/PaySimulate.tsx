@@ -28,23 +28,23 @@ export function PaySimulate() {
     }
   }
 
-  if (error && !data) return <div className="page page-narrow"><div className="notice error">{error}</div></div>;
+  if (error && !data) return <div className="pay-wrap"><div className="pay-card"><div className="pay-icon off" aria-hidden="true">!</div><h1>We couldn't load this payment</h1><p>{error}</p><Link to="/orders" className="cart-btn big link-btn">My orders</Link></div></div>;
   if (loading && !data) return <div className="loading">Loading…</div>;
   if (!data) return null;
   if (!data.simulator) return <Navigate to={`/pay/return?ref=${ref}`} replace />;
   if (data.status !== 'PENDING') return <Navigate to={`/pay/return?ref=${ref}`} replace />;
 
   return (
-    <div className="page page-narrow">
-      <div className="test-banner" role="note">TEST MODE. This is a stand-in for the card payment page. No card is charged and no real money moves.</div>
-      <h1 className="page-title">Test payment</h1>
-      <div className="square-review-box static stack">
-        <div className="line grand"><span>Amount</span><span>{money(data.amount)}</span></div>
-        <p className="muted" style={{ margin: 0 }}>Choose what should happen, as if you had completed or abandoned the payment on the provider's page.</p>
-        <div className="row-wrap">
-          <button className="submit-btn" onClick={() => void finish('PAID')} disabled={busy}>Simulate successful payment</button>
-          <button className="ghost-btn" onClick={() => void finish('CANCELLED')} disabled={busy}>Simulate cancelling</button>
-          <Link className="ghost-btn" to={`/pay/return?ref=${ref}&cancelled=1`}>Leave without paying</Link>
+    <div className="pay-wrap">
+      <div className="pay-card">
+        <div className="test-banner" role="note">TEST MODE. This stands in for the card payment page. No card is charged and no real money moves.</div>
+        <h1>Test payment</h1>
+        <div className="pay-amount"><span>Amount</span><b>{money(data.amount)}</b></div>
+        <p>Choose what should happen, as if you had completed or abandoned the payment on the provider's page.</p>
+        <div className="pay-actions">
+          <button className="cart-btn big" onClick={() => void finish('PAID')} disabled={busy}>Simulate successful payment</button>
+          <button className="side-btn" onClick={() => void finish('CANCELLED')} disabled={busy}>Simulate cancelling</button>
+          <Link className="link-plain" to={`/pay/return?ref=${ref}&cancelled=1`}>Leave without paying</Link>
         </div>
       </div>
     </div>

@@ -182,4 +182,19 @@ class ShopFlowTest extends IntegrationTest {
         mvc.perform(bearer(get("/api/admin/products").param("q", "Garden Lamp"), admin))
                 .andExpect(jsonPath("$.totalItems").value(1));
     }
+
+    @Test
+    void orderItemsCarryTheProductPictureAndCategoryForOrderPages() throws Exception {
+        String token = registerCustomer();
+        Category audio = category("Audio", "audio-pics");
+        Product p = productRepo.saveAndFlush(new Product("Studio Monitor", "d", new java.math.BigDecimal("40.00"), 5,
+                "demo:speaker:200", audio));
+        addToCart(token, p, 1, 200);
+        checkout(token);
+
+        JsonNode item = read(mvc.perform(bearer(get("/api/orders"), token)).andExpect(status().isOk()).andReturn())
+                .get(0).get("items").get(0);
+        assertThat(item.get("imageUrl").asText()).isEqualTo("demo:speaker:200");
+        assertThat(item.get("categoryName").asText()).isEqualTo("Audio");
+    }
 }

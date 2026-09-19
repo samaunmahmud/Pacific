@@ -6,6 +6,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "products")
+@org.hibernate.annotations.BatchSize(size = 50) // order lists show product pictures: load them in batches, not one by one
 public class Product {
 
     @Id

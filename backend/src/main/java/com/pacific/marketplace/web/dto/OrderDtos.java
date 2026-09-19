@@ -39,11 +39,14 @@ public final class OrderDtos {
         }
     }
 
+    /** imageUrl and categoryName come from the product as it is now (name and price are the order's own snapshot). */
     public record OrderItemDto(Long productId, String productName, BigDecimal unitPrice, int quantity,
-                               BigDecimal lineTotal) {
+                               BigDecimal lineTotal, String imageUrl, String categoryName) {
         static OrderItemDto from(OrderItem i) {
-            return new OrderItemDto(i.getProduct().getId(), i.getProductName(), i.getUnitPrice(), i.getQuantity(),
-                    i.lineTotal());
+            var product = i.getProduct();
+            return new OrderItemDto(product.getId(), i.getProductName(), i.getUnitPrice(), i.getQuantity(),
+                    i.lineTotal(), product.getImageUrl(),
+                    product.getCategory() == null ? null : product.getCategory().getName());
         }
     }
 

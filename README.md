@@ -111,7 +111,7 @@ Sign-in pages: customers at `/login`, admins at `/admin/login` (an account only 
 ## Tests
 
 ```bash
-cd backend && mvn test        # 73 integration tests (H2 in MySQL mode): auth, stock/checkout, reviews, import, marketplace, card payments
+cd backend && mvn test        # 74 integration tests (H2 in MySQL mode): auth, stock/checkout, reviews, import, marketplace, card payments
 cd frontend && npm run typecheck && npm run build
 ```
 

@@ -140,7 +140,7 @@ body { background: var(--page-bg); }
 .footer-logo span { color: var(--accent); font-size: 15px; vertical-align: super; }
 
 /* ---------- ratings and prices ---------- */
-.rating-row { display: inline-flex; align-items: center; gap: 6px; }
+.stars-line { display: inline-flex; align-items: center; gap: 6px; }
 .stars-fill {
   font-size: 16px;
   letter-spacing: 1px;
@@ -420,3 +420,77 @@ body { background: var(--page-bg); }
 /* checkout: same gold call to action as the cart */
 .totals .submit-btn { background: var(--accent); color: #111; border: 1px solid #d99a3f; font-weight: 500; }
 .totals .submit-btn:hover:not(:disabled) { background: var(--accent-hover); transform: none; }
+
+/* ---------- orders ---------- */
+.orders-page { max-width: 1000px; margin: 0 auto; width: 100%; padding: 20px 24px 10px; display: flex; flex-direction: column; gap: 14px; }
+.orders-page h1 { margin: 0; font-size: 28px; font-weight: 500; }
+.orders-list, .order-group { display: flex; flex-direction: column; gap: 14px; }
+.order-group-note { font-size: 13px; color: #565959; }
+.order-card { background: #fff; border: 1px solid #d5d9d9; border-radius: 8px; overflow: hidden; }
+.order-head { display: flex; flex-wrap: wrap; gap: 8px 32px; background: #f0f2f2; border-bottom: 1px solid #d5d9d9; padding: 12px 18px; font-size: 13px; color: #565959; }
+.order-head > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.order-head span { text-transform: uppercase; font-size: 11px; letter-spacing: 0.02em; }
+.order-head b { color: #111; font-weight: 500; font-size: 14px; }
+.order-head a { color: var(--brand); text-decoration: none; }
+.order-head a:hover { text-decoration: underline; }
+.order-no { margin-left: auto; align-items: flex-end; text-align: right; }
+.order-body { display: grid; grid-template-columns: 1fr 210px; gap: 20px; padding: 16px 18px; }
+.order-body.single { grid-template-columns: 1fr; }
+.order-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.order-status { margin: 0; font-size: 18px; font-weight: 700; }
+.order-status.s-DELIVERED { color: #007600; }
+.order-status.s-CANCELLED { color: var(--price-red); }
+.order-status.s-AWAITING_PAYMENT { color: #b26a00; }
+.order-note { margin: 0; font-size: 13px; color: #565959; }
+.order-item { display: grid; grid-template-columns: 88px 1fr; gap: 16px; align-items: start; }
+.order-thumb { display: block; aspect-ratio: 1; background: #f7f7f7; border-radius: 6px; overflow: hidden; }
+.order-thumb svg, .order-thumb img { width: 100%; height: 100%; display: block; object-fit: contain; }
+.order-item-name { color: #111; text-decoration: none; font-size: 15px; line-height: 1.3; }
+.order-item-name:hover { color: var(--brand); text-decoration: underline; }
+.order-item-sub { font-size: 12px; color: #565959; margin-top: 3px; }
+.order-actions { display: flex; flex-direction: column; gap: 8px; align-self: start; }
+.side-btn { display: block; text-align: center; text-decoration: none; background: #fff; border: 1px solid #d5d9d9; border-radius: 999px; padding: 7px 14px; color: #111; font-size: 14px; box-shadow: 0 1px 2px rgba(15, 17, 17, 0.12); }
+.side-btn:hover:not(:disabled) { background: #f7fafa; }
+.side-btn:disabled { opacity: 0.55; cursor: default; }
+.order-detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 16px 18px; }
+.order-detail-grid h3 { margin: 0 0 6px; font-size: 15px; }
+.order-detail-grid address { font-style: normal; font-size: 14px; line-height: 1.5; }
+.order-detail-grid p { margin: 0; font-size: 14px; }
+.order-summary > div { display: flex; justify-content: space-between; font-size: 14px; padding: 2px 0; }
+.order-summary .grand { border-top: 1px solid #ddd; margin-top: 4px; padding-top: 6px; font-weight: 700; }
+.tracker { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tracker li { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: #767676; position: relative; text-align: center; }
+.tracker li:not(:first-child)::before { content: ''; position: absolute; top: 13px; right: 50%; width: 100%; height: 3px; background: #d5d9d9; z-index: 0; }
+.tracker li.done:not(:first-child)::before, .tracker li.now:not(:first-child)::before { background: #007600; }
+.tracker .dot { position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%; background: #d5d9d9; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+.tracker li.done .dot { background: #007600; }
+.tracker li.now .dot { background: var(--brand); box-shadow: 0 0 0 4px rgba(134, 7, 82, 0.18); }
+.tracker li.now, .tracker li.done { color: #111; font-weight: 500; }
+
+/* ---------- payment pages ---------- */
+.pay-wrap { padding: 40px 20px; display: grid; place-items: start center; }
+.pay-card { background: #fff; border: 1px solid #d5d9d9; border-radius: 10px; width: min(520px, 100%); padding: 32px 30px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.pay-card h1 { margin: 0; font-size: 26px; font-weight: 500; }
+.pay-card p { margin: 0; color: #565959; font-size: 15px; }
+.pay-icon { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 32px; font-weight: 700; color: #fff; }
+.pay-icon.ok { background: #007600; }
+.pay-icon.warn { background: #b26a00; }
+.pay-icon.off { background: #767676; }
+.pay-icon.wait { background: var(--brand); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .pay-icon.wait { animation: none; } }
+.pay-amount { display: flex; justify-content: space-between; align-self: stretch; background: #f3f3f3; border-radius: 8px; padding: 12px 16px; font-size: 16px; }
+.pay-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; align-self: stretch; }
+.pay-actions .link-plain { background: none; border: 0; padding: 6px; text-align: center; }
+.pay-card > .cart-btn { align-self: stretch; }
+.pay-card .test-banner { align-self: stretch; font-size: 13px; }
+
+@media (max-width: 820px) {
+  .order-body { grid-template-columns: 1fr; }
+  .order-detail-grid { grid-template-columns: 1fr; }
+  .order-no { margin-left: 0; align-items: flex-start; text-align: left; }
+  .orders-page { padding: 14px 12px; }
+}
+
+/* pages that still use the older image box (e.g. "unrated products") get the drawn pictures at full size */
+.image-container svg { width: 100%; height: 100%; display: block; }

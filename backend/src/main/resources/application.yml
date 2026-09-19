@@ -40,6 +40,19 @@ app:
     shipping-flat-rate: 3.99
     free-shipping-threshold: 50.00
     max-quantity-per-item: 10
+  # Where the storefront is served from; used to build links in payment redirects and emails.
+  public-url: ${PUBLIC_URL:http://localhost:5173}
+  payments:
+    # Unpaid card orders are cancelled (and their stock released) after this long. Stripe needs at least 30 minutes.
+    pending-expiry-minutes: 35
+    expiry-job: true
+    stripe:
+      # Leave the secret key empty to disable Stripe. Never commit real keys: set them as environment variables.
+      secret-key: ${STRIPE_SECRET_KEY:}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+      api-base: ${STRIPE_API_BASE:}
+    # A fake, clearly labelled test-mode payment page for local development. NEVER enable in production.
+    simulator-enabled: ${PAYMENTS_SIMULATOR_ENABLED:false}
   # Optional: creates this admin at startup if no admin exists yet (fresh installs).
   admin-bootstrap:
     username: ${ADMIN_USERNAME:}

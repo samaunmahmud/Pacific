@@ -34,8 +34,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(attributePaths = {"user", "seller"})
     Page<Order> findByStatus(OrderStatus status, Pageable pageable);
 
+    /** A seller's orders, leaving out card orders that haven't been paid yet. */
     @EntityGraph(attributePaths = {"user", "seller"})
-    Page<Order> findBySellerId(Long sellerId, Pageable pageable);
+    Page<Order> findBySellerIdAndStatusNot(Long sellerId, OrderStatus excluded, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"items", "user", "seller"})
+    List<Order> findByCheckoutRef(String checkoutRef);
 
     @EntityGraph(attributePaths = {"user", "seller"})
     Page<Order> findBySellerIdAndStatus(Long sellerId, OrderStatus status, Pageable pageable);
@@ -45,11 +49,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countBySellerIdAndStatus(Long sellerId, OrderStatus status);
 
     @Query("select coalesce(sum(o.total), 0) from Order o where o.seller.id = :sellerId "
-            + "and o.status <> com.pacific.marketplace.domain.OrderStatus.CANCELLED")
+            + "and o.status not in (com.pacific.marketplace.domain.OrderStatus.CANCELLED, com.pacific.marketplace.domain.OrderStatus.AWAITING_PAYMENT)")
     BigDecimal grossSalesForSeller(@Param("sellerId") Long sellerId);
 
     long countByStatus(OrderStatus status);
 
-    @Query("select coalesce(sum(o.total), 0) from Order o where o.status <> com.pacific.marketplace.domain.OrderStatus.CANCELLED")
+    @Query("select coalesce(sum(o.total), 0) from Order o where o.status not in (com.pacific.marketplace.domain.OrderStatus.CANCELLED, com.pacific.marketplace.domain.OrderStatus.AWAITING_PAYMENT)")
     BigDecimal totalRevenue();
 }

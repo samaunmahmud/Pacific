@@ -3,12 +3,12 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Order } from '../api/types';
 import { useCart } from '../cart/CartContext';
-import { dateTime, money } from '../ui/format';
+import { dateTime, money, statusLabel } from '../ui/format';
 import { useToast } from '../ui/Toast';
 import { useAsync } from '../ui/useAsync';
 
 export function StatusPill({ status }: { status: string }) {
-  return <span className={`status-pill status-${status}`}>{status.charAt(0) + status.slice(1).toLowerCase()}</span>;
+  return <span className={`status-pill status-${status}`}>{statusLabel(status)}</span>;
 }
 
 /** Orders from one checkout are shown together, since a basket with several sellers becomes several orders. */
@@ -66,12 +66,12 @@ export function OrderDetail() {
   const justPlaced = (location.state as { placed?: number } | null)?.placed;
 
   async function cancel() {
-    if (!window.confirm('Cancel this order?')) return;
+    if (!window.confirm(data?.paymentMethod === 'CARD' ? 'Cancel this order? The amount for this order will be refunded to your card.' : 'Cancel this order?')) return;
     setBusy(true);
     try {
       const updated = await api<Order>(`/orders/${id}/cancel`, { method: 'POST' });
       setData(() => updated);
-      toast.show('Order cancelled');
+      toast.show(updated.paymentMethod === 'CARD' ? 'Order cancelled. Your refund is on its way.' : 'Order cancelled');
     } catch (e) {
       toast.show(e instanceof Error ? e.message : 'Could not cancel the order.', 'error');
     } finally {
@@ -93,10 +93,17 @@ export function OrderDetail() {
         <StatusPill status={o.status} />
       </div>
       {justPlaced && <div className="notice ok" role="status">Thank you! Your order has been placed. You'll pay on delivery.</div>}
+      {o.status === 'AWAITING_PAYMENT' && o.checkoutRef && (
+        <div className="notice" role="status">
+          This order is waiting for your card payment. Your items are reserved for a short time.{' '}
+          <Link to={`/pay/return?ref=${o.checkoutRef}`}><b>Complete payment</b></Link>
+        </div>
+      )}
       <div className="square-review-box static stack">
         <div className="muted">
           Placed {dateTime(o.createdAt)} · Sold and shipped by{' '}
           {o.sellerSlug ? <Link to={`/sellers/${o.sellerSlug}`}>{o.sellerName}</Link> : <b>{o.sellerName}</b>}
+          {' · '}Payment: {o.paymentMethod === 'CARD' ? 'card' : 'on delivery'}
         </div>
         {o.items.map((i) => (
           <div key={i.productId} className="row">

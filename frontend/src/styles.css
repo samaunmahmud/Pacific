@@ -578,6 +578,7 @@ table.data tr:hover td { background: #fdf8fa; }
 .form-field { display: flex; flex-direction: column; gap: 6px; }
 
 .status-pill { display: inline-block; border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: bold; background: var(--line); color: #555; }
+.status-AWAITING_PAYMENT { background: #fff4e0; color: #b26a00; }
 .status-PLACED { background: #fff4e0; color: #b26a00; }
 .status-PROCESSING { background: #e3f0fd; color: #1565c0; }
 .status-SHIPPED { background: var(--blush-soft); color: var(--brand-dark); }
@@ -701,3 +702,10 @@ table.data tr:hover td { background: #fdf8fa; }
 @media (max-width: 860px) {
   .perk-grid { grid-template-columns: 1fr; }
 }
+
+/* Card payment */
+.pay-options { display: flex; flex-direction: column; gap: 8px; }
+.pay-option { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; cursor: pointer; background: #fff; }
+.pay-option input { margin-top: 3px; }
+.pay-option.selected { border-color: var(--brand-dark); background: var(--blush); }
+.test-banner { background: #fff4e0; color: #8a5200; border: 2px dashed #e0a030; border-radius: 10px; padding: 12px 14px; font-weight: bold; }

@@ -1,5 +1,6 @@
 package com.pacific.marketplace.web;
 
+import com.pacific.marketplace.payment.PaymentGateway;
 import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -27,6 +28,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ErrorResponse> handleApi(ApiException e) {
         return respond(e.getStatus(), e.getMessage(), Map.of());
+    }
+
+    /** The payment provider couldn't be reached or refused a request; nothing has been charged or refunded. */
+    @ExceptionHandler(PaymentGateway.GatewayException.class)
+    ResponseEntity<ErrorResponse> handleGateway(PaymentGateway.GatewayException e) {
+        log.warn("Payment provider error: {}", e.getMessage());
+        return respond(HttpStatus.BAD_GATEWAY, "The payment provider isn't responding. Please try again in a moment.",
+                Map.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

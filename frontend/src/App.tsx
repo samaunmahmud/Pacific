@@ -8,6 +8,8 @@ import { Checkout } from './pages/Checkout';
 import { Home } from './pages/Home';
 import { MyReviews, UnratedProducts } from './pages/MyReviews';
 import { OrderDetail, OrdersPage } from './pages/Orders';
+import { PayReturn } from './pages/PayReturn';
+import { PaySimulate } from './pages/PaySimulate';
 import { ProductDetail } from './pages/ProductDetail';
 import { ReviewForm } from './pages/ReviewForm';
 import { Sell } from './pages/Sell';
@@ -51,6 +53,8 @@ export default function App() {
           <Route path="checkout" element={<Checkout />} />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/:id" element={<OrderDetail />} />
+          <Route path="pay/return" element={<PayReturn />} />
+          <Route path="pay/simulate/:ref" element={<PaySimulate />} />
           <Route path="wishlist" element={<WishlistPage />} />
           <Route path="account/reviews" element={<MyReviews />} />
           <Route path="account/unrated" element={<UnratedProducts />} />

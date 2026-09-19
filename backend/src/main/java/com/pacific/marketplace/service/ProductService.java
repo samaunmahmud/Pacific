@@ -48,10 +48,31 @@ public class ProductService {
         };
     }
 
+    /** Optional narrowing for storefront searches: a price range and a minimum average rating. */
+    public record Filters(BigDecimal minPrice, BigDecimal maxPrice, Double minRating) {
+        public static final Filters NONE = new Filters(null, null, null);
+    }
+
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> search(String q, String categorySlug, String sellerSlug, boolean dealsOnly,
                                            String sort, int page, int size) {
+        return search(q, categorySlug, sellerSlug, dealsOnly, Filters.NONE, sort, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ProductDto> search(String q, String categorySlug, String sellerSlug, boolean dealsOnly,
+                                           Filters filters, String sort, int page, int size) {
         Specification<Product> spec = storefront();
+        if (filters.minPrice() != null) {
+            spec = spec.and((root, cq, cb) -> cb.greaterThanOrEqualTo(root.<BigDecimal>get("price"), filters.minPrice()));
+        }
+        if (filters.maxPrice() != null) {
+            spec = spec.and((root, cq, cb) -> cb.lessThanOrEqualTo(root.<BigDecimal>get("price"), filters.maxPrice()));
+        }
+        if (filters.minRating() != null) {
+            BigDecimal min = BigDecimal.valueOf(filters.minRating());
+            spec = spec.and((root, cq, cb) -> cb.greaterThanOrEqualTo(root.<BigDecimal>get("ratingAvg"), min));
+        }
         String seller = Text.clean(sellerSlug);
         if (seller != null) spec = spec.and((root, cq, cb) -> cb.equal(root.get("seller").get("slug"), seller));
         if (dealsOnly) spec = spec.and((root, cq, cb) -> cb.greaterThan(root.<Integer>get("discountPercent"), 0));
@@ -240,6 +261,10 @@ public class ProductService {
             case "rating" -> {
                 orders.add(Sort.Order.desc("ratingAvg"));
                 orders.add(Sort.Order.desc("ratingCount"));
+            }
+            case "popular" -> { // most reviewed first: the closest thing we have to "best sellers"
+                orders.add(Sort.Order.desc("ratingCount"));
+                orders.add(Sort.Order.desc("ratingAvg"));
             }
             case "discount" -> orders.add(Sort.Order.desc("discountPercent"));
             case "name" -> orders.add(Sort.Order.asc("name"));

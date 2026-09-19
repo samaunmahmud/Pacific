@@ -70,6 +70,14 @@ pay-on-delivery only.
 - No Stripe account yet? Set `PAYMENTS_SIMULATOR_ENABLED=true` for a fake "payment page" with Pay and Cancel buttons.
   It moves no money and is refused alongside a live Stripe key.
 
+## Demo data (development only)
+
+An empty shop looks empty. Start the API with `DEMO_DATA=true` to fill it with **154 invented products** in 13
+categories from 8 stores, 41 shoppers and about 2,500 reviews (with deals, low stock and back-dated timestamps).
+Product pictures are drawn in the browser, so nothing is downloaded. It only *adds* data, runs once per database, and
+leaves your own products, users and orders alone. All brands and people are made up. It creates one account you can
+sign in with, `demo.shopper@example.com` / `Demo-Pacific-123`, so **never enable it against a real shop**.
+
 ## Run it locally
 
 Prerequisites: JDK 21, Maven, Node 20+, MySQL 8.
@@ -103,7 +111,7 @@ Sign-in pages: customers at `/login`, admins at `/admin/login` (an account only 
 ## Tests
 
 ```bash
-cd backend && mvn test        # 69 integration tests (H2 in MySQL mode): auth, stock/checkout, reviews, import, marketplace, card payments
+cd backend && mvn test        # 74 integration tests (H2 in MySQL mode): auth, stock/checkout, reviews, import, marketplace, card payments
 cd frontend && npm run typecheck && npm run build
 ```
 

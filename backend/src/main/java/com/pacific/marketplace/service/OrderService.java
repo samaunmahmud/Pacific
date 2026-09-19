@@ -3,6 +3,7 @@ package com.pacific.marketplace.service;
 import com.pacific.marketplace.domain.CartItem;
 import com.pacific.marketplace.domain.Order;
 import com.pacific.marketplace.domain.OrderStatus;
+import com.pacific.marketplace.domain.PaymentMethod;
 import com.pacific.marketplace.domain.Product;
 import com.pacific.marketplace.domain.SellerProfile;
 import com.pacific.marketplace.domain.ShippingAddress;
@@ -14,6 +15,7 @@ import com.pacific.marketplace.web.ApiException;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutRequest;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutResponse;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
+import com.pacific.marketplace.web.dto.PaymentDtos.PaymentDto;
 import com.pacific.marketplace.web.dto.PageResponse;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -40,10 +42,11 @@ public class OrderService {
     private final SettingsService settings;
     private final LedgerService ledger;
     private final OrderCancellation cancellation;
+    private final PaymentService payments;
 
     public OrderService(OrderRepository orders, CartItemRepository cart, ProductRepository products,
                         UserRepository users, ShopPricing pricing, SettingsService settings, LedgerService ledger,
-                        OrderCancellation cancellation) {
+                        OrderCancellation cancellation, PaymentService payments) {
         this.orders = orders;
         this.cart = cart;
         this.products = products;
@@ -52,6 +55,7 @@ public class OrderService {
         this.settings = settings;
         this.ledger = ledger;
         this.cancellation = cancellation;
+        this.payments = payments;
     }
 
     /**
@@ -61,6 +65,9 @@ public class OrderService {
      */
     @Transactional
     public CheckoutResponse checkout(Long userId, CheckoutRequest req) {
+        boolean card = req.paymentMethod() == PaymentMethod.CARD;
+        if (card) payments.requireCardAvailable(); // before any stock is reserved
+
         List<CartItem> items = cart.findByUserIdOrderById(userId);
         if (items.isEmpty()) throw ApiException.badRequest("Your cart is empty.");
 
@@ -96,6 +103,11 @@ public class OrderService {
             // the commission rate is fixed now, so later rate changes don't alter this order
             Order order = new Order(users.getReferenceById(userId), address, seller, ref,
                     seller == null ? null : settings.effectiveCommission(seller));
+            if (card) {
+                // Stock is reserved, but it is not a purchase (or visible to the seller) until it is paid.
+                order.setStatus(OrderStatus.AWAITING_PAYMENT);
+                order.setPaymentMethod(PaymentMethod.CARD.name());
+            }
             BigDecimal subtotal = BigDecimal.ZERO;
             for (CartItem item : group) {
                 Product p = item.getProduct();
@@ -109,7 +121,10 @@ public class OrderService {
             grandTotal = grandTotal.add(order.getTotal());
         }
         cart.deleteAllForUser(userId);
-        return new CheckoutResponse(ref, created, grandTotal);
+        // The payment is recorded in the same transaction as the orders; the provider is contacted afterwards.
+        PaymentDto payment = card
+                ? PaymentDto.from(payments.createPending(users.getReferenceById(userId), ref, grandTotal)) : null;
+        return new CheckoutResponse(ref, created, grandTotal, payment);
     }
 
     @Transactional(readOnly = true)
@@ -196,6 +211,7 @@ public class OrderService {
 
     private void cancel(Order order) {
         cancellation.cancel(order);
+        payments.refundOrder(order); // a paid card order gets its money back
     }
 
     private static boolean belongsTo(Order order, Long sellerId) {

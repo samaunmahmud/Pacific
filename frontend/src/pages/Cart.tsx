@@ -1,20 +1,35 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import type { CartItem } from '../api/types';
 import { useCart } from '../cart/CartContext';
+import { useWishlist } from '../cart/WishlistContext';
+import { MoneyBig } from '../components/Price';
 import { ProductImage } from '../components/ProductImage';
+import { RecentlyViewed } from '../components/RecentlyViewed';
 import { money } from '../ui/format';
 import { useToast } from '../ui/Toast';
 
+const MAX_PER_ITEM = 10; // matches the server's per-item limit
+
+/** Quantities the dropdown offers: up to the stock (and the per-item limit), always including what's in the cart. */
+function quantityOptions(item: CartItem): number[] {
+  const max = Math.max(Math.min(item.stock, MAX_PER_ITEM), 1);
+  const options = Array.from({ length: max }, (_, n) => n + 1);
+  return options.includes(item.quantity) ? options : [...options, item.quantity].sort((a, b) => a - b);
+}
+
 export function CartPage() {
   const { cart, setQuantity, remove } = useCart();
+  const wishlist = useWishlist();
   const navigate = useNavigate();
   const toast = useToast();
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  async function run(id: number, fn: () => Promise<void>) {
+  async function run(id: number, fn: () => Promise<void>, done?: string) {
     setBusyId(id);
     try {
       await fn();
+      if (done) toast.show(done);
     } catch (e) {
       toast.show(e instanceof Error ? e.message : 'Could not update your cart.', 'error');
     } finally {
@@ -22,70 +37,113 @@ export function CartPage() {
     }
   }
 
+  async function saveForLater(item: CartItem) {
+    if (!wishlist.has(item.productId)) await wishlist.toggle(item.productId);
+    await remove(item.productId);
+  }
+
   if (!cart) return <div className="loading">Loading…</div>;
 
   if (cart.items.length === 0) {
     return (
-      <div className="page page-narrow">
-        <h1 className="page-title">Your cart</h1>
-        <div className="empty">
-          <p>Your cart is empty.</p>
-          <Link className="submit-btn" to="/products">Start shopping</Link>
+      <div className="cart-page-wrap">
+        <div className="cart-empty">
+          <div className="cart-empty-art" aria-hidden="true">🛒</div>
+          <div>
+            <h1>Your Pacific cart is empty</h1>
+            <p>Add things you'd like to buy and they'll wait for you here.</p>
+            <div className="row-wrap">
+              <Link className="cart-btn big link-btn" to="/products">Continue shopping</Link>
+              <Link className="link-plain" to="/deals">See today's deals</Link>
+            </div>
+          </div>
         </div>
+        <RecentlyViewed />
       </div>
     );
   }
 
+  const overStock = cart.items.some((i) => i.quantity > i.stock);
+  const multiple = cart.shipments.length > 1;
+
   return (
-    <div className="page">
-      <h1 className="page-title">Your cart</h1>
-      <div className="two-col">
-        <div className="stack">
+    <div className="cart-page-wrap">
+      <div className="cart-page">
+        <section className="cart-main" aria-label="Items in your cart">
+          <div className="cart-head">
+            <h1>Shopping cart</h1>
+            <span className="cart-price-h">Price</span>
+          </div>
+
           {cart.shipments.map((ship) => {
+            const lines = cart.items.filter((i) => i.sellerName === ship.sellerName);
+            const units = lines.reduce((n, i) => n + i.quantity, 0);
             const toFree = Math.max(0, cart.freeShippingThreshold - ship.subtotal);
             return (
-              <div key={ship.sellerName} className="square-review-box static">
-                <div className="row-wrap" style={{ marginBottom: 12 }}>
+              <div key={ship.sellerName} className="cart-box">
+                <div className="cart-seller">
                   <span>Sold and shipped by{' '}
-                    {ship.sellerSlug ? <Link to={`/sellers/${ship.sellerSlug}`} style={{ fontWeight: 'bold' }}>{ship.sellerName}</Link> : <b>{ship.sellerName}</b>}
+                    {ship.sellerSlug ? <Link to={`/sellers/${ship.sellerSlug}`}>{ship.sellerName}</Link> : <b>{ship.sellerName}</b>}
                   </span>
-                  <span className="spacer" />
-                  <span className="muted">Shipping: {ship.shipping === 0 ? 'FREE' : money(ship.shipping)}</span>
+                  <span className="cart-delivery">{ship.shipping === 0 ? <b className="free-delivery">FREE delivery</b> : <>Delivery {money(ship.shipping)}</>}</span>
                 </div>
-                {cart.items.filter((i) => i.sellerName === ship.sellerName).map((i) => (
-                  <div key={i.productId} className="cart-line">
-                    <Link to={`/products/${i.productId}`} className="thumb" style={{ width: 90, height: 90 }} aria-label={i.name}>
-                      <ProductImage imageUrl={i.imageUrl} categoryName={i.categoryName} alt={i.name} />
-                    </Link>
-                    <div>
-                      <Link to={`/products/${i.productId}`} className="product-title-text" style={{ textDecoration: 'none' }}>{i.name}</Link>
-                      <div className="muted">{money(i.unitPrice)} each</div>
-                      {i.quantity > i.stock && <div className="error-text">Only {i.stock} left in stock</div>}
-                      <button className="report-link" onClick={() => run(i.productId, () => remove(i.productId))} disabled={busyId === i.productId}>Remove</button>
+
+                {lines.map((i) => {
+                  const busy = busyId === i.productId;
+                  return (
+                    <div key={i.productId} className={`cart-item ${busy ? 'busy' : ''}`}>
+                      <Link to={`/products/${i.productId}`} className="cart-thumb" aria-label={i.name}>
+                        <ProductImage imageUrl={i.imageUrl} categoryName={i.categoryName} alt={i.name} />
+                      </Link>
+                      <div className="cart-item-info">
+                        <Link to={`/products/${i.productId}`} className="cart-item-title">{i.name}</Link>
+                        {i.stock === 0 ? <div className="bb-stock out">Currently unavailable</div>
+                          : i.quantity > i.stock ? <div className="bb-stock out">Only {i.stock} left in stock. Please lower the quantity.</div>
+                          : i.stock <= 5 ? <div className="bb-stock low">Only {i.stock} left in stock</div>
+                          : <div className="bb-stock in">In stock</div>}
+                        <div className="cart-item-sub">{money(i.unitPrice)} each</div>
+                        <div className="cart-actions">
+                          <label className="bb-qty">
+                            <span>Qty:</span>
+                            <select value={i.quantity} disabled={busy} aria-label={`Quantity of ${i.name}`}
+                              onChange={(e) => run(i.productId, () => setQuantity(i.productId, Number(e.target.value)))}>
+                              {quantityOptions(i).map((n) => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                          </label>
+                          <button className="cart-link-btn" disabled={busy} onClick={() => run(i.productId, () => remove(i.productId))}>Delete</button>
+                          <button className="cart-link-btn" disabled={busy} onClick={() => run(i.productId, () => saveForLater(i), 'Saved to your wish list')}>Save for later</button>
+                        </div>
+                      </div>
+                      <div className="cart-item-price"><MoneyBig amount={i.lineTotal} /></div>
                     </div>
-                    <div className="qty" aria-label={`Quantity of ${i.name}`}>
-                      <button onClick={() => run(i.productId, () => setQuantity(i.productId, i.quantity - 1))} disabled={busyId === i.productId} aria-label="Decrease">−</button>
-                      <span>{i.quantity}</span>
-                      <button onClick={() => run(i.productId, () => setQuantity(i.productId, i.quantity + 1))} disabled={busyId === i.productId || i.quantity >= Math.min(i.stock, 10)} aria-label="Increase">+</button>
-                    </div>
-                    <div className="product-price" style={{ minWidth: 80, textAlign: 'right' }}>{money(i.lineTotal)}</div>
-                  </div>
-                ))}
-                {toFree > 0 && <div className="notice" style={{ marginTop: 12 }}>Add {money(toFree)} more from {ship.sellerName} for free shipping.</div>}
+                  );
+                })}
+
+                <div className="cart-seller-sub">
+                  Subtotal ({units} item{units === 1 ? '' : 's'}): <b>{money(ship.subtotal)}</b>
+                </div>
+                {toFree > 0 && <div className="cart-nudge">Add {money(toFree)} more from {ship.sellerName} for <b>FREE delivery</b>.</div>}
               </div>
             );
           })}
-        </div>
+        </section>
 
-        <aside className="square-review-box static totals" aria-label="Order summary">
-          <h2 style={{ margin: 0 }}>Order summary</h2>
-          <div className="line"><span>Subtotal ({cart.itemCount} item{cart.itemCount === 1 ? '' : 's'})</span><span>{money(cart.subtotal)}</span></div>
-          <div className="line"><span>Shipping</span><span>{cart.shipping === 0 ? 'FREE' : money(cart.shipping)}</span></div>
-          {cart.shipments.length > 1 && <div className="notice">This will be placed as {cart.shipments.length} separate orders, one per seller.</div>}
-          <div className="line grand"><span>Total</span><span>{money(cart.total)}</span></div>
-          <button className="submit-btn block" onClick={() => navigate('/checkout')}>Proceed to checkout</button>
+        <aside className="cart-summary" aria-label="Order summary">
+          {cart.shipping === 0 && <div className="cart-free">✓ Your order qualifies for <b>FREE delivery</b>.</div>}
+          <div className="cart-sub-line">
+            Subtotal ({cart.itemCount} item{cart.itemCount === 1 ? '' : 's'}): <MoneyBig amount={cart.subtotal} />
+          </div>
+          <div className="cart-sum-rows">
+            <div><span>Delivery</span><span>{cart.shipping === 0 ? 'FREE' : money(cart.shipping)}</span></div>
+            <div className="grand"><span>Order total</span><span>{money(cart.total)}</span></div>
+          </div>
+          {multiple && <div className="cart-note">Your items come from {cart.shipments.length} sellers, so this will be placed as {cart.shipments.length} separate orders.</div>}
+          {overStock && <div className="cart-note warn" role="alert">Some items have less stock than you've chosen. Update the quantities to continue.</div>}
+          <button className="cart-btn big" onClick={() => navigate('/checkout')} disabled={overStock}>Proceed to checkout</button>
+          <Link to="/products" className="link-plain center">Continue shopping</Link>
         </aside>
       </div>
+      <RecentlyViewed />
     </div>
   );
 }

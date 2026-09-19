@@ -117,6 +117,7 @@ public class SellerService {
         Map<OrderStatus, Long> byStatus = new EnumMap<>(OrderStatus.class);
         long total = 0;
         for (OrderStatus s : OrderStatus.values()) {
+            if (s == OrderStatus.AWAITING_PAYMENT) continue; // unpaid card orders aren't the seller's business yet
             long n = orders.countBySellerIdAndStatus(sellerId, s);
             byStatus.put(s, n);
             total += n;

@@ -15,6 +15,8 @@ public record AppProperties(
         @Valid Cors cors,
         @Valid Reviews reviews,
         @Valid Shop shop,
+        String publicUrl,
+        @Valid Payments payments,
         AdminBootstrap adminBootstrap,
         LegacyImport legacyImport) {
 
@@ -30,6 +32,14 @@ public record AppProperties(
 
     public record Shop(String currency, BigDecimal shippingFlatRate, BigDecimal freeShippingThreshold,
                        int maxQuantityPerItem) {
+    }
+
+    public record Payments(int pendingExpiryMinutes, boolean expiryJob, Stripe stripe, boolean simulatorEnabled) {
+        public record Stripe(String secretKey, String webhookSecret, String apiBase) {
+            public boolean configured() {
+                return secretKey != null && !secretKey.isBlank();
+            }
+        }
     }
 
     public record AdminBootstrap(String username, String password) {

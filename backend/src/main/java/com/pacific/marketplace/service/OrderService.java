@@ -2,8 +2,8 @@ package com.pacific.marketplace.service;
 
 import com.pacific.marketplace.domain.CartItem;
 import com.pacific.marketplace.domain.Order;
-import com.pacific.marketplace.domain.OrderItem;
 import com.pacific.marketplace.domain.OrderStatus;
+import com.pacific.marketplace.domain.PaymentMethod;
 import com.pacific.marketplace.domain.Product;
 import com.pacific.marketplace.domain.SellerProfile;
 import com.pacific.marketplace.domain.ShippingAddress;
@@ -15,6 +15,7 @@ import com.pacific.marketplace.web.ApiException;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutRequest;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutResponse;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
+import com.pacific.marketplace.web.dto.PaymentDtos.PaymentDto;
 import com.pacific.marketplace.web.dto.PageResponse;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -40,9 +42,12 @@ public class OrderService {
     private final ShopPricing pricing;
     private final SettingsService settings;
     private final LedgerService ledger;
+    private final OrderCancellation cancellation;
+    private final PaymentService payments;
 
     public OrderService(OrderRepository orders, CartItemRepository cart, ProductRepository products,
-                        UserRepository users, ShopPricing pricing, SettingsService settings, LedgerService ledger) {
+                        UserRepository users, ShopPricing pricing, SettingsService settings, LedgerService ledger,
+                        OrderCancellation cancellation, PaymentService payments) {
         this.orders = orders;
         this.cart = cart;
         this.products = products;
@@ -50,6 +55,8 @@ public class OrderService {
         this.pricing = pricing;
         this.settings = settings;
         this.ledger = ledger;
+        this.cancellation = cancellation;
+        this.payments = payments;
     }
 
     /**
@@ -59,6 +66,9 @@ public class OrderService {
      */
     @Transactional
     public CheckoutResponse checkout(Long userId, CheckoutRequest req) {
+        boolean card = req.paymentMethod() == PaymentMethod.CARD;
+        if (card) payments.requireCardAvailable(); // before any stock is reserved
+
         List<CartItem> items = cart.findByUserIdOrderById(userId);
         if (items.isEmpty()) throw ApiException.badRequest("Your cart is empty.");
 
@@ -94,6 +104,11 @@ public class OrderService {
             // the commission rate is fixed now, so later rate changes don't alter this order
             Order order = new Order(users.getReferenceById(userId), address, seller, ref,
                     seller == null ? null : settings.effectiveCommission(seller));
+            if (card) {
+                // Stock is reserved, but it is not a purchase (or visible to the seller) until it is paid.
+                order.setStatus(OrderStatus.AWAITING_PAYMENT);
+                order.setPaymentMethod(PaymentMethod.CARD.name());
+            }
             BigDecimal subtotal = BigDecimal.ZERO;
             for (CartItem item : group) {
                 Product p = item.getProduct();
@@ -107,7 +122,10 @@ public class OrderService {
             grandTotal = grandTotal.add(order.getTotal());
         }
         cart.deleteAllForUser(userId);
-        return new CheckoutResponse(ref, created, grandTotal);
+        // The payment is recorded in the same transaction as the orders; the provider is contacted afterwards.
+        PaymentDto payment = card
+                ? PaymentDto.from(payments.createPending(users.getReferenceById(userId), ref, grandTotal)) : null;
+        return new CheckoutResponse(ref, created, grandTotal, payment);
     }
 
     @Transactional(readOnly = true)
@@ -136,20 +154,23 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public PageResponse<OrderDto> sellerList(Long sellerId, OrderStatus status, int page, int size) {
-        var result = status == null ? orders.findBySellerId(sellerId, pageable(page, size))
+        if (status == OrderStatus.AWAITING_PAYMENT) { // unpaid card orders stay invisible to sellers
+            return PageResponse.of(Page.empty(pageable(page, size)), OrderDto::from);
+        }
+        var result = status == null ? orders.findBySellerIdAndStatusNot(sellerId, OrderStatus.AWAITING_PAYMENT, pageable(page, size))
                 : orders.findBySellerIdAndStatus(sellerId, status, pageable(page, size));
         return PageResponse.of(result, OrderDto::from);
     }
 
     @Transactional(readOnly = true)
     public OrderDto sellerGet(Long sellerId, Long orderId) {
-        return orders.findWithItemsById(orderId).filter(o -> belongsTo(o, sellerId)).map(OrderDto::from)
+        return orders.findWithItemsById(orderId).filter(o -> visibleToSeller(o, sellerId)).map(OrderDto::from)
                 .orElseThrow(() -> ApiException.notFound("Order not found."));
     }
 
     @Transactional
     public OrderDto sellerSetStatus(Long sellerId, Long orderId, OrderStatus next) {
-        Order order = orders.lockById(orderId).filter(o -> belongsTo(o, sellerId))
+        Order order = orders.lockById(orderId).filter(o -> visibleToSeller(o, sellerId))
                 .orElseThrow(() -> ApiException.notFound("Order not found."));
         transition(order, next);
         return OrderDto.from(order);
@@ -193,14 +214,17 @@ public class OrderService {
     }
 
     private void cancel(Order order) {
-        order.setStatus(OrderStatus.CANCELLED);
-        for (OrderItem item : order.getItems()) {
-            products.incrementStock(item.getProduct().getId(), item.getQuantity());
-        }
+        cancellation.cancel(order);
+        payments.refundOrder(order); // a paid card order gets its money back
     }
 
     private static boolean belongsTo(Order order, Long sellerId) {
         return order.getSeller() != null && order.getSeller().getId().equals(sellerId);
+    }
+
+    /** A seller's own order, once it is real: card orders that haven't been paid yet don't exist for the seller. */
+    private static boolean visibleToSeller(Order order, Long sellerId) {
+        return belongsTo(order, sellerId) && order.getStatus() != OrderStatus.AWAITING_PAYMENT;
     }
 
     private static PageRequest pageable(int page, int size) {

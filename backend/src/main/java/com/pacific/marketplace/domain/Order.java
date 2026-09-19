@@ -106,6 +106,7 @@ public class Order {
     public BigDecimal getShipping() { return shipping; }
     public BigDecimal getTotal() { return total; }
     public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
     public ShippingAddress getAddress() { return address; }
     public List<OrderItem> getItems() { return items; }
     public Instant getCreatedAt() { return createdAt; }

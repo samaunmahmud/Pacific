@@ -1,5 +1,5 @@
 export type Role = 'CUSTOMER' | 'ADMIN';
-export type OrderStatus = 'PLACED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+export type OrderStatus = 'AWAITING_PAYMENT' | 'PLACED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 export type VoteType = 'HELPFUL' | 'UNHELPFUL';
 export type ReviewStatus = 'VISIBLE' | 'FLAGGED';
 export type SellerStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
@@ -178,10 +178,32 @@ export interface ProductInput {
   active: boolean;
 }
 
+export type PaymentMethod = 'PAY_ON_DELIVERY' | 'CARD';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+
+/** One card payment, covering every order of a checkout. checkoutUrl is only set while it can still be paid. */
+export interface Payment {
+  ref: string;
+  status: PaymentStatus;
+  provider: 'STRIPE' | 'SIMULATOR';
+  amount: number;
+  currency: string;
+  checkoutUrl: string | null;
+  expiresAt: string;
+  refundedAmount: number;
+  simulator: boolean;
+}
+
+export interface PaymentConfig {
+  cardEnabled: boolean;
+  simulator: boolean;
+}
+
 export interface CheckoutResponse {
   checkoutRef: string;
   orders: Order[];
   total: number;
+  payment: Payment | null;
 }
 
 export interface Seller {

@@ -3,12 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { Order, OrderStatus, Page } from '../../api/types';
 import { Pagination } from '../../components/Pagination';
-import { dateTime, money } from '../../ui/format';
+import { dateTime, money, statusLabel } from '../../ui/format';
 import { useToast } from '../../ui/Toast';
 import { useAsync } from '../../ui/useAsync';
 import { StatusPill } from '../Orders';
 
-const STATUSES: OrderStatus[] = ['PLACED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+const STATUSES: OrderStatus[] = ['AWAITING_PAYMENT', 'PLACED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
 function OrderRow({ order, onChanged, base }: { order: Order; onChanged: (o: Order) => void; base: 'admin' | 'seller' }) {
   const toast = useToast();
@@ -54,7 +54,7 @@ function OrderRow({ order, onChanged, base }: { order: Order; onChanged: (o: Ord
             <>
               <select className="pill-select compact" value={next} onChange={(e) => setNext(e.target.value as OrderStatus | '')} aria-label={`New status for order ${order.id}`}>
                 <option value="">Change status…</option>
-                {order.nextStatuses.map((s) => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
+                {order.nextStatuses.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
               </select>
               <button className="submit-btn" disabled={!next || busy} onClick={apply}>{busy ? 'Saving…' : 'Apply'}</button>
             </>
@@ -87,7 +87,7 @@ export function OrdersManager({ base }: { base: 'admin' | 'seller' }) {
       </div>
       <div className="row-wrap" role="group" aria-label="Filter by status">
         <button className={`chip ${!status ? 'active' : ''}`} onClick={() => update({ status: '' })}>All</button>
-        {STATUSES.map((s) => <button key={s} className={`chip ${status === s ? 'active' : ''}`} onClick={() => update({ status: s })}>{s.charAt(0) + s.slice(1).toLowerCase()}</button>)}
+        {STATUSES.map((s) => <button key={s} className={`chip ${status === s ? 'active' : ''}`} onClick={() => update({ status: s })}>{statusLabel(s)}</button>)}
       </div>
       {error && <div className="notice error">{error}</div>}
       {loading && !data ? <div className="loading">Loading…</div> : data && data.items.length === 0 ? <div className="empty">No orders here.</div> : (

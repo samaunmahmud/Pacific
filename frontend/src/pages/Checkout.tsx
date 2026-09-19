@@ -1,21 +1,27 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { CheckoutResponse } from '../api/types';
+import type { CheckoutResponse, PaymentConfig, PaymentMethod } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
 import { money } from '../ui/format';
+import { useAsync } from '../ui/useAsync';
 
 export function Checkout() {
   const { user } = useAuth();
   const { cart, refresh } = useCart();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: user?.name ?? '', line1: '', line2: '', city: '', postcode: '', country: 'United Kingdom' });
+  const [method, setMethod] = useState<PaymentMethod>('PAY_ON_DELIVERY');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // If this can't be loaded we simply don't offer card payment; pay on delivery always works.
+  const { data: config } = useAsync(() => api<PaymentConfig>('/payments/config').catch((): PaymentConfig => ({ cardEnabled: false, simulator: false })), []);
+  const cardEnabled = config?.cardEnabled ?? false;
+  const paying = cardEnabled && method === 'CARD';
 
   if (!cart) return <div className="loading">Loading…</div>;
-  if (cart.items.length === 0) return <Navigate to="/cart" replace />;
+  if (cart.items.length === 0 && !busy) return <Navigate to="/cart" replace />;
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
 
@@ -23,8 +29,21 @@ export function Checkout() {
     e.preventDefault();
     setError('');
     setBusy(true);
+    let leaving = false;
     try {
-      const result = await api<CheckoutResponse>('/orders', { method: 'POST', body: { ...form, line2: form.line2 || null } });
+      const result = await api<CheckoutResponse>('/orders', {
+        method: 'POST',
+        body: { ...form, line2: form.line2 || null, paymentMethod: paying ? 'CARD' : 'PAY_ON_DELIVERY' },
+      });
+      if (result.payment) {
+        // Card: the customer pays on the provider's own page, then comes back to /pay/return.
+        // Our servers never see card details.
+        leaving = true;
+        void refresh();
+        if (result.payment.checkoutUrl) window.location.assign(result.payment.checkoutUrl);
+        else navigate(`/pay/return?ref=${result.checkoutRef}`, { replace: true });
+        return;
+      }
       // Navigate first: refreshing the cart empties it, and an empty cart on this page redirects to /cart.
       // One seller -> straight to that order; several sellers -> the order list, which shows them together.
       if (result.orders.length === 1) navigate(`/orders/${result.orders[0].id}`, { replace: true, state: { placed: 1 } });
@@ -34,7 +53,7 @@ export function Checkout() {
       setError(err instanceof Error ? err.message : 'Could not place your order.');
       void refresh(); // stock may have changed; show the latest cart
     } finally {
-      setBusy(false);
+      if (!leaving) setBusy(false);
     }
   }
 
@@ -55,8 +74,24 @@ export function Checkout() {
             <div className="form-field"><label className="field-label small" htmlFor="postcode">Postcode</label><input id="postcode" className="rounded-input" value={form.postcode} onChange={set('postcode')} required maxLength={20} autoComplete="postal-code" /></div>
             <div className="form-field full"><label className="field-label small" htmlFor="country">Country</label><input id="country" className="rounded-input" value={form.country} onChange={set('country')} required maxLength={80} autoComplete="country-name" /></div>
           </div>
-          <div className="notice"><b>Payment:</b> pay on delivery. We don't take card payments online yet.</div>
-          {cart.shipments.length > 1 && <div className="notice">Your items come from {cart.shipments.length} sellers, so you'll get {cart.shipments.length} separate orders and deliveries.</div>}
+
+          <h2 style={{ margin: '8px 0 0' }}>Payment</h2>
+          {cardEnabled ? (
+            <div className="pay-options" role="radiogroup" aria-label="Payment method">
+              <label className={`pay-option ${method === 'PAY_ON_DELIVERY' ? 'selected' : ''}`}>
+                <input type="radio" name="method" checked={method === 'PAY_ON_DELIVERY'} onChange={() => setMethod('PAY_ON_DELIVERY')} />
+                <span><b>Pay on delivery</b><br /><span className="muted">Pay when your order arrives.</span></span>
+              </label>
+              <label className={`pay-option ${method === 'CARD' ? 'selected' : ''}`}>
+                <input type="radio" name="method" checked={method === 'CARD'} onChange={() => setMethod('CARD')} />
+                <span><b>Pay by card now</b><br /><span className="muted">You'll enter your card on a secure payment page. We never see your card details.</span></span>
+              </label>
+            </div>
+          ) : (
+            <div className="notice"><b>Payment:</b> pay on delivery.</div>
+          )}
+          {paying && config?.simulator && <div className="test-banner">Test mode: card payments are simulated. No real money is taken.</div>}
+          {cart.shipments.length > 1 && <div className="notice">Your items come from {cart.shipments.length} sellers, so you'll get {cart.shipments.length} separate orders and deliveries{paying ? ', paid for in one card payment' : ''}.</div>}
         </div>
 
         <aside className="square-review-box static totals" aria-label="Order summary">
@@ -74,7 +109,7 @@ export function Checkout() {
           <div className="line"><span>Shipping</span><span>{cart.shipping === 0 ? 'FREE' : money(cart.shipping)}</span></div>
           <div className="line grand"><span>Total</span><span>{money(cart.total)}</span></div>
           {error && <div className="notice error" role="alert">{error}</div>}
-          <button className="submit-btn block" disabled={busy}>{busy ? 'Placing order…' : 'Place order'}</button>
+          <button className="submit-btn block" disabled={busy}>{busy ? (paying ? 'Taking you to payment…' : 'Placing order…') : paying ? 'Continue to payment' : 'Place order'}</button>
         </aside>
       </form>
     </div>

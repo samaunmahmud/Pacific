@@ -17,3 +17,6 @@ export function minutesLeft(iso: string | null): number {
   if (!iso) return 0;
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 60000));
 }
+
+/** "AWAITING_PAYMENT" -> "Awaiting payment" */
+export const statusLabel = (status: string) => (status.charAt(0) + status.slice(1).toLowerCase()).replace(/_/g, ' ');

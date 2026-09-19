@@ -4,6 +4,7 @@ import com.pacific.marketplace.service.ProductService;
 import com.pacific.marketplace.web.dto.PageResponse;
 import com.pacific.marketplace.web.dto.ProductDtos.CategoryDto;
 import com.pacific.marketplace.web.dto.ProductDtos.ProductDto;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,10 +27,14 @@ public class CatalogController {
                                              @RequestParam(required = false) String category,
                                              @RequestParam(required = false) String seller,
                                              @RequestParam(defaultValue = "false") boolean deals,
+                                             @RequestParam(required = false) BigDecimal minPrice,
+                                             @RequestParam(required = false) BigDecimal maxPrice,
+                                             @RequestParam(required = false) Double minRating,
                                              @RequestParam(defaultValue = "newest") String sort,
                                              @RequestParam(defaultValue = "0") int page,
                                              @RequestParam(defaultValue = "12") int size) {
-        return products.search(q, category, seller, deals, sort, page, size);
+        return products.search(q, category, seller, deals, new ProductService.Filters(minPrice, maxPrice, minRating),
+                sort, page, size);
     }
 
     /** Used by the "recently viewed" strip (the ids live in the visitor's browser). */

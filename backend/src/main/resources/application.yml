@@ -53,6 +53,10 @@ app:
       api-base: ${STRIPE_API_BASE:}
     # A fake, clearly labelled test-mode payment page for local development. NEVER enable in production.
     simulator-enabled: ${PAYMENTS_SIMULATOR_ENABLED:false}
+  # Development only: fills an empty shop with ~150 invented products, stores, shoppers and reviews (DEMO_DATA=true).
+  # Adds data once, never touches yours, and creates a demo shopper account. NEVER enable against a real shop.
+  demo-data:
+    enabled: ${DEMO_DATA:false}
   # Optional: creates this admin at startup if no admin exists yet (fresh installs).
   admin-bootstrap:
     username: ${ADMIN_USERNAME:}

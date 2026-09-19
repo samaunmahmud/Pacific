@@ -2,7 +2,6 @@ package com.pacific.marketplace.service;
 
 import com.pacific.marketplace.domain.CartItem;
 import com.pacific.marketplace.domain.Order;
-import com.pacific.marketplace.domain.OrderItem;
 import com.pacific.marketplace.domain.OrderStatus;
 import com.pacific.marketplace.domain.Product;
 import com.pacific.marketplace.domain.SellerProfile;
@@ -40,9 +39,11 @@ public class OrderService {
     private final ShopPricing pricing;
     private final SettingsService settings;
     private final LedgerService ledger;
+    private final OrderCancellation cancellation;
 
     public OrderService(OrderRepository orders, CartItemRepository cart, ProductRepository products,
-                        UserRepository users, ShopPricing pricing, SettingsService settings, LedgerService ledger) {
+                        UserRepository users, ShopPricing pricing, SettingsService settings, LedgerService ledger,
+                        OrderCancellation cancellation) {
         this.orders = orders;
         this.cart = cart;
         this.products = products;
@@ -50,6 +51,7 @@ public class OrderService {
         this.pricing = pricing;
         this.settings = settings;
         this.ledger = ledger;
+        this.cancellation = cancellation;
     }
 
     /**
@@ -193,10 +195,7 @@ public class OrderService {
     }
 
     private void cancel(Order order) {
-        order.setStatus(OrderStatus.CANCELLED);
-        for (OrderItem item : order.getItems()) {
-            products.incrementStock(item.getProduct().getId(), item.getQuantity());
-        }
+        cancellation.cancel(order);
     }
 
     private static boolean belongsTo(Order order, Long sellerId) {

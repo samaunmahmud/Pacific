@@ -91,6 +91,24 @@ class PaymentFlowTest extends PaymentTestBase {
     }
 
     @Test
+    void anUnpaidCardOrderIsCompletelyInvisibleToTheSeller() throws Exception {
+        Seller seller = approvedSeller("Hidden Card Store");
+        Product p = sellerProduct(seller, "Vase", "25.00", 4);
+        String buyer = registerCustomer();
+        addToCart(buyer, p.getId(), 1);
+        long orderId = cardCheckout(buyer).get("orders").get(0).get("id").asLong();
+
+        // not by id (it would expose the customer's address), not by status filter, not by status change, not in stats
+        send(get("/api/seller/orders/" + orderId), seller.token(), null, 404);
+        send(patch("/api/seller/orders/" + orderId + "/status"), seller.token(), Map.of("status", "PROCESSING"), 404);
+        mvc.perform(bearer(get("/api/seller/orders").param("status", "AWAITING_PAYMENT"), seller.token()))
+                .andExpect(jsonPath("$.totalItems").value(0));
+        JsonNode stats = send(get("/api/seller/stats"), seller.token(), null, 200);
+        assertThat(stats.get("ordersByStatus").has("AWAITING_PAYMENT")).isFalse();
+        assertThat(stats.get("orderCount").asLong()).isZero();
+    }
+
+    @Test
     void oneCheckoutWithSeveralSellersIsOnePaymentForTheGrandTotal() throws Exception {
         Seller a = approvedSeller("Alpha Cards");
         Seller b = approvedSeller("Beta Cards");

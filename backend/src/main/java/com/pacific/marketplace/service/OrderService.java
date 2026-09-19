@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -153,6 +154,9 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public PageResponse<OrderDto> sellerList(Long sellerId, OrderStatus status, int page, int size) {
+        if (status == OrderStatus.AWAITING_PAYMENT) { // unpaid card orders stay invisible to sellers
+            return PageResponse.of(Page.empty(pageable(page, size)), OrderDto::from);
+        }
         var result = status == null ? orders.findBySellerIdAndStatusNot(sellerId, OrderStatus.AWAITING_PAYMENT, pageable(page, size))
                 : orders.findBySellerIdAndStatus(sellerId, status, pageable(page, size));
         return PageResponse.of(result, OrderDto::from);
@@ -160,13 +164,13 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public OrderDto sellerGet(Long sellerId, Long orderId) {
-        return orders.findWithItemsById(orderId).filter(o -> belongsTo(o, sellerId)).map(OrderDto::from)
+        return orders.findWithItemsById(orderId).filter(o -> visibleToSeller(o, sellerId)).map(OrderDto::from)
                 .orElseThrow(() -> ApiException.notFound("Order not found."));
     }
 
     @Transactional
     public OrderDto sellerSetStatus(Long sellerId, Long orderId, OrderStatus next) {
-        Order order = orders.lockById(orderId).filter(o -> belongsTo(o, sellerId))
+        Order order = orders.lockById(orderId).filter(o -> visibleToSeller(o, sellerId))
                 .orElseThrow(() -> ApiException.notFound("Order not found."));
         transition(order, next);
         return OrderDto.from(order);
@@ -216,6 +220,11 @@ public class OrderService {
 
     private static boolean belongsTo(Order order, Long sellerId) {
         return order.getSeller() != null && order.getSeller().getId().equals(sellerId);
+    }
+
+    /** A seller's own order, once it is real: card orders that haven't been paid yet don't exist for the seller. */
+    private static boolean visibleToSeller(Order order, Long sellerId) {
+        return belongsTo(order, sellerId) && order.getStatus() != OrderStatus.AWAITING_PAYMENT;
     }
 
     private static PageRequest pageable(int page, int size) {

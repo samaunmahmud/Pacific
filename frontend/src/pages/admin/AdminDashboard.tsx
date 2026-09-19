@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { AdminReview, AdminStats, Page } from '../../api/types';
@@ -10,6 +11,8 @@ export function AdminDashboard() {
   const stats = useAsync(() => api<AdminStats>('/admin/stats'), []);
   const recent = useAsync(() => api<Page<AdminReview>>('/admin/reviews', { query: { size: 6 } }), []);
   const s = stats.data;
+  const [showAllRatings, setShowAllRatings] = useState(false);
+  const RATINGS_SHOWN = 10; // a real catalogue has hundreds of products; the top of the list is what matters
 
   return (
     <div className="page">
@@ -53,7 +56,7 @@ export function AdminDashboard() {
           <section className="stack" style={{ gap: 15 }}>
             <h2 className="page-title serif" style={{ fontSize: 24 }}>Average Ratings per Product</h2>
             <div className="square-review-box static">
-              {s.productRatings.length === 0 ? <div className="muted">No product reviews yet.</div> : s.productRatings.map((p) => (
+              {s.productRatings.length === 0 ? <div className="muted">No product reviews yet.</div> : (showAllRatings ? s.productRatings : s.productRatings.slice(0, RATINGS_SHOWN)).map((p) => (
                 <div className="rating-row" key={p.productId}>
                   <span className="name">{p.name}</span>
                   <div className="progress" aria-hidden="true"><span style={{ width: `${(p.average / 5) * 100}%` }} /></div>
@@ -62,6 +65,11 @@ export function AdminDashboard() {
                   {p.average >= 4.5 && p.reviewCount > 0 && <span className="badge">⭐ Top Rated</span>}
                 </div>
               ))}
+              {s.productRatings.length > RATINGS_SHOWN && (
+                <button className="ghost-btn" style={{ alignSelf: 'flex-start', marginTop: 8 }} onClick={() => setShowAllRatings((v) => !v)}>
+                  {showAllRatings ? `Show top ${RATINGS_SHOWN} only` : `Show all ${s.productRatings.length} products`}
+                </button>
+              )}
             </div>
           </section>
 

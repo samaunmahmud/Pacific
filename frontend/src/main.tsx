@@ -9,6 +9,7 @@ import { WishlistProvider } from './cart/WishlistContext';
 import { SellerProvider } from './seller/SellerContext';
 import { ToastProvider } from './ui/Toast';
 import './styles.css';
+import './storefront.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

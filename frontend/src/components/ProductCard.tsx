@@ -35,26 +35,25 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <Link to={`/products/${product.id}`} className="product-card">
-      <div className="image-container card-image">
+      <div className="card-image">
         <ProductImage imageUrl={product.imageUrl} categoryName={product.category?.name} alt={product.name} />
         <WishlistButton productId={product.id} />
-        {product.discountPercent > 0 && <span className="deal-corner">-{product.discountPercent}%</span>}
+        {product.discountPercent >= 10 && <span className="deal-corner">Deal</span>}
       </div>
-      <h3 className="product-title-text">{product.name}</h3>
-      <span className="sold-by">Sold by {product.sellerName}</span>
-      <Stars value={product.ratingAvg} count={product.ratingCount} />
-      <div className="row">
+      <div className="card-body">
+        <h3 className="card-title" title={product.name}>{product.name}</h3>
+        <Stars value={product.ratingAvg} count={product.ratingCount} />
         <Price price={product.price} listPrice={product.listPrice} discountPercent={product.discountPercent} />
-        <span className="spacer" />
-        {soldOut ? (
-          <span className="stock-note low">Out of stock</span>
-        ) : product.stock <= 5 ? (
-          <span className="stock-note low">Only {product.stock} left</span>
-        ) : null}
+        <div className="card-meta">
+          {soldOut ? <span className="stock-note low">Currently unavailable</span>
+            : product.stock <= 5 ? <span className="stock-note low">Only {product.stock} left in stock</span>
+            : product.price >= 50 ? <span className="free-delivery">FREE delivery</span> : null}
+          <span className="sold-by">Sold by {product.sellerName}</span>
+        </div>
+        <button className="cart-btn" disabled={soldOut || busy} onClick={addToCart}>
+          {soldOut ? 'Out of stock' : busy ? 'Adding…' : 'Add to cart'}
+        </button>
       </div>
-      <button className="submit-btn block" disabled={soldOut || busy} onClick={addToCart}>
-        {soldOut ? 'Out of stock' : busy ? 'Adding…' : 'Add to cart'}
-      </button>
     </Link>
   );
 }

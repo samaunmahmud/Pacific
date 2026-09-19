@@ -1,13 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import avatar from '../assets/avatarCustomerLogin.png';
 import cartIcon from '../assets/cart1.png';
-import { api } from '../api/client';
-import type { Category } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
 import { useSeller } from '../seller/SellerContext';
-import { useAsync } from '../ui/useAsync';
+import { useCategories } from '../ui/useCategories';
 
 function Header() {
   const { user, logout } = useAuth();
@@ -15,17 +12,25 @@ function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
+  const categories = useCategories();
   const [q, setQ] = useState(params.get('q') ?? '');
+  const [cat, setCat] = useState(params.get('category') ?? '');
   const isAdmin = user?.role === 'ADMIN';
 
   // keep the box in sync when the URL changes (e.g. clearing the search)
   useEffect(() => {
-    if (location.pathname === '/products') setQ(params.get('q') ?? '');
+    if (location.pathname === '/products') {
+      setQ(params.get('q') ?? '');
+      setCat(params.get('category') ?? '');
+    }
   }, [location.pathname, params]);
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    navigate(isAdmin ? `/admin/products?q=${encodeURIComponent(q)}` : `/products?q=${encodeURIComponent(q)}`);
+    const query = new URLSearchParams();
+    if (q.trim()) query.set('q', q.trim());
+    if (!isAdmin && cat) query.set('category', cat);
+    navigate(`${isAdmin ? '/admin/products' : '/products'}${query.size ? `?${query}` : ''}`);
   }
 
   function signOut() {
@@ -35,50 +40,63 @@ function Header() {
 
   return (
     <header className="header-box">
-      <div className="logo-block">
-        <Link to={isAdmin ? '/admin' : '/'} className="logo-text">Pacific ★</Link>
-        <span className="location"><span aria-hidden="true">📍 </span>Uxbridge, England</span>
-      </div>
+      <Link to={isAdmin ? '/admin' : '/'} className="logo-text" aria-label="Pacific home">Pacific<span className="logo-star" aria-hidden="true">★</span></Link>
+
+      {!isAdmin && (
+        <span className="deliver-to" aria-label="Delivering to Uxbridge">
+          <span className="action-small">Deliver to</span>
+          <span className="action-label"><span aria-hidden="true">📍 </span>Uxbridge</span>
+        </span>
+      )}
 
       <form className="search-container" role="search" onSubmit={submit}>
-        <span className="search-icon" aria-hidden="true">🔍</span>
-        <input className="transparent-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={isAdmin ? 'Search products…' : 'Search Pacific...'} aria-label="Search" maxLength={100} />
-        <button className="search-submit-btn" type="submit">Search</button>
+        {!isAdmin && (
+          <select className="search-cat" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Search in category">
+            <option value="">All</option>
+            {categories.map((c) => <option key={c.id} value={c.slug}>{c.name}</option>)}
+          </select>
+        )}
+        <input className="transparent-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={isAdmin ? 'Search products…' : 'Search Pacific'} aria-label="Search" maxLength={100} />
+        <button className="search-submit-btn" type="submit" aria-label="Search"><span aria-hidden="true">🔍</span></button>
       </form>
 
       <div className="header-actions">
         {isAdmin ? (
-          <div className="action-item" style={{ cursor: 'default' }}>
-            <span className="action-small">Signed in as admin</span>
-            <span className="action-label">{user?.name}</span>
-          </div>
+          <>
+            <div className="action-item" style={{ cursor: 'default' }}>
+              <span className="action-small">Signed in as admin</span>
+              <span className="action-label">{user?.name}</span>
+            </div>
+            <button className="action-item" onClick={signOut}>
+              <span className="action-small">Not you?</span>
+              <span className="action-label">Sign out</span>
+            </button>
+          </>
         ) : (
           <>
-            <Link to={user ? '/account/reviews' : '/login'} className="action-item">
-              <span className="action-small">Hello, {user ? user.name.split(' ')[0] : 'sign in'}</span>
-              <span className="action-label">Account and Lists</span>
-            </Link>
+            {user ? (
+              <button className="action-item" onClick={signOut} title="Sign out">
+                <span className="action-small">Hello, {user.name.split(' ')[0]}</span>
+                <span className="action-label">Sign out</span>
+              </button>
+            ) : (
+              <Link to="/login" className="action-item">
+                <span className="action-small">Hello, sign in</span>
+                <span className="action-label">Account and Lists</span>
+              </Link>
+            )}
             <Link to="/orders" className="action-item">
               <span className="action-small">Returns</span>
               <span className="action-label">and Orders</span>
             </Link>
-            <Link to="/cart" className="action-item action-center" aria-label={`Cart, ${count} items`}>
-              <img className="cart-icon" src={cartIcon} alt="" />
-              {count > 0 && <span className="cart-badge">{count}</span>}
+            <Link to="/cart" className="action-item cart-link" aria-label={`Cart, ${count} items`}>
+              <span className="cart-wrap">
+                <img className="cart-icon" src={cartIcon} alt="" />
+                <span className="cart-badge">{count}</span>
+              </span>
               <span className="action-label">Cart</span>
             </Link>
           </>
-        )}
-        {user ? (
-          <button className="action-item action-center logout-item" onClick={signOut}>
-            <span className="avatar-ring"><img src={avatar} alt="" /></span>
-            <span className="action-label">Logout</span>
-          </button>
-        ) : (
-          <Link to="/login" className="action-item action-center logout-item">
-            <span className="avatar-ring"><img src={avatar} alt="" /></span>
-            <span className="action-label">Sign in</span>
-          </Link>
         )}
       </div>
     </header>
@@ -89,7 +107,7 @@ function NavBar() {
   const { user } = useAuth();
   const { seller } = useSeller();
   const location = useLocation();
-  const categories = useAsync(() => api<Category[]>('/categories'), []);
+  const categories = useCategories();
 
   if (user?.role === 'CUSTOMER' && seller?.status === 'APPROVED' && location.pathname.startsWith('/seller')) {
     return (
@@ -120,16 +138,57 @@ function NavBar() {
   return (
     <nav className="nav-bar" aria-label="Shop">
       <NavLink to="/products" end className="nav-link-bold">☰ All</NavLink>
-      {(categories.data ?? []).map((c) => (
+      {categories.map((c) => (
         <Link key={c.id} to={`/products?category=${c.slug}`} className="nav-link">{c.name}</Link>
       ))}
-      <NavLink to="/deals" className="nav-link">Today's Deals</NavLink>
+      <NavLink to="/deals" className="nav-link deals-link">Today's Deals</NavLink>
       <NavLink to="/wishlist" className="nav-link">Wish List</NavLink>
-      <NavLink to="/account/reviews" className="nav-link">My Reviews</NavLink>
       {seller?.status === 'APPROVED'
         ? <NavLink to="/seller" className="nav-link-bold">Seller Central</NavLink>
         : <NavLink to="/sell" className="nav-link-bold">Sell on Pacific</NavLink>}
     </nav>
+  );
+}
+
+function Footer() {
+  const { user } = useAuth();
+  const { seller } = useSeller();
+  const categories = useCategories();
+  return (
+    <footer className="site-footer">
+      <button className="back-to-top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Back to top</button>
+      <div className="footer-cols">
+        <div>
+          <h4>Shop</h4>
+          <Link to="/products">All products</Link>
+          <Link to="/deals">Today's Deals</Link>
+          {categories.slice(0, 4).map((c) => <Link key={c.id} to={`/products?category=${c.slug}`}>{c.name}</Link>)}
+        </div>
+        <div>
+          <h4>Your account</h4>
+          <Link to={user ? '/orders' : '/login'}>Your orders</Link>
+          <Link to="/wishlist">Wish list</Link>
+          <Link to="/account/reviews">Your reviews</Link>
+          <Link to="/cart">Cart</Link>
+        </div>
+        <div>
+          <h4>Sell with us</h4>
+          {seller?.status === 'APPROVED' ? <Link to="/seller">Seller Central</Link> : <Link to="/sell">Sell on Pacific</Link>}
+          <span>Reach shoppers with your own storefront</span>
+          <span>Simple commission, no listing fees</span>
+        </div>
+        <div>
+          <h4>Payments</h4>
+          <span>Pay securely by card</span>
+          <span>or pay on delivery</span>
+          <span>Card details never touch our servers</span>
+        </div>
+      </div>
+      <div className="footer-bottom">
+        <span className="footer-logo">Pacific<span aria-hidden="true">★</span></span>
+        <span>© Pacific Marketplace</span>
+      </div>
+    </footer>
   );
 }
 
@@ -144,7 +203,7 @@ export function Layout() {
       <Header />
       <NavBar />
       <main className="app-main"><Outlet /></main>
-      <footer className="footer">© Pacific Marketplace · Payments are taken on delivery.</footer>
+      <Footer />
     </div>
   );
 }

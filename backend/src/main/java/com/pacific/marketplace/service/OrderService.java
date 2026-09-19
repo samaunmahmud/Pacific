@@ -136,7 +136,7 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public PageResponse<OrderDto> sellerList(Long sellerId, OrderStatus status, int page, int size) {
-        var result = status == null ? orders.findBySellerId(sellerId, pageable(page, size))
+        var result = status == null ? orders.findBySellerIdAndStatusNot(sellerId, OrderStatus.AWAITING_PAYMENT, pageable(page, size))
                 : orders.findBySellerIdAndStatus(sellerId, status, pageable(page, size));
         return PageResponse.of(result, OrderDto::from);
     }

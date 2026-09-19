@@ -4,6 +4,9 @@ spring:
     username: sa
     password:
 app:
+  payments:
+    expiry-job: false
+    simulator-enabled: true
   jwt:
     secret: test-secret-test-secret-test-secret-1234
   admin-bootstrap:

@@ -1,0 +1,68 @@
+package com.pacific.marketplace.web.dto;
+
+import com.pacific.marketplace.domain.Order;
+import com.pacific.marketplace.domain.OrderItem;
+import com.pacific.marketplace.domain.OrderStatus;
+import com.pacific.marketplace.domain.ShippingAddress;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+
+public final class OrderDtos {
+
+    private OrderDtos() {
+    }
+
+    public record CheckoutRequest(
+            @NotBlank(message = "Please enter the recipient's name.") @Size(max = 120) String name,
+            @NotBlank(message = "Please enter the first line of the address.") @Size(max = 160) String line1,
+            @Size(max = 160) String line2,
+            @NotBlank(message = "Please enter the town or city.") @Size(max = 80) String city,
+            @NotBlank(message = "Please enter the postcode.") @Size(max = 20) String postcode,
+            @NotBlank(message = "Please enter the country.") @Size(max = 80) String country) {
+    }
+
+    public record StatusRequest(@NotNull(message = "Status is required.") OrderStatus status) {
+    }
+
+    public record AddressDto(String name, String line1, String line2, String city, String postcode, String country) {
+        static AddressDto from(ShippingAddress a) {
+            return new AddressDto(a.getName(), a.getLine1(), a.getLine2(), a.getCity(), a.getPostcode(),
+                    a.getCountry());
+        }
+    }
+
+    public record OrderItemDto(Long productId, String productName, BigDecimal unitPrice, int quantity,
+                               BigDecimal lineTotal) {
+        static OrderItemDto from(OrderItem i) {
+            return new OrderItemDto(i.getProduct().getId(), i.getProductName(), i.getUnitPrice(), i.getQuantity(),
+                    i.lineTotal());
+        }
+    }
+
+    public record OrderDto(Long id, OrderStatus status, BigDecimal subtotal, BigDecimal shipping, BigDecimal total,
+                           String paymentMethod, AddressDto address, List<OrderItemDto> items, int itemCount,
+                           String customerName, String sellerName, String sellerSlug, Long sellerId,
+                           String checkoutRef, Set<OrderStatus> nextStatuses, boolean cancellableByCustomer,
+                           Instant createdAt) {
+        public static OrderDto from(Order o) {
+            List<OrderItemDto> items = o.getItems().stream().map(OrderItemDto::from).toList();
+            var seller = o.getSeller();
+            return new OrderDto(o.getId(), o.getStatus(), o.getSubtotal(), o.getShipping(), o.getTotal(),
+                    o.getPaymentMethod(), AddressDto.from(o.getAddress()), items,
+                    items.stream().mapToInt(OrderItemDto::quantity).sum(), o.getUser().getName(),
+                    seller == null ? ProductDtos.ProductDto.HOUSE_STORE : seller.getStoreName(),
+                    seller == null ? null : seller.getSlug(), seller == null ? null : seller.getId(),
+                    o.getCheckoutRef(), o.getStatus().allowedNext(), o.getStatus() == OrderStatus.PLACED,
+                    o.getCreatedAt());
+        }
+    }
+
+    /** One checkout can produce several orders: one per seller. */
+    public record CheckoutResponse(String checkoutRef, List<OrderDto> orders, BigDecimal total) {
+    }
+}

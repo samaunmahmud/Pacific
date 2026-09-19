@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:pacific;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+app:
+  jwt:
+    secret: test-secret-test-secret-test-secret-1234
+  admin-bootstrap:
+    username: testadmin
+    password: testadmin-password

@@ -1,15 +1,18 @@
 package com.pacific.marketplace.notify;
 
 import com.pacific.marketplace.domain.Carriers;
+import com.pacific.marketplace.domain.Money;
 import com.pacific.marketplace.domain.Order;
 import com.pacific.marketplace.domain.OrderItem;
 import com.pacific.marketplace.domain.PaymentMethod;
+import com.pacific.marketplace.domain.ReturnItem;
+import com.pacific.marketplace.domain.ReturnRequest;
 import com.pacific.marketplace.domain.ShippingAddress;
 import java.math.BigDecimal;
-import java.text.NumberFormat;
-import java.util.Currency;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import org.springframework.web.util.HtmlUtils;
 
@@ -20,6 +23,7 @@ import org.springframework.web.util.HtmlUtils;
 public class EmailTemplates {
 
     private static final String BRAND = "#860752";
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("d MMMM yyyy").withZone(ZoneId.of("Europe/London"));
 
     private final String baseUrl;
     private final String currency;
@@ -79,7 +83,10 @@ public class EmailTemplates {
         d.para("Order #" + o.getId() + " from " + seller(o) + " has been delivered. We hope you love it.");
         d.para("Tell other shoppers what you think: your review helps them choose.");
         d.button("Review your items", baseUrl + "/account/reviews");
-        d.para("If something isn't right, you can ask for a return from the order page.");
+        d.para(o.getReturnDeadline() == null
+                ? "If something isn't right, you can ask for a return from the order page."
+                : "If something isn't right, you can ask for a return from the order page until "
+                        + DAY.format(o.getReturnDeadline()) + ".");
         d.button("View your order", baseUrl + "/orders/" + o.getId());
         return d.build(o.getUser().getEmail(), "Your Pacific order #" + o.getId() + " was delivered", "ORDER_DELIVERED");
     }
@@ -94,6 +101,69 @@ public class EmailTemplates {
         items(d, o);
         d.button("Keep shopping", baseUrl + "/products");
         return d.build(o.getUser().getEmail(), "Your Pacific order #" + o.getId() + " was cancelled", "ORDER_CANCELLED");
+    }
+
+    // ---------- returns ----------
+
+    public Email returnRequested(ReturnRequest r) {
+        Order o = r.getOrder();
+        Doc d = new Doc().heading("We've got your return request");
+        d.para("Order #" + o.getId() + " from " + seller(o) + ". The seller will look at it and get back to you.");
+        returnLines(d, r);
+        d.para("Reason: " + r.getReason().label());
+        d.button("View your order", baseUrl + "/orders/" + o.getId());
+        return d.build(o.getUser().getEmail(), "We've got your return request for order #" + o.getId(), "RETURN_REQUESTED");
+    }
+
+    public Email returnRequestedForSeller(ReturnRequest r) {
+        Order o = r.getOrder();
+        Doc d = new Doc().heading("A customer wants to return items");
+        d.para("Order #" + o.getId() + " · " + r.totalUnits() + " item" + (r.totalUnits() == 1 ? "" : "s") + " · "
+                + money(r.itemsValue()));
+        returnLines(d, r);
+        d.para("Reason: " + r.getReason().label());
+        if (r.getComment() != null) d.para("They said: " + r.getComment());
+        d.button("Review the request", baseUrl + "/seller/returns");
+        return d.build(o.getSeller().getUser().getEmail(), "Return requested for order #" + o.getId(), "SELLER_RETURN_REQUEST");
+    }
+
+    public Email returnApproved(ReturnRequest r) {
+        Order o = r.getOrder();
+        Doc d = new Doc().heading("Your return was approved");
+        d.para("Order #" + o.getId() + " from " + seller(o) + ".");
+        d.para(r.getSellerNote() != null ? "From the seller: " + r.getSellerNote()
+                : "Please send the items back to the seller.");
+        d.para("You'll be refunded as soon as the seller has received them.");
+        returnLines(d, r);
+        d.button("View your order", baseUrl + "/orders/" + o.getId());
+        return d.build(o.getUser().getEmail(), "Your return for order #" + o.getId() + " was approved", "RETURN_APPROVED");
+    }
+
+    public Email returnRejected(ReturnRequest r) {
+        Order o = r.getOrder();
+        Doc d = new Doc().heading("Your return request was declined");
+        d.para("Order #" + o.getId() + " from " + seller(o) + ".");
+        d.para("Reason given: " + r.getSellerNote());
+        d.para("If you think this is wrong, contact the seller from their store page.");
+        d.button("View your order", baseUrl + "/orders/" + o.getId());
+        return d.build(o.getUser().getEmail(), "Your return request for order #" + o.getId() + " was declined", "RETURN_REJECTED");
+    }
+
+    /** toCard: the money went back to the customer's card. Otherwise (pay on delivery) the seller settles it directly. */
+    public Email returnRefunded(ReturnRequest r, boolean toCard) {
+        Order o = r.getOrder();
+        Doc d = new Doc().heading("Your refund");
+        d.para(money(r.getRefundAmount()) + " for order #" + o.getId() + " from " + seller(o) + ".");
+        d.para(toCard ? "It has been refunded to your card and can take 5 to 10 working days to show on your statement."
+                : "You paid on delivery, so " + seller(o) + " will refund you directly.");
+        returnLines(d, r);
+        d.button("View your order", baseUrl + "/orders/" + o.getId());
+        return d.build(o.getUser().getEmail(), "Your refund for order #" + o.getId(), "RETURN_REFUNDED");
+    }
+
+    private void returnLines(Doc d, ReturnRequest r) {
+        for (ReturnItem i : r.getItems()) d.row(i.getQuantity() + " × " + i.getOrderItem().getProductName(),
+                money(i.getOrderItem().getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity()))));
     }
 
     // ---------- seller ----------
@@ -141,9 +211,7 @@ public class EmailTemplates {
     }
 
     String money(BigDecimal amount) {
-        NumberFormat f = NumberFormat.getCurrencyInstance(Locale.UK);
-        f.setCurrency(Currency.getInstance(currency));
-        return f.format(amount);
+        return Money.format(amount, currency);
     }
 
     /** Builds the text and HTML versions side by side, so they can't drift apart. */

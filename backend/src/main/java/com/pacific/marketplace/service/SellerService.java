@@ -7,7 +7,9 @@ import com.pacific.marketplace.domain.User;
 import com.pacific.marketplace.repo.OrderItemRepository;
 import com.pacific.marketplace.repo.OrderRepository;
 import com.pacific.marketplace.repo.ProductRepository;
+import com.pacific.marketplace.domain.ReturnStatus;
 import com.pacific.marketplace.repo.QuestionRepository;
+import com.pacific.marketplace.repo.ReturnRequestRepository;
 import com.pacific.marketplace.repo.SellerProfileRepository;
 import com.pacific.marketplace.repo.UserRepository;
 import com.pacific.marketplace.web.ApiException;
@@ -40,10 +42,11 @@ public class SellerService {
     private final QuestionRepository questions;
     private final LedgerService ledger;
     private final SettingsService settings;
+    private final ReturnRequestRepository returns;
 
     public SellerService(SellerProfileRepository sellers, UserRepository users, ProductRepository products,
                          OrderRepository orders, OrderItemRepository orderItems, QuestionRepository questions,
-                         LedgerService ledger, SettingsService settings) {
+                         LedgerService ledger, SettingsService settings, ReturnRequestRepository returns) {
         this.sellers = sellers;
         this.users = users;
         this.products = products;
@@ -52,6 +55,7 @@ public class SellerService {
         this.questions = questions;
         this.ledger = ledger;
         this.settings = settings;
+        this.returns = returns;
     }
 
     // ---------- onboarding ----------
@@ -127,7 +131,8 @@ public class SellerService {
                 .stream().map(p -> new LowStock(p.getId(), p.getName(), p.getStock())).toList();
         return new SellerStats(orders.grossSalesForSeller(sellerId), total, byStatus,
                 orderItems.unitsSoldBySeller(sellerId), ledger.balance(sellerId),
-                questions.countUnansweredForSeller(sellerId), products.countBySellerId(sellerId), low,
+                questions.countUnansweredForSeller(sellerId), returns.countByOrderSellerIdAndStatus(sellerId, ReturnStatus.REQUESTED),
+                products.countBySellerId(sellerId), low,
                 LOW_STOCK_THRESHOLD);
     }
 

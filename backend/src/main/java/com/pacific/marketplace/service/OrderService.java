@@ -235,7 +235,7 @@ public class OrderService {
             }
             case DELIVERED -> {
                 order.setStatus(next);
-                order.markDelivered();
+                order.markDelivered(pricing.returnWindow());
                 order.addEvent(OrderEventType.DELIVERED, null);
                 ledger.recordDelivered(order);
                 notifications.orderDelivered(order);

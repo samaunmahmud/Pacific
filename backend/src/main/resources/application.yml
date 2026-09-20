@@ -48,6 +48,8 @@ app:
     shipping-flat-rate: 3.99
     free-shipping-threshold: 50.00
     max-quantity-per-item: 10
+    # Customers can ask to return delivered items for this many days after delivery.
+    return-window-days: 30
   # Where the storefront is served from; used to build links in payment redirects and emails.
   public-url: ${PUBLIC_URL:http://localhost:5173}
   payments:

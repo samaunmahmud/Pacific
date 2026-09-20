@@ -69,6 +69,15 @@ public class Order {
     @Column(name = "delivered_at")
     private Instant deliveredAt;
 
+    /** Until when the customer may ask to return items; fixed when the order is delivered. */
+    @Column(name = "return_deadline")
+    private Instant returnDeadline;
+
+    @OneToMany(mappedBy = "order")
+    @OrderBy("id ASC")
+    @BatchSize(size = 50)
+    private List<ReturnRequest> returns = new ArrayList<>();
+
     /** What has happened to the order, oldest first. */
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     @OrderBy("createdAt ASC, id ASC")
@@ -118,8 +127,29 @@ public class Order {
         this.shippedAt = Instant.now();
     }
 
-    public void markDelivered() {
+    /** returnWindow: how long after delivery the customer may still ask to return items. */
+    public void markDelivered(java.time.Duration returnWindow) {
         this.deliveredAt = Instant.now();
+        this.returnDeadline = deliveredAt.plus(returnWindow);
+    }
+
+    /** Units of this line already being returned or refunded (requested, agreed or done). */
+    public int unitsHeldForReturn(Long orderItemId) {
+        return returns.stream().filter(r -> r.getStatus().holdsQuantity())
+                .flatMap(r -> r.getItems().stream())
+                .filter(i -> i.getOrderItem().getId().equals(orderItemId))
+                .mapToInt(ReturnItem::getQuantity).sum();
+    }
+
+    /** Units of this line the customer can still ask to send back. */
+    public int returnableUnits(OrderItem item) {
+        return Math.max(0, item.getQuantity() - unitsHeldForReturn(item.getId()));
+    }
+
+    /** Delivered, inside the return window, and something left to return. */
+    public boolean canReturn() {
+        return status == OrderStatus.DELIVERED && returnDeadline != null && Instant.now().isBefore(returnDeadline)
+                && items.stream().anyMatch(i -> returnableUnits(i) > 0);
     }
 
     public void setTotals(BigDecimal subtotal, BigDecimal shipping) {
@@ -146,6 +176,8 @@ public class Order {
     public String getTrackingNumber() { return trackingNumber; }
     public Instant getShippedAt() { return shippedAt; }
     public Instant getDeliveredAt() { return deliveredAt; }
+    public Instant getReturnDeadline() { return returnDeadline; }
+    public List<ReturnRequest> getReturns() { return returns; }
     public List<OrderEvent> getEvents() { return events; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

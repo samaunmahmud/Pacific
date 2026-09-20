@@ -2,6 +2,7 @@ package com.pacific.marketplace.notify;
 
 import com.pacific.marketplace.config.AppProperties;
 import com.pacific.marketplace.domain.Order;
+import com.pacific.marketplace.domain.ReturnRequest;
 import com.pacific.marketplace.domain.SentEmail;
 import com.pacific.marketplace.repo.SentEmailRepository;
 import com.pacific.marketplace.web.dto.EmailDtos.SentEmailDto;
@@ -80,6 +81,23 @@ public class NotificationService {
         PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50),
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
         return PageResponse.of(sent.findAll(pageable), SentEmailDto::from);
+    }
+
+    public void returnRequested(ReturnRequest r) {
+        afterCommit(templates.returnRequested(r));
+        if (r.getOrder().getSeller() != null) afterCommit(templates.returnRequestedForSeller(r));
+    }
+
+    public void returnApproved(ReturnRequest r) {
+        afterCommit(templates.returnApproved(r));
+    }
+
+    public void returnRejected(ReturnRequest r) {
+        afterCommit(templates.returnRejected(r));
+    }
+
+    public void returnRefunded(ReturnRequest r, boolean toCard) {
+        afterCommit(templates.returnRefunded(r, toCard));
     }
 
     private void afterCommit(Email email) {

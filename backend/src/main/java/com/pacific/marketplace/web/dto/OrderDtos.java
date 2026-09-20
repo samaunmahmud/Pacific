@@ -52,13 +52,14 @@ public final class OrderDtos {
     }
 
     /** imageUrl and categoryName come from the product as it is now (name and price are the order's own snapshot). */
-    public record OrderItemDto(Long productId, String productName, BigDecimal unitPrice, int quantity,
-                               BigDecimal lineTotal, String imageUrl, String categoryName) {
+    public record OrderItemDto(Long id, Long productId, String productName, BigDecimal unitPrice, int quantity,
+                               BigDecimal lineTotal, String imageUrl, String categoryName, int returnableQuantity) {
         static OrderItemDto from(OrderItem i) {
             var product = i.getProduct();
-            return new OrderItemDto(product.getId(), i.getProductName(), i.getUnitPrice(), i.getQuantity(),
+            return new OrderItemDto(i.getId(), product.getId(), i.getProductName(), i.getUnitPrice(), i.getQuantity(),
                     i.lineTotal(), product.getImageUrl(),
-                    product.getCategory() == null ? null : product.getCategory().getName());
+                    product.getCategory() == null ? null : product.getCategory().getName(),
+                    i.getOrder().canReturn() ? i.getOrder().returnableUnits(i) : 0);
         }
     }
 
@@ -67,7 +68,8 @@ public final class OrderDtos {
                            String customerName, String sellerName, String sellerSlug, Long sellerId,
                            String checkoutRef, Set<OrderStatus> nextStatuses, boolean cancellableByCustomer,
                            Instant createdAt, String trackingCarrier, String trackingNumber, String trackingUrl,
-                           Instant shippedAt, Instant deliveredAt, List<EventDto> timeline) {
+                           Instant shippedAt, Instant deliveredAt, List<EventDto> timeline, boolean canReturn,
+                           Instant returnDeadline, List<ReturnDtos.ReturnDto> returns) {
         public static OrderDto from(Order o) {
             List<OrderItemDto> items = o.getItems().stream().map(OrderItemDto::from).toList();
             var seller = o.getSeller();
@@ -79,7 +81,9 @@ public final class OrderDtos {
                     o.getCheckoutRef(), o.getStatus().allowedNext(), o.getStatus() == OrderStatus.PLACED,
                     o.getCreatedAt(), o.getTrackingCarrier(), o.getTrackingNumber(),
                     Carriers.trackingUrl(o.getTrackingCarrier(), o.getTrackingNumber()), o.getShippedAt(),
-                    o.getDeliveredAt(), o.getEvents().stream().map(EventDto::from).toList());
+                    o.getDeliveredAt(), o.getEvents().stream().map(EventDto::from).toList(), o.canReturn(),
+                    o.getReturnDeadline(),
+                    o.getReturns().stream().map(r -> ReturnDtos.ReturnDto.from(r, null)).toList());
         }
     }
 

@@ -32,7 +32,7 @@ public record AppProperties(
     }
 
     public record Shop(String currency, BigDecimal shippingFlatRate, BigDecimal freeShippingThreshold,
-                       int maxQuantityPerItem) {
+                       int maxQuantityPerItem, int returnWindowDays) {
     }
 
     public record Payments(int pendingExpiryMinutes, boolean expiryJob, Stripe stripe, boolean simulatorEnabled) {

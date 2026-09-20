@@ -5,7 +5,12 @@ import com.pacific.marketplace.domain.SellerProfile;
 import com.pacific.marketplace.service.LedgerService;
 import com.pacific.marketplace.service.OrderService;
 import com.pacific.marketplace.service.ProductService;
+import com.pacific.marketplace.domain.ReturnStatus;
 import com.pacific.marketplace.service.QaService;
+import com.pacific.marketplace.service.ReturnService;
+import com.pacific.marketplace.web.dto.ReturnDtos.DecisionRequest;
+import com.pacific.marketplace.web.dto.ReturnDtos.RefundRequest;
+import com.pacific.marketplace.web.dto.ReturnDtos.ReturnDto;
 import com.pacific.marketplace.service.SellerService;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
 import com.pacific.marketplace.web.dto.OrderDtos.StatusRequest;
@@ -49,14 +54,16 @@ public class SellerController {
     private final OrderService orders;
     private final LedgerService ledger;
     private final QaService qa;
+    private final ReturnService returns;
 
     public SellerController(SellerService sellers, ProductService products, OrderService orders, LedgerService ledger,
-                            QaService qa) {
+                            QaService qa, ReturnService returns) {
         this.sellers = sellers;
         this.products = products;
         this.orders = orders;
         this.ledger = ledger;
         this.qa = qa;
+        this.returns = returns;
     }
 
     @PostMapping("/apply")
@@ -139,6 +146,34 @@ public class SellerController {
     public OrderDto setOrderStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest req,
                                    @AuthenticationPrincipal Jwt jwt) {
         return orders.sellerSetStatus(seller(jwt).getId(), id, req.status(), req.carrier(), req.trackingNumber());
+    }
+
+    // ----- returns -----
+
+    @GetMapping("/returns")
+    public PageResponse<ReturnDto> returns(@RequestParam(required = false) ReturnStatus status,
+                                           @RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "20") int size, @AuthenticationPrincipal Jwt jwt) {
+        return returns.sellerList(seller(jwt).getId(), status, page, size);
+    }
+
+    @PostMapping("/returns/{id}/approve")
+    public ReturnDto approveReturn(@PathVariable Long id, @Valid @RequestBody(required = false) DecisionRequest req,
+                                   @AuthenticationPrincipal Jwt jwt) {
+        return returns.approve(seller(jwt).getId(), id, req == null ? null : req.note());
+    }
+
+    @PostMapping("/returns/{id}/reject")
+    public ReturnDto rejectReturn(@PathVariable Long id, @Valid @RequestBody(required = false) DecisionRequest req,
+                                  @AuthenticationPrincipal Jwt jwt) {
+        return returns.reject(seller(jwt).getId(), id, req == null ? null : req.note());
+    }
+
+    @PostMapping("/returns/{id}/refund")
+    public ReturnDto refundReturn(@PathVariable Long id, @Valid @RequestBody(required = false) RefundRequest req,
+                                  @AuthenticationPrincipal Jwt jwt) {
+        return returns.refund(seller(jwt).getId(), id, req == null ? null : req.amount(),
+                req == null ? null : req.restock(), req == null ? null : req.note());
     }
 
     // ----- earnings & questions -----

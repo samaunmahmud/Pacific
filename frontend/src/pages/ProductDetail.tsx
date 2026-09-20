@@ -202,7 +202,7 @@ export function ProductDetail() {
             {data.reviews.length === 0 ? (
               <div className="empty">No reviews yet.</div>
             ) : (
-              <div className="review-grid">
+              <div className="review-list">
                 {data.reviews.map((r) => <CustomerReviewCard key={r.id} review={r} onChange={replace} onDelete={drop} />)}
               </div>
             )}

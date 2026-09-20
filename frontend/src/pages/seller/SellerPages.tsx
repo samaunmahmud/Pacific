@@ -22,7 +22,7 @@ export function SellerDashboard() {
     <div className="page">
       <div className="row-wrap">
         <div>
-          <h1 className="page-title serif">Seller Central</h1>
+          <h1 className="page-title">Seller Central</h1>
           {seller && <p className="page-subtitle">{seller.storeName} · <Link to={`/sellers/${seller.slug}`}>view your storefront</Link></p>}
         </div>
         <span className="spacer" />
@@ -49,7 +49,7 @@ export function SellerDashboard() {
           </div>
 
           <section className="stack" style={{ gap: 12 }}>
-            <h2 className="page-title serif" style={{ fontSize: 24 }}>Orders by status</h2>
+            <h2 className="page-title" style={{ fontSize: 24 }}>Orders by status</h2>
             <div className="row-wrap">
               {(Object.keys(s.ordersByStatus) as OrderStatus[]).map((st) => (
                 <Link key={st} to={`/seller/orders?status=${st}`} className="chip" style={{ display: 'inline-flex', gap: 8 }}>{cap(st)} <b>{s.ordersByStatus[st]}</b></Link>
@@ -59,7 +59,7 @@ export function SellerDashboard() {
 
           {s.lowStock.length > 0 && (
             <section className="stack" style={{ gap: 12 }}>
-              <h2 className="page-title serif" style={{ fontSize: 24 }}>Low stock</h2>
+              <h2 className="page-title" style={{ fontSize: 24 }}>Low stock</h2>
               <div className="square-review-box static">
                 {s.lowStock.map((p) => (
                   <div className="rating-row" key={p.productId}>
@@ -99,7 +99,7 @@ export function SellerProducts() {
     <div className="page">
       <div className="row-wrap">
         <div>
-          <h1 className="page-title serif">Your products</h1>
+          <h1 className="page-title">Your products</h1>
           {products.data && <p className="page-subtitle">{products.data.totalItems} listing{products.data.totalItems === 1 ? '' : 's'}</p>}
         </div>
         <span className="spacer" />
@@ -142,7 +142,7 @@ export function SellerEarnings() {
   return (
     <div className="page">
       <div>
-        <h1 className="page-title serif">Earnings</h1>
+        <h1 className="page-title">Earnings</h1>
         <p className="page-subtitle">Recorded when an order is delivered. Pacific pays out from your balance.</p>
       </div>
       {error && <div className="notice error">{error}</div>}
@@ -198,7 +198,7 @@ export function SellerQuestions() {
   return (
     <div className="page page-narrow">
       <div>
-        <h1 className="page-title serif">Customer questions</h1>
+        <h1 className="page-title">Customer questions</h1>
         <p className="page-subtitle">Questions on your products that nobody has answered yet</p>
       </div>
       {error && <div className="notice error">{error}</div>}
@@ -248,7 +248,7 @@ export function SellerSettings() {
 
   return (
     <form className="page page-narrow" onSubmit={save}>
-      <h1 className="page-title serif">Store settings</h1>
+      <h1 className="page-title">Store settings</h1>
       <div className="square-review-box static stack">
         <div className="row-wrap"><span>Status</span><StatusPill status={seller.status} /><span className="spacer" /><span className="muted">Your storefront: <Link to={`/sellers/${seller.slug}`}>/sellers/{seller.slug}</Link></span></div>
         <div className="notice">Pacific's commission on your item sales is <b>{seller.commissionPercent}%</b>{seller.commissionOverridden ? ' (a rate agreed for your store)' : ''}. It's fixed when each order is placed.</div>

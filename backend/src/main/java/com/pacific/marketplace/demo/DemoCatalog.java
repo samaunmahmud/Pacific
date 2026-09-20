@@ -192,7 +192,7 @@ final class DemoCatalog {
                             t("Suede Slip-On Loafers", "shoe", 35, 95, "Padded footbed|Flexible sole|Easy on and off"),
                             t("Wool-Blend Scarf", "scarf", 12, 35, "Generous size|Soft and warm|Fringed ends"),
                             t("Fleece Beanie Hat", "beanie", 7, 20, "Stretchy and snug|Warm fleece lining|One size fits most"),
-                            t("Stretch Chino Trousers", "shirt", 22, 60, "Comfortable stretch fabric|Slim tapered fit|Four pockets"))),
+                            t("Stretch Chino Trousers", "trousers", 22, 60, "Comfortable stretch fabric|Slim tapered fit|Four pockets"))),
             new Category("Sports & Outdoors", "Trailhead Outfitters",
                     List.of("Trailhead", "Kestrel", "Ridgeline", "Sprintly"), List.of("Alpine", "Trail", "Active", "Pro"),
                     List.of(

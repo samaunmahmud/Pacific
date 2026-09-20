@@ -38,6 +38,7 @@ export const DEMO_ART_KINDS = [
   'tent',
   'toothbrush',
   'tripod',
+  'trousers',
   'watch',
   'webcam',
 ] as const;

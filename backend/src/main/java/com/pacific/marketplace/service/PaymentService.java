@@ -3,12 +3,14 @@ package com.pacific.marketplace.service;
 import com.pacific.marketplace.config.AppProperties;
 import com.pacific.marketplace.domain.Order;
 import com.pacific.marketplace.domain.OrderItem;
+import com.pacific.marketplace.domain.OrderEventType;
 import com.pacific.marketplace.domain.OrderStatus;
 import com.pacific.marketplace.domain.Payment;
 import com.pacific.marketplace.domain.PaymentMethod;
 import com.pacific.marketplace.domain.PaymentProviderType;
 import com.pacific.marketplace.domain.PaymentStatus;
 import com.pacific.marketplace.domain.User;
+import com.pacific.marketplace.notify.NotificationService;
 import com.pacific.marketplace.payment.PaymentGateway;
 import com.pacific.marketplace.payment.PaymentGateway.CheckoutSpec;
 import com.pacific.marketplace.payment.PaymentGateway.GatewayException;
@@ -57,17 +59,19 @@ public class PaymentService {
     private final OrderRepository orders;
     private final OrderCancellation cancellation;
     private final CartService carts;
+    private final NotificationService notifications;
     private final PaymentGateways gateways;
     private final AppProperties props;
     private final TransactionTemplate tx;
 
     public PaymentService(PaymentRepository payments, OrderRepository orders, OrderCancellation cancellation,
-                          CartService carts, PaymentGateways gateways, AppProperties props,
-                          PlatformTransactionManager txManager) {
+                          CartService carts, NotificationService notifications, PaymentGateways gateways,
+                          AppProperties props, PlatformTransactionManager txManager) {
         this.payments = payments;
         this.orders = orders;
         this.cancellation = cancellation;
         this.carts = carts;
+        this.notifications = notifications;
         this.gateways = gateways;
         this.props = props;
         this.tx = new TransactionTemplate(txManager);
@@ -217,9 +221,15 @@ public class PaymentService {
                 case PAID -> { /* already recorded */ }
                 case PENDING -> {
                     p.markPaid(providerPaymentRef);
+                    List<Order> nowPlaced = new ArrayList<>();
                     for (Order order : orders.findByCheckoutRef(checkoutRef)) {
-                        if (order.getStatus() == OrderStatus.AWAITING_PAYMENT) order.setStatus(OrderStatus.PLACED);
+                        if (order.getStatus() != OrderStatus.AWAITING_PAYMENT) continue;
+                        order.setStatus(OrderStatus.PLACED);
+                        order.addEvent(OrderEventType.PAYMENT_RECEIVED, "Paid by card");
+                        order.addEvent(OrderEventType.PLACED, null);
+                        nowPlaced.add(order);
                     }
+                    notifications.ordersPlaced(nowPlaced);
                 }
                 case EXPIRED, CANCELLED -> refundLatePayment(p, providerPaymentRef);
             }
@@ -296,11 +306,12 @@ public class PaymentService {
     /**
      * Gives the customer their money back when a paid card order is cancelled (by them, the seller or an admin).
      * Runs inside the cancelling transaction: if the provider refuses, the cancellation is rolled back too.
+     * Returns the amount refunded (zero when nothing had been paid by card).
      */
-    public void refundOrder(Order order) {
-        if (!PaymentMethod.CARD.name().equals(order.getPaymentMethod()) || order.getCheckoutRef() == null) return;
+    public BigDecimal refundOrder(Order order) {
+        if (!PaymentMethod.CARD.name().equals(order.getPaymentMethod()) || order.getCheckoutRef() == null) return BigDecimal.ZERO;
         Payment p = payments.lockByCheckoutRef(order.getCheckoutRef()).orElse(null);
-        if (p == null || p.getStatus() != PaymentStatus.PAID) return;
+        if (p == null || p.getStatus() != PaymentStatus.PAID) return BigDecimal.ZERO;
         BigDecimal amount = order.getTotal();
         if (p.refundable().compareTo(amount) < 0) {
             throw ApiException.conflict("This order has already been refunded.");
@@ -309,6 +320,7 @@ public class PaymentService {
                 () -> ApiException.conflict("The payment provider for this order isn't available, so it can't be refunded now."));
         gateway.refund(p.getProviderPaymentRef(), amount, p.getCurrency(), "pacific-refund-order-" + order.getId());
         p.addRefund(amount);
+        return amount;
     }
 
     // ---------- helpers ----------
@@ -362,6 +374,8 @@ public class PaymentService {
             for (Order order : orders.findByCheckoutRef(checkoutRef)) {
                 if (order.getStatus() != OrderStatus.AWAITING_PAYMENT) continue;
                 cancellation.cancel(order);
+                order.addEvent(OrderEventType.CANCELLED, target == PaymentStatus.EXPIRED
+                        ? "Payment not completed in time" : "Payment cancelled");
                 for (OrderItem item : order.getItems()) items.merge(item.getProduct().getId(), item.getQuantity(), Integer::sum);
             }
             return new Released(target, p.getUser().getId(), items);

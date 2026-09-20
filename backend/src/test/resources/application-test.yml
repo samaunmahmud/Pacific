@@ -4,6 +4,8 @@ spring:
     username: sa
     password:
 app:
+  mail:
+    async: false
   payments:
     expiry-job: false
     simulator-enabled: true

@@ -1,6 +1,9 @@
 package com.pacific.marketplace.web.dto;
 
+import com.pacific.marketplace.domain.Carriers;
 import com.pacific.marketplace.domain.Order;
+import com.pacific.marketplace.domain.OrderEvent;
+import com.pacific.marketplace.domain.OrderEventType;
 import com.pacific.marketplace.domain.OrderItem;
 import com.pacific.marketplace.domain.OrderStatus;
 import com.pacific.marketplace.domain.PaymentMethod;
@@ -29,7 +32,16 @@ public final class OrderDtos {
             PaymentMethod paymentMethod) {
     }
 
-    public record StatusRequest(@NotNull(message = "Status is required.") OrderStatus status) {
+    /** carrier and trackingNumber are only used when the order is being marked as shipped, and are optional. */
+    public record StatusRequest(@NotNull(message = "Status is required.") OrderStatus status,
+                                @Size(max = 60, message = "Carrier can be at most 60 characters.") String carrier,
+                                @Size(max = 80, message = "Tracking number can be at most 80 characters.") String trackingNumber) {
+    }
+
+    public record EventDto(OrderEventType type, String note, Instant at) {
+        static EventDto from(OrderEvent e) {
+            return new EventDto(e.getType(), e.getNote(), e.getCreatedAt());
+        }
     }
 
     public record AddressDto(String name, String line1, String line2, String city, String postcode, String country) {
@@ -54,7 +66,8 @@ public final class OrderDtos {
                            String paymentMethod, AddressDto address, List<OrderItemDto> items, int itemCount,
                            String customerName, String sellerName, String sellerSlug, Long sellerId,
                            String checkoutRef, Set<OrderStatus> nextStatuses, boolean cancellableByCustomer,
-                           Instant createdAt) {
+                           Instant createdAt, String trackingCarrier, String trackingNumber, String trackingUrl,
+                           Instant shippedAt, Instant deliveredAt, List<EventDto> timeline) {
         public static OrderDto from(Order o) {
             List<OrderItemDto> items = o.getItems().stream().map(OrderItemDto::from).toList();
             var seller = o.getSeller();
@@ -64,7 +77,9 @@ public final class OrderDtos {
                     seller == null ? ProductDtos.ProductDto.HOUSE_STORE : seller.getStoreName(),
                     seller == null ? null : seller.getSlug(), seller == null ? null : seller.getId(),
                     o.getCheckoutRef(), o.getStatus().allowedNext(), o.getStatus() == OrderStatus.PLACED,
-                    o.getCreatedAt());
+                    o.getCreatedAt(), o.getTrackingCarrier(), o.getTrackingNumber(),
+                    Carriers.trackingUrl(o.getTrackingCarrier(), o.getTrackingNumber()), o.getShippedAt(),
+                    o.getDeliveredAt(), o.getEvents().stream().map(EventDto::from).toList());
         }
     }
 

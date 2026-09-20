@@ -57,6 +57,24 @@ public class Order {
     @BatchSize(size = 50)
     private List<OrderItem> items = new ArrayList<>();
 
+    @Column(name = "tracking_carrier", length = 60)
+    private String trackingCarrier;
+
+    @Column(name = "tracking_number", length = 80)
+    private String trackingNumber;
+
+    @Column(name = "shipped_at")
+    private Instant shippedAt;
+
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
+
+    /** What has happened to the order, oldest first. */
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    @OrderBy("createdAt ASC, id ASC")
+    @BatchSize(size = 50)
+    private List<OrderEvent> events = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -89,6 +107,21 @@ public class Order {
         items.add(new OrderItem(this, product, quantity));
     }
 
+    public void addEvent(OrderEventType type, String note) {
+        events.add(new OrderEvent(this, type, note));
+    }
+
+    /** Called when the order is handed to the carrier. Tracking details are optional (a seller may deliver by hand). */
+    public void markShipped(String carrier, String number) {
+        this.trackingCarrier = carrier;
+        this.trackingNumber = number;
+        this.shippedAt = Instant.now();
+    }
+
+    public void markDelivered() {
+        this.deliveredAt = Instant.now();
+    }
+
     public void setTotals(BigDecimal subtotal, BigDecimal shipping) {
         this.subtotal = subtotal;
         this.shipping = shipping;
@@ -109,6 +142,11 @@ public class Order {
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
     public ShippingAddress getAddress() { return address; }
     public List<OrderItem> getItems() { return items; }
+    public String getTrackingCarrier() { return trackingCarrier; }
+    public String getTrackingNumber() { return trackingNumber; }
+    public Instant getShippedAt() { return shippedAt; }
+    public Instant getDeliveredAt() { return deliveredAt; }
+    public List<OrderEvent> getEvents() { return events; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

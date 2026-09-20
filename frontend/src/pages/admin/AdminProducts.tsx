@@ -93,7 +93,7 @@ export function AdminProducts() {
     <div className="page">
       <div className="row-wrap">
         <div>
-          <h1 className="page-title serif">Products</h1>
+          <h1 className="page-title">Products</h1>
           {products.data && <p className="page-subtitle">{products.data.totalItems} product{products.data.totalItems === 1 ? '' : 's'}{q && ` matching “${q}”`}</p>}
         </div>
         <span className="spacer" />
@@ -191,7 +191,7 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
     <form className="page page-narrow" onSubmit={submit}>
       <div className="row" style={{ gap: 20 }}>
         <Link to={base} className="back-btn" aria-label="Back to products">←</Link>
-        <h1 className="page-title serif">{editing ? 'Edit product' : 'Add product'}</h1>
+        <h1 className="page-title">{editing ? 'Edit product' : 'Add product'}</h1>
       </div>
       <div className="square-review-box static stack">
         <div className="form-grid">

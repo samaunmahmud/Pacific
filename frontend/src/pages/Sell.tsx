@@ -57,7 +57,7 @@ export function Sell() {
   return (
     <div className="page page-narrow">
       <div>
-        <h1 className="page-title serif" style={{ fontSize: 34 }}>Sell on Pacific</h1>
+        <h1 className="page-title" style={{ fontSize: 34 }}>Sell on Pacific</h1>
         <p className="page-subtitle">Open a store, list your products and reach Pacific shoppers.</p>
       </div>
       <div className="perk-grid">

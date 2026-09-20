@@ -2,9 +2,12 @@ package com.pacific.marketplace.web;
 
 import com.pacific.marketplace.service.CheckoutService;
 import com.pacific.marketplace.service.OrderService;
+import com.pacific.marketplace.service.ReturnService;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutRequest;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutResponse;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
+import com.pacific.marketplace.web.dto.ReturnDtos.ReturnDto;
+import com.pacific.marketplace.web.dto.ReturnDtos.ReturnRequestBody;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -24,10 +27,12 @@ public class OrderController {
 
     private final OrderService orders;
     private final CheckoutService checkouts;
+    private final ReturnService returns;
 
-    public OrderController(OrderService orders, CheckoutService checkouts) {
+    public OrderController(OrderService orders, CheckoutService checkouts, ReturnService returns) {
         this.orders = orders;
         this.checkouts = checkouts;
+        this.returns = returns;
     }
 
     @PostMapping
@@ -49,5 +54,19 @@ public class OrderController {
     @PostMapping("/{id}/cancel")
     public OrderDto cancel(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         return orders.cancelMine(CurrentUser.id(jwt), id);
+    }
+
+    /** Ask to send items back from a delivered order, within its return window. */
+    @PostMapping("/{id}/returns")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReturnDto requestReturn(@PathVariable Long id, @Valid @RequestBody ReturnRequestBody req,
+                                   @AuthenticationPrincipal Jwt jwt) {
+        return returns.request(CurrentUser.id(jwt), id, req);
+    }
+
+    /** Withdraw a return request the seller hasn't answered yet. */
+    @PostMapping("/{id}/returns/{returnId}/cancel")
+    public ReturnDto cancelReturn(@PathVariable Long id, @PathVariable Long returnId, @AuthenticationPrincipal Jwt jwt) {
+        return returns.cancelMine(CurrentUser.id(jwt), id, returnId);
     }
 }

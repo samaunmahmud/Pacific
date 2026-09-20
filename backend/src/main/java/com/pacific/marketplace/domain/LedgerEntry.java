@@ -20,7 +20,7 @@ public class LedgerEntry {
     private Long orderId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "entry_type", nullable = false, length = 12)
+    @Column(name = "entry_type", nullable = false, length = 20)
     private LedgerType type;
 
     @Column(nullable = false, precision = 10, scale = 2)

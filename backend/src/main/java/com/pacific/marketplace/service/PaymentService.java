@@ -323,6 +323,26 @@ public class PaymentService {
         return amount;
     }
 
+    /**
+     * Refunds part of a paid card order (returned goods). The provider is asked to refund exactly this amount, with an
+     * idempotency key so a retry can never refund twice. Returns the amount refunded to the card, or zero when the
+     * order wasn't paid by card (pay on delivery orders are refunded by the seller directly). Like refundOrder, it runs
+     * inside the caller's transaction: if the provider refuses, everything rolls back.
+     */
+    public BigDecimal refundPart(Order order, BigDecimal amount, String idempotencyKey) {
+        if (!PaymentMethod.CARD.name().equals(order.getPaymentMethod()) || order.getCheckoutRef() == null) return BigDecimal.ZERO;
+        Payment p = payments.lockByCheckoutRef(order.getCheckoutRef()).orElse(null);
+        if (p == null || p.getStatus() != PaymentStatus.PAID) return BigDecimal.ZERO;
+        if (p.refundable().compareTo(amount) < 0) {
+            throw ApiException.conflict("That is more than is left to refund on this payment.");
+        }
+        PaymentGateway gateway = gateways.forType(p.getProvider()).orElseThrow(
+                () -> ApiException.conflict("The payment provider for this order isn't available, so it can't be refunded now."));
+        gateway.refund(p.getProviderPaymentRef(), amount, p.getCurrency(), idempotencyKey);
+        p.addRefund(amount);
+        return amount;
+    }
+
     // ---------- helpers ----------
 
     /**

@@ -13,7 +13,12 @@ import com.pacific.marketplace.service.SellerService;
 import com.pacific.marketplace.service.SettingsService;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
 import com.pacific.marketplace.web.dto.OrderDtos.StatusRequest;
+import com.pacific.marketplace.domain.ReturnStatus;
 import com.pacific.marketplace.notify.NotificationService;
+import com.pacific.marketplace.service.ReturnService;
+import com.pacific.marketplace.web.dto.ReturnDtos.DecisionRequest;
+import com.pacific.marketplace.web.dto.ReturnDtos.RefundRequest;
+import com.pacific.marketplace.web.dto.ReturnDtos.ReturnDto;
 import com.pacific.marketplace.web.dto.EmailDtos.SentEmailDto;
 import com.pacific.marketplace.web.dto.PageResponse;
 import com.pacific.marketplace.web.dto.ProductDtos.CategoryDto;
@@ -61,11 +66,12 @@ public class AdminController {
     private final SettingsService settings;
     private final SellerReviewService sellerReviews;
     private final NotificationService notifications;
+    private final ReturnService returns;
 
     public AdminController(ProductService products, OrderService orders, ReviewService reviews,
                            AdminStatsService stats, SellerService sellers, LedgerService ledger,
                            SettingsService settings, SellerReviewService sellerReviews,
-                           NotificationService notifications) {
+                           NotificationService notifications, ReturnService returns) {
         this.products = products;
         this.orders = orders;
         this.reviews = reviews;
@@ -75,6 +81,7 @@ public class AdminController {
         this.settings = settings;
         this.sellerReviews = sellerReviews;
         this.notifications = notifications;
+        this.returns = returns;
     }
 
     @GetMapping("/stats")
@@ -144,6 +151,29 @@ public class AdminController {
                                          @RequestParam(defaultValue = "0") int page,
                                          @RequestParam(defaultValue = "20") int size) {
         return orders.adminList(status, page, size);
+    }
+
+    @GetMapping("/returns")
+    public PageResponse<ReturnDto> returns(@RequestParam(required = false) ReturnStatus status,
+                                           @RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "20") int size) {
+        return returns.adminList(status, page, size);
+    }
+
+    @PostMapping("/returns/{id}/approve")
+    public ReturnDto approveReturn(@PathVariable Long id, @Valid @RequestBody(required = false) DecisionRequest req) {
+        return returns.approve(null, id, req == null ? null : req.note());
+    }
+
+    @PostMapping("/returns/{id}/reject")
+    public ReturnDto rejectReturn(@PathVariable Long id, @Valid @RequestBody(required = false) DecisionRequest req) {
+        return returns.reject(null, id, req == null ? null : req.note());
+    }
+
+    @PostMapping("/returns/{id}/refund")
+    public ReturnDto refundReturn(@PathVariable Long id, @Valid @RequestBody(required = false) RefundRequest req) {
+        return returns.refund(null, id, req == null ? null : req.amount(), req == null ? null : req.restock(),
+                req == null ? null : req.note());
     }
 
     /** Every email the shop has sent (or, with no mail server, would have sent). */

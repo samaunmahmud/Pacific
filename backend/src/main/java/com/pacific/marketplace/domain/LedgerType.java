@@ -6,5 +6,9 @@ public enum LedgerType {
     /** The marketplace's cut of the item subtotal. Negative. */
     COMMISSION,
     /** A payout recorded by an admin. Negative. */
-    PAYOUT
+    PAYOUT,
+    /** Money the seller gave back to a customer for returned goods. Negative. */
+    REFUND,
+    /** The marketplace gives back its commission on refunded goods. Positive. */
+    COMMISSION_REFUND
 }

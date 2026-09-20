@@ -54,7 +54,7 @@ public final class SellerDtos {
     }
 
     public record SellerStats(BigDecimal grossSales, long orderCount, Map<OrderStatus, Long> ordersByStatus,
-                              long unitsSold, BigDecimal balance, long unansweredQuestions, long productCount,
+                              long unitsSold, BigDecimal balance, long unansweredQuestions, long openReturns, long productCount,
                               List<LowStock> lowStock, int lowStockThreshold) {
     }
 
@@ -66,8 +66,9 @@ public final class SellerDtos {
         }
     }
 
+    /** commission is net of what was given back on refunds; refunds is what the seller repaid customers. */
     public record EarningsDto(BigDecimal balance, BigDecimal sales, BigDecimal commission, BigDecimal payouts,
-                              PageResponse<LedgerEntryDto> entries) {
+                              BigDecimal refunds, PageResponse<LedgerEntryDto> entries) {
     }
 
     // ----- admin -----

@@ -2,6 +2,7 @@
 export const DEMO_ART_KINDS = [
   'backpack',
   'battery',
+  'beanie',
   'blender',
   'book',
   'bottle',
@@ -29,6 +30,7 @@ export const DEMO_ART_KINDS = [
   'mug',
   'pan',
   'plug',
+  'scarf',
   'shirt',
   'shoe',
   'speaker',

@@ -320,6 +320,26 @@ const ICONS: Record<DemoArtKind, Draw> = {
       <path d="M32 44v42h36V44" fill="none" stroke={c.l} strokeWidth="1.5" opacity="0.5" />
     </>
   ),
+  scarf: (c) => (
+    <>
+      <rect x="30" y="38" width="20" height="46" rx="3" fill={c.d} transform="rotate(6 40 38)" />
+      <rect x="48" y="38" width="22" height="46" rx="3" fill={c.m} />
+      <rect x="48" y="56" width="22" height="5" fill={c.l} />
+      <rect x="48" y="67" width="22" height="5" fill={c.l} />
+      <path d="M52 84v6M58 84v7M64 84v6M69 84v5" {...stroke(c.m, 2.5)} />
+      <path d="M18 24q32 24 64 0v16q-32 24-64 0z" fill={c.m} />
+      <path d="M18 32q32 24 64 0" {...stroke(c.l, 2.5)} />
+    </>
+  ),
+  beanie: (c) => (
+    <>
+      <path d="M18 66a32 32 0 0 1 64 0z" fill={c.m} />
+      <path d="M38 66q-3-16 2-30M50 66V34M62 66q3-16-2-30" {...stroke(c.d, 2)} opacity="0.35" />
+      <circle cx="50" cy="28" r="9" fill={c.l} />
+      <rect x="14" y="62" width="72" height="20" rx="8" fill={c.d} />
+      {[0, 1, 2, 3, 4, 5].map((i) => <rect key={i} x={22 + i * 9} y="66" width="3" height="12" rx="1.5" fill={c.l} opacity="0.6" />)}
+    </>
+  ),
   shoe: (c) => (
     <>
       <path d="M10 66V48q20 0 28-12l6-6q10 16 32 20 14 3 16 16v8z" fill={c.m} />

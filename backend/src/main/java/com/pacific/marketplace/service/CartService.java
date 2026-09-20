@@ -77,6 +77,32 @@ public class CartService {
         return get(userId);
     }
 
+    /**
+     * Puts the items of a released, unpaid card checkout back in the customer's cart so they can try again.
+     * Best effort: a product that is no longer for sale is skipped and the quantity is capped at what is in stock and
+     * at the per-item limit. It only tops a line up to the released quantity and never adds on top of one the
+     * customer has since added themselves, so running it twice changes nothing.
+     *
+     * @param released product id to the quantity that was reserved for the checkout
+     */
+    @Transactional
+    public void restore(Long userId, Map<Long, Integer> released) {
+        int max = pricing.maxQuantityPerItem();
+        released.forEach((productId, quantity) -> {
+            int available = products.findAvailableStock(productId).orElse(0);
+            CartItem existing = cart.findByUserIdAndProductId(userId, productId).orElse(null);
+            int have = existing == null ? 0 : existing.getQuantity();
+            int target = Math.min(Math.max(have, quantity), Math.min(max, available));
+            if (target <= have) return;
+            if (existing == null) {
+                cart.save(new CartItem(users.getReferenceById(userId), products.getReferenceById(productId), target));
+            } else {
+                existing.setQuantity(target);
+            }
+        });
+        cart.flush();
+    }
+
     private Product activeProduct(Long productId) {
         return products.findById(productId).filter(Product::isVisibleInStore)
                 .orElseThrow(() -> ApiException.notFound("Product not found."));

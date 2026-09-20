@@ -29,7 +29,9 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -54,15 +56,18 @@ public class PaymentService {
     private final PaymentRepository payments;
     private final OrderRepository orders;
     private final OrderCancellation cancellation;
+    private final CartService carts;
     private final PaymentGateways gateways;
     private final AppProperties props;
     private final TransactionTemplate tx;
 
     public PaymentService(PaymentRepository payments, OrderRepository orders, OrderCancellation cancellation,
-                          PaymentGateways gateways, AppProperties props, PlatformTransactionManager txManager) {
+                          CartService carts, PaymentGateways gateways, AppProperties props,
+                          PlatformTransactionManager txManager) {
         this.payments = payments;
         this.orders = orders;
         this.cancellation = cancellation;
+        this.carts = carts;
         this.gateways = gateways;
         this.props = props;
         this.tx = new TransactionTemplate(txManager);
@@ -340,18 +345,42 @@ public class PaymentService {
         }
     }
 
-    /** Ends a still-pending payment (unless it was paid meanwhile) and cancels its orders. Returns the final status. */
+    /**
+     * Ends a still-pending payment (unless it was paid meanwhile) and cancels its orders. Returns the final status.
+     * The customer's items go back in their cart, so a cancelled, timed-out or failed-to-start card checkout can
+     * simply be tried again.
+     */
     private PaymentStatus finish(String checkoutRef, PaymentStatus target) {
-        return tx.execute(s -> {
+        record Released(PaymentStatus status, Long userId, Map<Long, Integer> items) {
+        }
+        Released released = tx.execute(s -> {
             Payment p = payments.lockByCheckoutRef(checkoutRef).orElseThrow(
                     () -> ApiException.notFound("Payment not found."));
-            if (p.getStatus() != PaymentStatus.PENDING) return p.getStatus();
+            if (p.getStatus() != PaymentStatus.PENDING) return new Released(p.getStatus(), null, Map.of());
             p.close(target);
+            Map<Long, Integer> items = new LinkedHashMap<>();
             for (Order order : orders.findByCheckoutRef(checkoutRef)) {
-                if (order.getStatus() == OrderStatus.AWAITING_PAYMENT) cancellation.cancel(order);
+                if (order.getStatus() != OrderStatus.AWAITING_PAYMENT) continue;
+                cancellation.cancel(order);
+                for (OrderItem item : order.getItems()) items.merge(item.getProduct().getId(), item.getQuantity(), Integer::sum);
             }
-            return target;
+            return new Released(target, p.getUser().getId(), items);
         });
+        restoreCart(released.userId(), released.items());
+        return released.status();
+    }
+
+    /**
+     * Separate from the cancellation and never fatal: a cart that can't be refilled (say the customer added the same
+     * item at the same moment) must not undo releasing the stock.
+     */
+    private void restoreCart(Long userId, Map<Long, Integer> items) {
+        if (userId == null || items.isEmpty()) return;
+        try {
+            tx.executeWithoutResult(s -> carts.restore(userId, items));
+        } catch (RuntimeException e) {
+            log.warn("Could not put a released checkout's items back in the cart of user {}: {}", userId, e.getMessage());
+        }
     }
 
     private View view(String checkoutRef, Long userId) {

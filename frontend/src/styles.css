@@ -46,7 +46,6 @@ button { cursor: pointer; }
 .page { padding: 40px 80px; display: flex; flex-direction: column; gap: 30px; }
 .page-narrow { max-width: 900px; margin: 0 auto; width: 100%; }
 .page-title { font-size: 28px; font-weight: bold; color: var(--text); margin: 0; }
-.page-title.serif { font-family: var(--font-serif); }
 .page-subtitle { color: var(--muted); margin: 4px 0 0; }
 .section-title { font-size: 26px; font-weight: bold; margin: 0; }
 .row { display: flex; align-items: center; gap: 12px; }

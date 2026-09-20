@@ -168,7 +168,7 @@ export function AdminSellers() {
   return (
     <div className="page">
       <div>
-        <h1 className="page-title serif">Sellers</h1>
+        <h1 className="page-title">Sellers</h1>
         {data && <p className="page-subtitle">{data.totalItems} seller{data.totalItems === 1 ? '' : 's'}</p>}
       </div>
       <DefaultCommission />

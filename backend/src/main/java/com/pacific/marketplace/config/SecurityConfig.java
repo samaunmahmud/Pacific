@@ -1,6 +1,7 @@
 package com.pacific.marketplace.config;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.pacific.marketplace.repo.UserRepository;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.crypto.SecretKey;
@@ -15,7 +16,13 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -38,7 +45,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login",
-                                "/api/auth/admin/login").permitAll()
+                                "/api/auth/admin/login", "/api/auth/forgot-password", "/api/auth/reset-password")
+                        .permitAll()
                         // Stripe calls this itself (no login); the handler verifies the request's signature.
                         .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
                         // Public storefront reads. A bearer token is still honoured if sent, so
@@ -83,9 +91,28 @@ public class SecurityConfig {
         return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSigningKey));
     }
 
+    /**
+     * Besides the signature and expiry, a token is only good while its password version is still the account's
+     * current one, so changing or resetting a password signs out every other session (and a stolen token stops
+     * working). One primary-key lookup per request.
+     */
     @Bean
-    JwtDecoder jwtDecoder(SecretKey jwtSigningKey) {
-        return NimbusJwtDecoder.withSecretKey(jwtSigningKey).macAlgorithm(MacAlgorithm.HS256).build();
+    JwtDecoder jwtDecoder(SecretKey jwtSigningKey, UserRepository users) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtSigningKey).macAlgorithm(MacAlgorithm.HS256).build();
+        OAuth2TokenValidator<Jwt> passwordVersion = jwt -> {
+            int claimed = jwt.getClaim("pwv") instanceof Number n ? n.intValue() : 0;
+            try {
+                if (users.findPasswordVersionById(Long.valueOf(jwt.getSubject())).filter(v -> v == claimed).isPresent()) {
+                    return OAuth2TokenValidatorResult.success();
+                }
+            } catch (NumberFormatException ignored) {
+                // falls through to the failure below
+            }
+            return OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token",
+                    "Your session has ended. Please sign in again.", null));
+        };
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), passwordVersion));
+        return decoder;
     }
 
     @Bean

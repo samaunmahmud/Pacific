@@ -31,6 +31,10 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    /** Bumped on every password change; sign-in tokens carry it, so a change signs every other session out. */
+    @Column(name = "password_version", nullable = false)
+    private int passwordVersion;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -58,6 +62,16 @@ public class User {
         updatedAt = Instant.now();
     }
 
+    public void changePassword(String newHash) {
+        this.passwordHash = newHash;
+        this.passwordVersion++;
+    }
+
+    public void rename(String name) {
+        this.name = name;
+    }
+
+    public int getPasswordVersion() { return passwordVersion; }
     public Long getId() { return id; }
     public String getName() { return name; }
     public String getEmail() { return email; }

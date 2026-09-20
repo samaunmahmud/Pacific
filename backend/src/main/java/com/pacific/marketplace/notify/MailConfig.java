@@ -28,7 +28,7 @@ public class MailConfig {
             return new SmtpMailer(sender, from(props));
         }
         log.warn("Order emails: no MAIL_HOST set, so emails are only logged and recorded, never sent.");
-        return new LogMailer();
+        return new LogMailer(props.security() != null && props.security().production());
     }
 
     /** Emails go out on a background thread so a slow mail server never slows a customer's request. */

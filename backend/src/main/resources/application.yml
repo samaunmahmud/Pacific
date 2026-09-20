@@ -63,6 +63,16 @@ app:
       api-base: ${STRIPE_API_BASE:}
     # A fake, clearly labelled test-mode payment page for local development. NEVER enable in production.
     simulator-enabled: ${PAYMENTS_SIMULATOR_ENABLED:false}
+  security:
+    # A password reset link works for this long.
+    reset-token-minutes: 60
+    # Wrong passwords allowed within the window: per account from one address, and across accounts from one address.
+    login-max-failures: 5
+    login-window-minutes: 15
+    ip-max-failures: 50
+    # Set APP_PRODUCTION=true on a real shop: the app then refuses to start with the payment simulator, demo data,
+    # a non-https PUBLIC_URL or localhost CORS origins.
+    production: ${APP_PRODUCTION:false}
   # Order emails. With MAIL_HOST set they go out over SMTP (see spring.mail below); without it they are only logged and
   # recorded in the sent_emails table, so development never sends a real email by accident.
   mail:

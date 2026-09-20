@@ -90,6 +90,11 @@ await page.click('form .submit-btn'); // empty form: the browser's own validatio
 await sleep(400);
 check('empty checkout form is not submitted', new URL(page.url()).pathname === '/checkout');
 async function fillAddress() {
+  // a returning customer is offered their saved addresses (the form only shows for a new one)
+  await page.waitForFunction(() => document.querySelector('#name') || document.querySelector('input[name="address"]'), { timeout: 8000 });
+  if (!(await page.$('#name'))) {
+    await page.evaluate(() => [...document.querySelectorAll('label.pay-option')].find((l) => l.textContent.includes('Use a different address')).querySelector('input').click());
+  }
   await page.waitForSelector('#name', { timeout: 8000 });
   await page.$eval('#name', (e) => (e.value = ''));
   await page.type('#name', 'Quinn Tester');

@@ -82,7 +82,7 @@ export function OrdersManager({ base }: { base: 'admin' | 'seller' }) {
   return (
     <div className="page">
       <div>
-        <h1 className="page-title serif">Orders</h1>
+        <h1 className="page-title">Orders</h1>
         {data && <p className="page-subtitle">{data.totalItems} order{data.totalItems === 1 ? '' : 's'}</p>}
       </div>
       <div className="row-wrap" role="group" aria-label="Filter by status">

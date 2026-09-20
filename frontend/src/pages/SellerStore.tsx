@@ -80,7 +80,7 @@ export function SellerStore() {
       <section className="square-review-box static store-header">
         <div className="store-avatar" aria-hidden="true">{seller.storeName.charAt(0).toUpperCase()}</div>
         <div className="stack" style={{ gap: 6 }}>
-          <h1 className="page-title serif" style={{ fontSize: 32 }}>{seller.storeName}</h1>
+          <h1 className="page-title" style={{ fontSize: 32 }}>{seller.storeName}</h1>
           <Stars value={seller.ratingAvg} count={seller.ratingCount} />
           <div className="muted">Selling on Pacific since {dateOnly(seller.since)} · {seller.productCount} product{seller.productCount === 1 ? '' : 's'}</div>
           {seller.description && <p style={{ margin: '6px 0 0', color: '#555', maxWidth: 720 }}>{seller.description}</p>}
@@ -123,7 +123,7 @@ export function SellerStore() {
           : <div className="notice">You can rate this seller once an order from them has been delivered.</div>}
 
         {reviews.length === 0 ? <div className="empty" style={{ padding: 20 }}>No ratings yet.</div> : (
-          <div className="review-grid">
+          <div className="review-list">
             {reviews.map((r) => (
               <article key={r.id} className="square-review-box review-card">
                 <div className="star-label">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</div>

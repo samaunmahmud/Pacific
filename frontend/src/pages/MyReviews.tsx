@@ -17,10 +17,10 @@ const SORTS: [string, string][] = [
 function UnratedCard({ product }: { product: Product }) {
   const navigate = useNavigate();
   return (
-    <div className="product-card" onClick={() => navigate(`/products/${product.id}/review`)} role="link" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate(`/products/${product.id}/review`)}>
+    <div className="unrated-card" onClick={() => navigate(`/products/${product.id}/review`)} role="link" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate(`/products/${product.id}/review`)}>
       <div className="image-container"><ProductImage imageUrl={product.imageUrl} categoryName={product.category?.name} alt={product.name} /></div>
-      <h3 className="product-title-text">{product.name}</h3>
-      <div className="product-price">{money(product.price)}</div>
+      <h3 className="unrated-title">{product.name}</h3>
+      <div className="unrated-price">{money(product.price)}</div>
       <button className="submit-btn block">Write Review</button>
     </div>
   );
@@ -38,7 +38,7 @@ export function MyReviews() {
       <section className="stack" style={{ gap: 20 }}>
         <div className="row">
           <div>
-            <h1 className="page-title">List of unrated products,</h1>
+            <h1 className="page-title">Waiting for your review</h1>
             <p className="page-subtitle">Items you recently purchased</p>
           </div>
           <span className="spacer" />
@@ -71,7 +71,7 @@ export function MyReviews() {
         {mine.data && mine.data.length === 0 ? (
           <div className="empty">{q ? 'No reviews match your search.' : "You haven't reviewed anything yet."}</div>
         ) : (
-          <div className="review-grid">
+          <div className="review-list">
             {mine.data?.map((r) => (
               <CustomerReviewCard key={r.id} review={r} showProduct
                 onChange={(u) => mine.setData((prev) => prev?.map((x) => (x.id === u.id ? u : x)))}

@@ -26,7 +26,7 @@ export function AdminFlagged() {
       <div className="row" style={{ gap: 20 }}>
         <Link to="/admin" className="back-btn" aria-label="Back to dashboard">←</Link>
         <div>
-          <h1 className="page-title serif">Moderation Queue</h1>
+          <h1 className="page-title">Moderation Queue</h1>
           <p className="error-text" style={{ margin: '4px 0 0' }}>
             {data && data.totalItems === 0 ? 'All clear: nothing is waiting for moderation.' : 'Action required: Reviews flagged for moderation'}
           </p>

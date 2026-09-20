@@ -20,7 +20,7 @@ export function AdminDashboard() {
       {!s ? <div className="loading">Loading…</div> : (
         <>
           <section className="stack" style={{ gap: 20 }}>
-            <h1 className="page-title serif">Store overview</h1>
+            <h1 className="page-title">Store overview</h1>
             <div className="kpi-grid">
               <Link to="/admin/orders" className="square-review-box kpi" style={{ textDecoration: 'none' }}><span className="value">{money(s.revenue)}</span><span className="label">Gross sales (excl. cancelled)</span></Link>
               <Link to="/admin/orders" className="square-review-box kpi" style={{ textDecoration: 'none' }}><span className="value">{s.orderCount}</span><span className="label">Orders · {s.ordersByStatus.PLACED} new</span></Link>
@@ -35,7 +35,7 @@ export function AdminDashboard() {
           </section>
 
           <section className="stack" style={{ gap: 20 }}>
-            <h2 className="page-title serif">Review Distribution Statistics</h2>
+            <h2 className="page-title">Review Distribution Statistics</h2>
             <div className="square-review-box static chart-box">
               <PieChart slices={[
                 { label: 'Flagged', value: s.reviews.flagged, color: '#e74c3c' },
@@ -54,7 +54,7 @@ export function AdminDashboard() {
           <hr />
 
           <section className="stack" style={{ gap: 15 }}>
-            <h2 className="page-title serif" style={{ fontSize: 24 }}>Average Ratings per Product</h2>
+            <h2 className="page-title" style={{ fontSize: 24 }}>Average Ratings per Product</h2>
             <div className="square-review-box static">
               {s.productRatings.length === 0 ? <div className="muted">No product reviews yet.</div> : (showAllRatings ? s.productRatings : s.productRatings.slice(0, RATINGS_SHOWN)).map((p) => (
                 <div className="rating-row" key={p.productId}>
@@ -75,7 +75,7 @@ export function AdminDashboard() {
 
           {s.lowStock.length > 0 && (
             <section className="stack" style={{ gap: 15 }}>
-              <h2 className="page-title serif" style={{ fontSize: 24 }}>Low stock</h2>
+              <h2 className="page-title" style={{ fontSize: 24 }}>Low stock</h2>
               <div className="square-review-box static">
                 {s.lowStock.map((p) => (
                   <div className="rating-row" key={p.productId}>
@@ -94,7 +94,7 @@ export function AdminDashboard() {
 
       <section className="stack" style={{ gap: 20 }}>
         <div className="row">
-          <h2 className="page-title serif" style={{ fontSize: 24 }}>Recent Flags &amp; Reviews</h2>
+          <h2 className="page-title" style={{ fontSize: 24 }}>Recent Flags &amp; Reviews</h2>
           <span className="spacer" />
           <Link to="/admin/flagged" className="view-all-link">See more flagged reviews →</Link>
         </div>

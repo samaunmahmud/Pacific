@@ -20,6 +20,7 @@ import { AdminSellers } from './pages/admin/AdminSellers';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminFlagged } from './pages/admin/AdminFlagged';
 import { AdminOrders } from './pages/admin/AdminOrders';
+import { AdminEmails } from './pages/admin/AdminEmails';
 import { AdminProductForm, AdminProducts, ProductFormPage } from './pages/admin/AdminProducts';
 import { AdminReviewEdit } from './pages/admin/AdminReviewEdit';
 
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="admin/products/new" element={<AdminProductForm />} />
           <Route path="admin/products/:id" element={<AdminProductForm />} />
           <Route path="admin/orders" element={<AdminOrders />} />
+          <Route path="admin/emails" element={<AdminEmails />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

@@ -119,6 +119,32 @@ export interface Order {
   nextStatuses: OrderStatus[];
   cancellableByCustomer: boolean;
   createdAt: string;
+  trackingCarrier: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  timeline: OrderEvent[];
+}
+
+export type OrderEventType = 'AWAITING_PAYMENT' | 'PLACED' | 'PAYMENT_RECEIVED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+
+/** One thing that happened to an order, oldest first in Order.timeline. */
+export interface OrderEvent {
+  type: OrderEventType;
+  note: string | null;
+  at: string;
+}
+
+export interface SentEmail {
+  id: number;
+  to: string;
+  subject: string;
+  kind: string;
+  status: 'SENT' | 'LOGGED' | 'FAILED';
+  error: string | null;
+  body: string;
+  createdAt: string;
 }
 
 export interface Review {

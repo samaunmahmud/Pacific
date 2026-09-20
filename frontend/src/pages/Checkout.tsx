@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { CheckoutResponse, PaymentConfig, PaymentMethod } from '../api/types';
+import type { CheckoutResponse, PaymentConfig, PaymentMethod, SavedAddress } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
 import { money } from '../ui/format';
@@ -18,6 +18,12 @@ export function Checkout() {
   // If this can't be loaded we simply don't offer card payment; pay on delivery always works.
   const { data: config } = useAsync(() => api<PaymentConfig>('/payments/config').catch((): PaymentConfig => ({ cardEnabled: false, simulator: false })), []);
   const cardEnabled = config?.cardEnabled ?? false;
+  // Saved addresses (default first). If they can't be loaded the customer just types one.
+  const { data: saved } = useAsync(() => api<SavedAddress[]>('/me/addresses').catch((): SavedAddress[] => []), []);
+  const [choice, setChoice] = useState<number | 'new' | null>(null);
+  const [saveIt, setSaveIt] = useState(true);
+  const active = choice ?? (saved && saved.length > 0 ? saved[0].id : 'new');
+  const picked = typeof active === 'number' ? saved?.find((a) => a.id === active) : undefined;
   const paying = cardEnabled && method === 'CARD';
 
   if (!cart) return <div className="loading">Loading…</div>;
@@ -31,10 +37,20 @@ export function Checkout() {
     setBusy(true);
     let leaving = false;
     try {
+      const address = picked
+        ? { name: picked.name, line1: picked.line1, line2: picked.line2, city: picked.city, postcode: picked.postcode, country: picked.country }
+        : { ...form, line2: form.line2 || null };
       const result = await api<CheckoutResponse>('/orders', {
         method: 'POST',
-        body: { ...form, line2: form.line2 || null, paymentMethod: paying ? 'CARD' : 'PAY_ON_DELIVERY' },
+        body: { ...address, paymentMethod: paying ? 'CARD' : 'PAY_ON_DELIVERY' },
       });
+      // Remember a new address for next time. Best effort: the order is already placed, so this must never get in the way.
+      const norm = (v: string | null | undefined) => (v ?? '').trim().toLowerCase();
+      const alreadySaved = saved?.some((a) => norm(a.line1) === norm(address.line1) && norm(a.line2) === norm(address.line2)
+        && norm(a.city) === norm(address.city) && norm(a.postcode) === norm(address.postcode) && norm(a.country) === norm(address.country));
+      if (!picked && saveIt && !alreadySaved && (saved?.length ?? 0) < 10) {
+        await api('/me/addresses', { method: 'POST', body: { ...address, makeDefault: (saved?.length ?? 0) === 0 } }).catch(() => undefined);
+      }
       if (result.payment) {
         // Card: the customer pays on the provider's own page, then comes back to /pay/return.
         // Our servers never see card details.
@@ -66,6 +82,24 @@ export function Checkout() {
       <form className="two-col" onSubmit={submit}>
         <div className="square-review-box static stack">
           <h2 style={{ margin: 0 }}>Delivery address</h2>
+          {!saved ? <div className="loading">Loading your addresses…</div> : (
+            <>
+          {saved && saved.length > 0 && (
+            <div className="pay-options" role="radiogroup" aria-label="Delivery address">
+              {saved.map((a) => (
+                <label key={a.id} className={`pay-option ${active === a.id ? 'selected' : ''}`}>
+                  <input type="radio" name="address" checked={active === a.id} onChange={() => setChoice(a.id)} />
+                  <span><b>{a.name}</b>{a.isDefault && <span className="status-pill status-APPROVED" style={{ marginLeft: 8 }}>Default</span>}<br />
+                    <span className="muted">{a.line1}{a.line2 ? `, ${a.line2}` : ''}, {a.city} {a.postcode}, {a.country}</span></span>
+                </label>
+              ))}
+              <label className={`pay-option ${active === 'new' ? 'selected' : ''}`}>
+                <input type="radio" name="address" checked={active === 'new'} onChange={() => setChoice('new')} />
+                <span><b>Use a different address</b></span>
+              </label>
+            </div>
+          )}
+          {active === 'new' && (
           <div className="form-grid">
             <div className="form-field full"><label className="field-label small" htmlFor="name">Full name</label><input id="name" className="rounded-input" value={form.name} onChange={set('name')} required maxLength={120} autoComplete="name" /></div>
             <div className="form-field full"><label className="field-label small" htmlFor="line1">Address line 1</label><input id="line1" className="rounded-input" value={form.line1} onChange={set('line1')} required maxLength={160} autoComplete="address-line1" /></div>
@@ -74,6 +108,13 @@ export function Checkout() {
             <div className="form-field"><label className="field-label small" htmlFor="postcode">Postcode</label><input id="postcode" className="rounded-input" value={form.postcode} onChange={set('postcode')} required maxLength={20} autoComplete="postal-code" /></div>
             <div className="form-field full"><label className="field-label small" htmlFor="country">Country</label><input id="country" className="rounded-input" value={form.country} onChange={set('country')} required maxLength={80} autoComplete="country-name" /></div>
           </div>
+          )}
+          {active === 'new' && (saved?.length ?? 0) < 10 && (
+            <label className="row" style={{ gap: 8 }}><input type="checkbox" checked={saveIt} onChange={(e) => setSaveIt(e.target.checked)} /> Save this address for next time</label>
+          )}
+          {saved && saved.length > 0 && <Link to="/account/addresses" className="muted" style={{ fontSize: 13 }}>Manage saved addresses</Link>}
+            </>
+          )}
 
           <h2 style={{ margin: '8px 0 0' }}>Payment</h2>
           {cardEnabled ? (

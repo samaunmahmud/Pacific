@@ -13,6 +13,17 @@ export interface User {
   role: Role;
 }
 
+export interface SavedAddress {
+  id: number;
+  name: string;
+  line1: string;
+  line2: string | null;
+  city: string;
+  postcode: string;
+  country: string;
+  isDefault: boolean;
+}
+
 export interface AuthResponse {
   token: string;
   expiresAt: string;

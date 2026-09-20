@@ -3,6 +3,7 @@ package com.pacific.marketplace.notify;
 import com.pacific.marketplace.config.AppProperties;
 import com.pacific.marketplace.domain.Order;
 import com.pacific.marketplace.domain.ReturnRequest;
+import com.pacific.marketplace.domain.User;
 import com.pacific.marketplace.domain.SentEmail;
 import com.pacific.marketplace.repo.SentEmailRepository;
 import com.pacific.marketplace.web.dto.EmailDtos.SentEmailDto;
@@ -83,6 +84,14 @@ public class NotificationService {
         return PageResponse.of(sent.findAll(pageable), SentEmailDto::from);
     }
 
+    public void passwordReset(User user, String rawToken, int minutes) {
+        afterCommit(templates.passwordReset(user, rawToken, minutes));
+    }
+
+    public void passwordChanged(User user) {
+        afterCommit(templates.passwordChanged(user));
+    }
+
     public void returnRequested(ReturnRequest r) {
         afterCommit(templates.returnRequested(r));
         if (r.getOrder().getSeller() != null) afterCommit(templates.returnRequestedForSeller(r));
@@ -125,7 +134,7 @@ public class NotificationService {
                 log.warn("Could not send {} email to {}: {}", email.kind(), email.to(), error);
             }
             try {
-                SentEmail record = new SentEmail(email.to(), email.subject(), email.kind(), email.text(), status, error);
+                SentEmail record = new SentEmail(email.to(), email.subject(), email.kind(), email.recordedText(), status, error);
                 recordTx.executeWithoutResult(t -> sent.save(record));
             } catch (RuntimeException e) {
                 log.warn("Could not record the {} email to {}: {}", email.kind(), email.to(), e.getMessage());

@@ -9,6 +9,9 @@ interface AuthState {
   login: (identifier: string, password: string, portal: 'customer' | 'admin') => Promise<User>;
   register: (name: string, email: string, password: string) => Promise<User>;
   logout: () => void;
+  /** Use a fresh sign-in (after changing the password every other session ends, this one gets a new token). */
+  adopt: (res: AuthResponse) => void;
+  setName: (name: string) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -62,7 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [finish],
   );
 
-  const value = useMemo(() => ({ user, loading, login, register, logout }), [user, loading, login, register, logout]);
+  const adopt = useCallback((res: AuthResponse) => {
+    finish(res);
+  }, [finish]);
+  const setName = useCallback((name: string) => setUser((u) => (u ? { ...u, name } : u)), []);
+
+  const value = useMemo(() => ({ user, loading, login, register, logout, adopt, setName }), [user, loading, login, register, logout, adopt, setName]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

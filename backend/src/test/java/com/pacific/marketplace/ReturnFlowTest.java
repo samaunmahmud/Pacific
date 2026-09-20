@@ -208,7 +208,7 @@ class ReturnFlowTest extends CommittedFlowTestBase {
 
         JsonNode delivered = deliveredOrder(seller, buyer, pid, 1, null);
         assertThat(delivered.get("returnDeadline").isNull()).isFalse();
-        jdbc.update("update orders set return_deadline = TIMESTAMPADD(DAY, -1, CURRENT_TIMESTAMP) where id = ?", id(delivered));
+        jdbc.update("update orders set return_deadline = ? where id = ?", utcMinutesAgo(60), id(delivered));
         JsonNode late = requestReturn(buyer, id(delivered), itemId(delivered), 1, 409);
         assertThat(late.get("message").asText()).contains("return window");
         assertThat(order(buyer, id(delivered)).get("canReturn").asBoolean()).isFalse();

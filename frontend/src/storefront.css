@@ -595,3 +595,17 @@ body { background: var(--page-bg); }
 .status-REQUESTED { background: #fff4e0; color: #b26a00; }
 .status-REFUNDED { background: #e8f5e9; color: var(--ok); }
 .status-CANCELLED { background: var(--line); color: #555; }
+
+/* ---------- account and address book ---------- */
+.account-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.account-tile { display: flex; flex-direction: column; gap: 4px; padding: 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: inherit; transition: box-shadow 0.15s, border-color 0.15s; }
+.account-tile:hover { border-color: #c9c9c9; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12); }
+.account-tile b { font-size: 16px; }
+.account-tile span { font-size: 13px; color: var(--muted); }
+@media (max-width: 560px) { .account-tiles { grid-template-columns: 1fr; } }
+.address-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (max-width: 720px) { .address-list { grid-template-columns: 1fr; } }
+.address-card { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+.address-card.is-default { border-color: var(--brand); }
+.address-card address { font-style: normal; font-size: 14px; line-height: 1.5; }
+.link-btn.login-button { text-align: center; text-decoration: none; }

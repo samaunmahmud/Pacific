@@ -102,6 +102,7 @@ class PaymentGatewayTest extends PaymentTestBase {
         Payment row = paymentRepo.findAll().get(0);
         assertThat(row.getStatus().name()).isEqualTo("CANCELLED");
         assertAllOrders(token, "CANCELLED");
+        assertThat(cartQuantity(token, p.getId())).isEqualTo(2); // so they can simply try again
     }
 
     private Map<String, Object> cardRequest() {

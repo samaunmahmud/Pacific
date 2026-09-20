@@ -156,6 +156,84 @@ class PaymentFlowTest extends PaymentTestBase {
     }
 
     @Test
+    void cancellingAPendingPaymentPutsTheItemsBackInTheCart() throws Exception {
+        String token = registerCustomer();
+        Product a = product("Lamp", "20.00", 5);
+        Product b = product("Rug", "35.00", 5);
+        addToCart(token, a.getId(), 2);
+        addToCart(token, b.getId(), 1);
+        String ref = cardCheckout(token).get("checkoutRef").asText();
+        assertThat(cartQuantity(token, a.getId())).isZero(); // checking out emptied the cart
+
+        cancelPayment(token, ref, 200);
+
+        assertThat(cartQuantity(token, a.getId())).isEqualTo(2);
+        assertThat(cartQuantity(token, b.getId())).isEqualTo(1);
+        cancelPayment(token, ref, 200); // cancelling again doesn't add them a second time
+        assertThat(cartQuantity(token, a.getId())).isEqualTo(2);
+    }
+
+    @Test
+    void aTimedOutPaymentPutsTheItemsBackInTheCart() throws Exception {
+        String token = registerCustomer();
+        Product p = product("Vase", "18.00", 3);
+        addToCart(token, p.getId(), 3);
+        String ref = cardCheckout(token).get("checkoutRef").asText();
+        Payment row = paymentRepo.findByCheckoutRef(ref).orElseThrow();
+        row.setExpiresAt(Instant.now().minusSeconds(60));
+        paymentRepo.saveAndFlush(row);
+
+        assertThat(paymentService.expireOverdue()).isEqualTo(1);
+
+        assertThat(cartQuantity(token, p.getId())).isEqualTo(3);
+    }
+
+    @Test
+    void restoringTheCartNeverAddsOnTopOfWhatTheCustomerHasSinceAdded() throws Exception {
+        String token = registerCustomer();
+        Product p = product("Clock", "25.00", 10);
+        addToCart(token, p.getId(), 2);
+        String ref = cardCheckout(token).get("checkoutRef").asText();
+        addToCart(token, p.getId(), 1); // they went back to the shop and added one again
+        assertThat(cartQuantity(token, p.getId())).isEqualTo(1);
+
+        cancelPayment(token, ref, 200);
+
+        assertThat(cartQuantity(token, p.getId())).isEqualTo(2); // topped up to what they had, not 2 + 1
+
+        String second = checkoutAndKeepMore(token, p, 4);
+        cancelPayment(token, second, 200);
+        assertThat(cartQuantity(token, p.getId())).isEqualTo(4); // a bigger line they already had is left alone
+    }
+
+    /** Checks out the cart, then adds {@code more} of the product to the new cart. Returns the checkout ref. */
+    private String checkoutAndKeepMore(String token, Product p, int more) throws Exception {
+        String ref = cardCheckout(token).get("checkoutRef").asText();
+        addToCart(token, p.getId(), more);
+        return ref;
+    }
+
+    @Test
+    void itemsThatCantBeBoughtAnymoreAreLeftOutOfTheRestoredCart() throws Exception {
+        String token = registerCustomer();
+        Product kept = product("Frame", "12.00", 5);
+        Product withdrawn = product("Poster", "9.00", 5);
+        addToCart(token, kept.getId(), 1);
+        addToCart(token, withdrawn.getId(), 1);
+        String ref = cardCheckout(token).get("checkoutRef").asText();
+        assertThat(stockOf(withdrawn)).isEqualTo(4); // reserved; also drops the stale cached copy before we edit it
+        Product gone = productRepo.findById(withdrawn.getId()).orElseThrow();
+        gone.setActive(false); // pulled from sale while the customer was on the payment page
+        productRepo.saveAndFlush(gone);
+
+        cancelPayment(token, ref, 200);
+
+        assertThat(cartQuantity(token, kept.getId())).isEqualTo(1);
+        assertThat(cartQuantity(token, withdrawn.getId())).isZero();
+        assertThat(stockOf(withdrawn)).isEqualTo(5); // the stock still went back
+    }
+
+    @Test
     void aPaymentThatArrivesAfterCancellationIsRefundedNotKept() throws Exception {
         String token = registerCustomer();
         Product p = product("Router", "60.00", 3);

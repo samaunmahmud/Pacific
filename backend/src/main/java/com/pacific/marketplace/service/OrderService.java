@@ -2,11 +2,13 @@ package com.pacific.marketplace.service;
 
 import com.pacific.marketplace.domain.CartItem;
 import com.pacific.marketplace.domain.Order;
+import com.pacific.marketplace.domain.OrderEventType;
 import com.pacific.marketplace.domain.OrderStatus;
 import com.pacific.marketplace.domain.PaymentMethod;
 import com.pacific.marketplace.domain.Product;
 import com.pacific.marketplace.domain.SellerProfile;
 import com.pacific.marketplace.domain.ShippingAddress;
+import com.pacific.marketplace.notify.NotificationService;
 import com.pacific.marketplace.repo.CartItemRepository;
 import com.pacific.marketplace.repo.OrderRepository;
 import com.pacific.marketplace.repo.ProductRepository;
@@ -44,10 +46,12 @@ public class OrderService {
     private final LedgerService ledger;
     private final OrderCancellation cancellation;
     private final PaymentService payments;
+    private final NotificationService notifications;
 
     public OrderService(OrderRepository orders, CartItemRepository cart, ProductRepository products,
                         UserRepository users, ShopPricing pricing, SettingsService settings, LedgerService ledger,
-                        OrderCancellation cancellation, PaymentService payments) {
+                        OrderCancellation cancellation, PaymentService payments,
+                        NotificationService notifications) {
         this.orders = orders;
         this.cart = cart;
         this.products = products;
@@ -57,6 +61,7 @@ public class OrderService {
         this.ledger = ledger;
         this.cancellation = cancellation;
         this.payments = payments;
+        this.notifications = notifications;
     }
 
     /**
@@ -98,6 +103,7 @@ public class OrderService {
         ShippingAddress address = new ShippingAddress(req.name().strip(), req.line1().strip(),
                 Text.clean(req.line2()), req.city().strip(), req.postcode().strip(), req.country().strip());
         List<OrderDto> created = new ArrayList<>();
+        List<Order> placed = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
         for (List<CartItem> group : bySeller.values()) {
             SellerProfile seller = group.get(0).getProduct().getSeller();
@@ -108,6 +114,9 @@ public class OrderService {
                 // Stock is reserved, but it is not a purchase (or visible to the seller) until it is paid.
                 order.setStatus(OrderStatus.AWAITING_PAYMENT);
                 order.setPaymentMethod(PaymentMethod.CARD.name());
+                order.addEvent(OrderEventType.AWAITING_PAYMENT, "Waiting for the card payment");
+            } else {
+                order.addEvent(OrderEventType.PLACED, "Pay on delivery");
             }
             BigDecimal subtotal = BigDecimal.ZERO;
             for (CartItem item : group) {
@@ -118,10 +127,12 @@ public class OrderService {
             subtotal = subtotal.setScale(2);
             order.setTotals(subtotal, pricing.shippingFor(subtotal));
             orders.save(order);
+            placed.add(order);
             created.add(OrderDto.from(order));
             grandTotal = grandTotal.add(order.getTotal());
         }
         cart.deleteAllForUser(userId);
+        if (!card) notifications.ordersPlaced(placed); // a card checkout is announced once it has been paid
         // The payment is recorded in the same transaction as the orders; the provider is contacted afterwards.
         PaymentDto payment = card
                 ? PaymentDto.from(payments.createPending(users.getReferenceById(userId), ref, grandTotal)) : null;
@@ -146,7 +157,7 @@ public class OrderService {
         if (order.getStatus() != OrderStatus.PLACED) {
             throw ApiException.conflict("This order is already being prepared and can no longer be cancelled.");
         }
-        cancel(order);
+        cancel(order, "you");
         return OrderDto.from(order);
     }
 
@@ -169,10 +180,10 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderDto sellerSetStatus(Long sellerId, Long orderId, OrderStatus next) {
+    public OrderDto sellerSetStatus(Long sellerId, Long orderId, OrderStatus next, String carrier, String trackingNumber) {
         Order order = orders.lockById(orderId).filter(o -> visibleToSeller(o, sellerId))
                 .orElseThrow(() -> ApiException.notFound("Order not found."));
-        transition(order, next);
+        transition(order, next, "the seller", carrier, trackingNumber);
         return OrderDto.from(order);
     }
 
@@ -192,30 +203,53 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderDto adminSetStatus(Long orderId, OrderStatus next) {
+    public OrderDto adminSetStatus(Long orderId, OrderStatus next, String carrier, String trackingNumber) {
         Order order = orders.lockById(orderId).orElseThrow(() -> ApiException.notFound("Order not found."));
-        transition(order, next);
+        transition(order, next, "Pacific", carrier, trackingNumber);
         return OrderDto.from(order);
     }
 
     // ---------- helpers ----------
 
-    /** The single place where order status changes: validates the move, restocks on cancel, books earnings on delivery. */
-    private void transition(Order order, OrderStatus next) {
+    /**
+     * The single place where order status changes: validates the move, records it on the order's timeline, restocks on
+     * cancel, books earnings on delivery, and tells the customer. by says who did it, for the timeline and emails.
+     */
+    private void transition(Order order, OrderStatus next, String by, String carrier, String trackingNumber) {
         if (!order.getStatus().allowedNext().contains(next)) {
             throw ApiException.conflict("An order that is " + order.getStatus() + " can't be moved to " + next + ".");
         }
-        if (next == OrderStatus.CANCELLED) {
-            cancel(order);
-        } else {
-            order.setStatus(next);
-            if (next == OrderStatus.DELIVERED) ledger.recordDelivered(order);
+        switch (next) {
+            case CANCELLED -> cancel(order, by);
+            case PROCESSING -> {
+                order.setStatus(next);
+                order.addEvent(OrderEventType.PROCESSING, null);
+            }
+            case SHIPPED -> {
+                String c = Text.clean(carrier);
+                String n = Text.clean(trackingNumber);
+                order.setStatus(next);
+                order.markShipped(c, n);
+                order.addEvent(OrderEventType.SHIPPED, n == null ? null : (c == null ? "" : c + " ") + n);
+                notifications.orderShipped(order);
+            }
+            case DELIVERED -> {
+                order.setStatus(next);
+                order.markDelivered();
+                order.addEvent(OrderEventType.DELIVERED, null);
+                ledger.recordDelivered(order);
+                notifications.orderDelivered(order);
+            }
+            default -> order.setStatus(next);
         }
     }
 
-    private void cancel(Order order) {
+    private void cancel(Order order, String by) {
         cancellation.cancel(order);
-        payments.refundOrder(order); // a paid card order gets its money back
+        BigDecimal refunded = payments.refundOrder(order); // a paid card order gets its money back
+        boolean money = refunded.signum() > 0;
+        order.addEvent(OrderEventType.CANCELLED, "Cancelled by " + by + (money ? ", refunded to the card" : ""));
+        notifications.orderCancelled(order, by, refunded);
     }
 
     private static boolean belongsTo(Order order, Long sellerId) {

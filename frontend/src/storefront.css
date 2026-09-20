@@ -559,3 +559,29 @@ body { background: var(--page-bg); }
 
 /* the review form's product name, above the rating */
 .review-form-product { color: var(--muted); font-size: 14px; }
+
+/* ---------- order activity, tracking, shipping form, admin email log ---------- */
+.activity { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; }
+.activity li { display: flex; gap: 12px; position: relative; padding-bottom: 14px; font-size: 14px; }
+.activity li:last-child { padding-bottom: 0; }
+.activity li::before { content: ''; position: absolute; left: 5px; top: 14px; bottom: -2px; width: 2px; background: var(--line); }
+.activity li:last-child::before { display: none; }
+.act-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--brand); flex: none; margin-top: 4px; }
+.act-DELIVERED .act-dot { background: #007600; }
+.act-CANCELLED .act-dot { background: var(--price-red); }
+.act-AWAITING_PAYMENT .act-dot { background: #b26a00; }
+.act-time { margin-left: 10px; color: var(--muted); font-size: 12px; }
+.act-note { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+.tracking-box { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fafafa; }
+.tracking-box > div { display: flex; flex-direction: column; font-size: 14px; }
+.tracking-box .muted { font-size: 12px; }
+
+.activity-toggle > summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.ship-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .ship-form { grid-template-columns: 1fr; } }
+
+.mail-body { white-space: pre-wrap; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: #fafafa; border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin: 12px 0 0; overflow-wrap: anywhere; }
+.mail-SENT { background: #e8f5e9; color: var(--ok); }
+.mail-LOGGED { background: #fff4e0; color: #b26a00; }
+.mail-FAILED { background: var(--danger-soft); color: var(--danger); }

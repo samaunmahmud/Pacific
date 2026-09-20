@@ -41,6 +41,15 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Query("update Product p set p.stock = p.stock + :quantity where p.id = :id")
     int incrementStock(@Param("id") Long id, @Param("quantity") int quantity);
 
+    /**
+     * Units that can be bought right now, read fresh from the database (the stock updates above bypass loaded
+     * entities). Empty if the product is hidden or its seller isn't approved, the same rule as {@link #decrementStock}.
+     */
+    @Query("select p.stock from Product p where p.id = :id and p.active = true "
+            + "and (p.seller is null or p.seller.id in (select s.id from SellerProfile s "
+            + "where s.status = com.pacific.marketplace.domain.SellerStatus.APPROVED))")
+    Optional<Integer> findAvailableStock(@Param("id") Long id);
+
     /** Pacific's own (house) products running low. */
     @EntityGraph(attributePaths = "category")
     List<Product> findByActiveTrueAndSellerIsNullAndStockLessThanEqualOrderByStockAscNameAsc(int stock);

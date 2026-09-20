@@ -340,6 +340,16 @@ const ICONS: Record<DemoArtKind, Draw> = {
       {[0, 1, 2, 3, 4, 5].map((i) => <rect key={i} x={22 + i * 9} y="66" width="3" height="12" rx="1.5" fill={c.l} opacity="0.6" />)}
     </>
   ),
+  trousers: (c) => (
+    <>
+      <path d="M30 14h40l5 72H55l-5-44-5 44H25z" fill={c.m} />
+      <rect x="30" y="14" width="40" height="8" rx="2" fill={c.d} />
+      <rect x="47" y="12" width="6" height="12" rx="1.5" fill={c.l} />
+      <path d="M50 24v18" {...stroke(c.d, 2)} />
+      <path d="M36 30q6 1 9 8M64 30q-6 1-9 8" {...stroke(c.d, 2)} />
+      <path d="M26 79h19M55 79h19" {...stroke(c.l, 2.5)} />
+    </>
+  ),
   shoe: (c) => (
     <>
       <path d="M10 66V48q20 0 28-12l6-6q10 16 32 20 14 3 16 16v8z" fill={c.m} />

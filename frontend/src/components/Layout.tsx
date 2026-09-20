@@ -131,6 +131,7 @@ function NavBar() {
         <NavLink to="/admin/orders" className="nav-link">Orders</NavLink>
         <NavLink to="/admin/sellers" className="nav-link">Sellers</NavLink>
         <NavLink to="/admin/flagged" className="nav-link">Flagged Reviews</NavLink>
+        <NavLink to="/admin/emails" className="nav-link">Emails</NavLink>
         <NavLink to="/" end className="nav-link">View Storefront</NavLink>
       </nav>
     );

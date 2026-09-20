@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { Order, OrderStatus, Page } from '../../api/types';
+import { OrderActivity, TrackingInfo } from '../../components/OrderActivity';
 import { Pagination } from '../../components/Pagination';
+import { CARRIERS } from '../../ui/carriers';
 import { dateTime, money, statusLabel } from '../../ui/format';
 import { useToast } from '../../ui/Toast';
 import { useAsync } from '../../ui/useAsync';
@@ -14,14 +16,19 @@ function OrderRow({ order, onChanged, base }: { order: Order; onChanged: (o: Ord
   const toast = useToast();
   const [next, setNext] = useState<OrderStatus | ''>('');
   const [busy, setBusy] = useState(false);
+  const [carrier, setCarrier] = useState('');
+  const [tracking, setTracking] = useState('');
 
   async function apply() {
     if (!next) return;
     if (next === 'CANCELLED' && !window.confirm(`Cancel order #${order.id}? Stock will be returned.`)) return;
     setBusy(true);
     try {
-      onChanged(await api<Order>(`/${base}/orders/${order.id}/status`, { method: 'PATCH', body: { status: next } }));
+      const body = next === 'SHIPPED' ? { status: next, carrier: carrier.trim() || null, trackingNumber: tracking.trim() || null } : { status: next };
+      onChanged(await api<Order>(`/${base}/orders/${order.id}/status`, { method: 'PATCH', body }));
       setNext('');
+      setCarrier('');
+      setTracking('');
       toast.show(`Order #${order.id} is now ${next.toLowerCase()}`);
     } catch (e) {
       toast.show(e instanceof Error ? e.message : 'Could not update the order.', 'error');
@@ -49,6 +56,24 @@ function OrderRow({ order, onChanged, base }: { order: Order; onChanged: (o: Ord
         <div className="muted">
           Ship to: {order.address.name}, {order.address.line1}{order.address.line2 ? `, ${order.address.line2}` : ''}, {order.address.city} {order.address.postcode}, {order.address.country}
         </div>
+        <TrackingInfo order={order} />
+        <details className="activity-toggle">
+          <summary>Order activity</summary>
+          <OrderActivity order={order} />
+        </details>
+        {next === 'SHIPPED' && (
+          <div className="ship-form">
+            <div className="form-field">
+              <label className="field-label small" htmlFor={`carrier-${order.id}`}>Carrier (optional)</label>
+              <input id={`carrier-${order.id}`} className="rounded-input" list="carrier-options" value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="e.g. Royal Mail" maxLength={60} autoComplete="off" />
+            </div>
+            <div className="form-field">
+              <label className="field-label small" htmlFor={`tracking-${order.id}`}>Tracking number (optional)</label>
+              <input id={`tracking-${order.id}`} className="rounded-input" value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="So the customer can follow the parcel" maxLength={80} autoComplete="off" />
+            </div>
+            <datalist id="carrier-options">{CARRIERS.map((c) => <option key={c} value={c} />)}</datalist>
+          </div>
+        )}
         <div className="row-wrap">
           {order.nextStatuses.length === 0 ? <span className="muted">No further changes possible.</span> : (
             <>

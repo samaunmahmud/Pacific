@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Order, OrderStatus } from '../api/types';
 import { useCart } from '../cart/CartContext';
+import { OrderActivity, TrackingInfo } from '../components/OrderActivity';
 import { ProductImage } from '../components/ProductImage';
 import { dateOnly, dateTime, money, statusLabel } from '../ui/format';
 import { useToast } from '../ui/Toast';
@@ -62,6 +63,8 @@ function OrderCard({ o }: { o: Order }) {
         <div className="order-main">
           <h2 className={`order-status s-${o.status}`}>{HEADLINE[o.status]}</h2>
           {o.status === 'AWAITING_PAYMENT' && <p className="order-note">Your items are reserved for a short time while you pay.</p>}
+          {o.status === 'SHIPPED' && o.trackingNumber && <p className="order-note">{o.trackingCarrier ?? 'Tracking'}: <b>{o.trackingNumber}</b></p>}
+          {o.status === 'DELIVERED' && o.deliveredAt && <p className="order-note">Delivered on {dateOnly(o.deliveredAt)}</p>}
           {o.items.map((i) => (
             <div key={i.productId} className="order-item">
               <Link to={`/products/${i.productId}`} className="order-thumb" aria-label={i.productName}>
@@ -186,6 +189,7 @@ export function OrderDetail() {
           <div className="order-main">
             <h2 className={`order-status s-${o.status}`}>{HEADLINE[o.status]}</h2>
             <Tracker status={o.status} />
+            <TrackingInfo order={o} />
             {o.items.map((i) => (
               <div key={i.productId} className="order-item">
                 <Link to={`/products/${i.productId}`} className="order-thumb" aria-label={i.productName}>
@@ -198,6 +202,15 @@ export function OrderDetail() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="order-card">
+        <div className="order-body single">
+          <div className="order-main">
+            <h2 className="order-status">Order activity</h2>
+            <OrderActivity order={o} />
           </div>
         </div>
       </div>

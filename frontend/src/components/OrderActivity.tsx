@@ -9,6 +9,11 @@ const LABEL: Record<OrderEventType, string> = {
   SHIPPED: 'Shipped',
   DELIVERED: 'Delivered',
   CANCELLED: 'Cancelled',
+  RETURN_REQUESTED: 'Return requested',
+  RETURN_APPROVED: 'Return approved',
+  RETURN_REJECTED: 'Return declined',
+  RETURN_CANCELLED: 'Return withdrawn',
+  REFUNDED: 'Refunded',
 };
 
 /** Who did what and when, oldest first. Older orders that pre-date the timeline simply show when they were placed. */

@@ -21,6 +21,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminFlagged } from './pages/admin/AdminFlagged';
 import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminEmails } from './pages/admin/AdminEmails';
+import { ReturnsManager } from './pages/ReturnsManager';
 import { AdminProductForm, AdminProducts, ProductFormPage } from './pages/admin/AdminProducts';
 import { AdminReviewEdit } from './pages/admin/AdminReviewEdit';
 
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="seller/products/new" element={<ProductFormPage scope="seller" />} />
           <Route path="seller/products/:id" element={<ProductFormPage scope="seller" />} />
           <Route path="seller/orders" element={<SellerOrders />} />
+          <Route path="seller/returns" element={<ReturnsManager base="seller" />} />
           <Route path="seller/earnings" element={<SellerEarnings />} />
           <Route path="seller/questions" element={<SellerQuestions />} />
           <Route path="seller/settings" element={<SellerSettings />} />
@@ -84,6 +86,7 @@ export default function App() {
           <Route path="admin/products/:id" element={<AdminProductForm />} />
           <Route path="admin/orders" element={<AdminOrders />} />
           <Route path="admin/emails" element={<AdminEmails />} />
+          <Route path="admin/returns" element={<ReturnsManager base="admin" />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

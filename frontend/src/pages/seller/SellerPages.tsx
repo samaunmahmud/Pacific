@@ -12,7 +12,8 @@ import { StockCell, toInput } from '../admin/AdminProducts';
 import { OrdersManager } from '../admin/AdminOrders';
 import { StatusPill } from '../Orders';
 
-const cap = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
+const LEDGER_LABEL: Record<string, string> = { SALE: 'Sale', COMMISSION: 'Commission', PAYOUT: 'Payout', REFUND: 'Refund', COMMISSION_REFUND: 'Commission returned' };
+const cap = (s: string) => LEDGER_LABEL[s] ?? s.charAt(0) + s.slice(1).toLowerCase();
 
 export function SellerDashboard() {
   const { seller } = useSeller();
@@ -34,6 +35,11 @@ export function SellerDashboard() {
           {s.ordersByStatus.PLACED > 0 && (
             <Link to="/seller/orders?status=PLACED" className="notice" style={{ textDecoration: 'none' }}>
               📦 <b>{s.ordersByStatus.PLACED}</b> new order{s.ordersByStatus.PLACED === 1 ? '' : 's'} waiting to be processed →
+            </Link>
+          )}
+          {s.openReturns > 0 && (
+            <Link to="/seller/returns" className="notice" style={{ textDecoration: 'none' }}>
+              ↩ <b>{s.openReturns}</b> return request{s.openReturns === 1 ? '' : 's'} waiting for your decision →
             </Link>
           )}
           {s.unansweredQuestions > 0 && (
@@ -143,7 +149,7 @@ export function SellerEarnings() {
     <div className="page">
       <div>
         <h1 className="page-title">Earnings</h1>
-        <p className="page-subtitle">Recorded when an order is delivered. Pacific pays out from your balance.</p>
+        <p className="page-subtitle">Recorded when an order is delivered. Refunds for returns come off your balance, and Pacific gives back its commission on them.</p>
       </div>
       {error && <div className="notice error">{error}</div>}
       {!data ? <div className="loading">Loading…</div> : (
@@ -151,7 +157,8 @@ export function SellerEarnings() {
           <div className="kpi-grid">
             <div className="square-review-box kpi static"><span className="value">{money(data.balance)}</span><span className="label">Current balance</span></div>
             <div className="square-review-box kpi static"><span className="value">{money(data.sales)}</span><span className="label">Sales incl. shipping</span></div>
-            <div className="square-review-box kpi static"><span className="value">{money(data.commission)}</span><span className="label">Commission paid to Pacific</span></div>
+            <div className="square-review-box kpi static"><span className="value">{money(data.commission)}</span><span className="label">Commission kept by Pacific</span></div>
+            <div className="square-review-box kpi static"><span className="value">{money(data.refunds)}</span><span className="label">Refunded to customers</span></div>
             <div className="square-review-box kpi static"><span className="value">{money(data.payouts)}</span><span className="label">Paid out so far</span></div>
           </div>
           <div className="square-review-box static table-wrap">

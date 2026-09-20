@@ -109,7 +109,7 @@ public class ReturnRequest {
         this.status = ReturnStatus.REFUNDED;
         this.refundAmount = amount;
         this.restocked = restocked;
-        if (note != null) this.sellerNote = note;
+        this.sellerNote = note; // the return instructions given on approval no longer apply once it is refunded
         this.resolvedAt = Instant.now();
     }
 

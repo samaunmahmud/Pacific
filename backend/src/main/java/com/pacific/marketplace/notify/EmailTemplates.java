@@ -8,6 +8,7 @@ import com.pacific.marketplace.domain.PaymentMethod;
 import com.pacific.marketplace.domain.ReturnItem;
 import com.pacific.marketplace.domain.ReturnRequest;
 import com.pacific.marketplace.domain.ShippingAddress;
+import com.pacific.marketplace.domain.User;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -164,6 +165,32 @@ public class EmailTemplates {
     private void returnLines(Doc d, ReturnRequest r) {
         for (ReturnItem i : r.getItems()) d.row(i.getQuantity() + " × " + i.getOrderItem().getProductName(),
                 money(i.getOrderItem().getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity()))));
+    }
+
+    // ---------- account ----------
+
+    /**
+     * The reset link is a secret: it works once and lets whoever holds it choose a new password. So the copy kept in
+     * the admin email log has the link replaced.
+     */
+    public Email passwordReset(User user, String rawToken, int minutes) {
+        String link = baseUrl + "/reset-password?token=" + rawToken;
+        Doc d = new Doc().heading("Reset your password");
+        d.para("Someone asked to reset the password for your Pacific account. If that was you, choose a new one with the button below. The link works once and expires in "
+                + minutes + " minutes.");
+        d.button("Choose a new password", link);
+        d.para("If you didn't ask for this, you can ignore this email: your password won't change.");
+        Email email = d.build(user.getEmail(), "Reset your Pacific password", "PASSWORD_RESET");
+        return new Email(email.to(), email.subject(), email.text(), email.html(), email.kind(),
+                email.text().replace(link, "[reset link hidden]"));
+    }
+
+    public Email passwordChanged(User user) {
+        Doc d = new Doc().heading("Your password was changed");
+        d.para("The password for your Pacific account was just changed, and you've been signed out on other devices.");
+        d.para("If this wasn't you, reset your password straight away.");
+        d.button("Reset your password", baseUrl + "/forgot-password");
+        return d.build(user.getEmail(), "Your Pacific password was changed", "PASSWORD_CHANGED");
     }
 
     // ---------- seller ----------

@@ -18,6 +18,7 @@ public record AppProperties(
         String publicUrl,
         @Valid Payments payments,
         Mail mail,
+        Security security,
         AdminBootstrap adminBootstrap,
         LegacyImport legacyImport) {
 
@@ -45,6 +46,15 @@ public record AppProperties(
 
     /** from: the sender shown on emails. async: send on a background thread (tests turn this off). */
     public record Mail(String from, boolean async) {
+    }
+
+    /**
+     * resetTokenMinutes: how long a password reset link works. loginMaxFailures: wrong passwords allowed per account
+     * and address within loginWindowMinutes; ipMaxFailures: wrong passwords allowed from one address across accounts.
+     * production: refuse to start with development-only settings switched on.
+     */
+    public record Security(int resetTokenMinutes, int loginMaxFailures, int loginWindowMinutes, int ipMaxFailures,
+                           boolean production) {
     }
 
     public record AdminBootstrap(String username, String password) {

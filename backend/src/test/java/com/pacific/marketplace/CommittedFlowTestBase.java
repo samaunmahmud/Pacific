@@ -116,6 +116,14 @@ abstract class CommittedFlowTestBase {
     }
 
 
+    /**
+     * A moment in the past as the database stores it: the app keeps times as UTC clock values, so hand-written SQL must
+     * not use the database's own (local time zone) CURRENT_TIMESTAMP.
+     */
+    protected static java.time.LocalDateTime utcMinutesAgo(long minutes) {
+        return java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).minusMinutes(minutes);
+    }
+
     /** A delivered order for the buyer: pays (card orders through the simulator) and the seller ships and delivers it. */
     protected JsonNode deliveredOrder(Account seller, Account buyer, long productId, int qty, String method) throws Exception {
         addToCart(buyer, productId, qty);

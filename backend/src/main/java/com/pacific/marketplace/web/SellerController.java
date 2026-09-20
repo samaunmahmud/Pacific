@@ -138,7 +138,7 @@ public class SellerController {
     @PatchMapping("/orders/{id}/status")
     public OrderDto setOrderStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest req,
                                    @AuthenticationPrincipal Jwt jwt) {
-        return orders.sellerSetStatus(seller(jwt).getId(), id, req.status());
+        return orders.sellerSetStatus(seller(jwt).getId(), id, req.status(), req.carrier(), req.trackingNumber());
     }
 
     // ----- earnings & questions -----

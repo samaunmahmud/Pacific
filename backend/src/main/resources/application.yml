@@ -18,6 +18,14 @@ spring:
           preferred_instant_jdbc_type: TIMESTAMP
   flyway:
     enabled: true
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
 
 server:
   port: ${PORT:8080}
@@ -53,6 +61,11 @@ app:
       api-base: ${STRIPE_API_BASE:}
     # A fake, clearly labelled test-mode payment page for local development. NEVER enable in production.
     simulator-enabled: ${PAYMENTS_SIMULATOR_ENABLED:false}
+  # Order emails. With MAIL_HOST set they go out over SMTP (see spring.mail below); without it they are only logged and
+  # recorded in the sent_emails table, so development never sends a real email by accident.
+  mail:
+    from: ${MAIL_FROM:Pacific <no-reply@pacific.example>}
+    async: true
   # Development only: fills an empty shop with ~150 invented products, stores, shoppers and reviews (DEMO_DATA=true).
   # Adds data once, never touches yours, and creates a demo shopper account. NEVER enable against a real shop.
   demo-data:

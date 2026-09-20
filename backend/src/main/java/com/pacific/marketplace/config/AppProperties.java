@@ -17,6 +17,7 @@ public record AppProperties(
         @Valid Shop shop,
         String publicUrl,
         @Valid Payments payments,
+        Mail mail,
         AdminBootstrap adminBootstrap,
         LegacyImport legacyImport) {
 
@@ -40,6 +41,10 @@ public record AppProperties(
                 return secretKey != null && !secretKey.isBlank();
             }
         }
+    }
+
+    /** from: the sender shown on emails. async: send on a background thread (tests turn this off). */
+    public record Mail(String from, boolean async) {
     }
 
     public record AdminBootstrap(String username, String password) {

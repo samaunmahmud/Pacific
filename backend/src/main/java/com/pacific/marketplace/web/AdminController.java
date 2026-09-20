@@ -13,6 +13,8 @@ import com.pacific.marketplace.service.SellerService;
 import com.pacific.marketplace.service.SettingsService;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
 import com.pacific.marketplace.web.dto.OrderDtos.StatusRequest;
+import com.pacific.marketplace.notify.NotificationService;
+import com.pacific.marketplace.web.dto.EmailDtos.SentEmailDto;
 import com.pacific.marketplace.web.dto.PageResponse;
 import com.pacific.marketplace.web.dto.ProductDtos.CategoryDto;
 import com.pacific.marketplace.web.dto.ProductDtos.CategoryRequest;
@@ -58,10 +60,12 @@ public class AdminController {
     private final LedgerService ledger;
     private final SettingsService settings;
     private final SellerReviewService sellerReviews;
+    private final NotificationService notifications;
 
     public AdminController(ProductService products, OrderService orders, ReviewService reviews,
                            AdminStatsService stats, SellerService sellers, LedgerService ledger,
-                           SettingsService settings, SellerReviewService sellerReviews) {
+                           SettingsService settings, SellerReviewService sellerReviews,
+                           NotificationService notifications) {
         this.products = products;
         this.orders = orders;
         this.reviews = reviews;
@@ -70,6 +74,7 @@ public class AdminController {
         this.ledger = ledger;
         this.settings = settings;
         this.sellerReviews = sellerReviews;
+        this.notifications = notifications;
     }
 
     @GetMapping("/stats")
@@ -141,6 +146,13 @@ public class AdminController {
         return orders.adminList(status, page, size);
     }
 
+    /** Every email the shop has sent (or, with no mail server, would have sent). */
+    @GetMapping("/emails")
+    public PageResponse<SentEmailDto> emails(@RequestParam(defaultValue = "0") int page,
+                                             @RequestParam(defaultValue = "20") int size) {
+        return notifications.log(page, size);
+    }
+
     @GetMapping("/orders/{id}")
     public OrderDto order(@PathVariable Long id) {
         return orders.adminGet(id);
@@ -148,7 +160,7 @@ public class AdminController {
 
     @PatchMapping("/orders/{id}/status")
     public OrderDto setOrderStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest req) {
-        return orders.adminSetStatus(id, req.status());
+        return orders.adminSetStatus(id, req.status(), req.carrier(), req.trackingNumber());
     }
 
     // ----- review moderation -----

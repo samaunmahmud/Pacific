@@ -1,7 +1,8 @@
 import { Link, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { RequireRole, RequireSeller } from './components/Guards';
-import { AdminLogin, CustomerLogin, Register } from './pages/AuthPages';
+import { ForgotPassword, ResetPassword, AdminLogin, CustomerLogin, Register } from './pages/AuthPages';
+import { AccountHome, AddressBook } from './pages/AccountPages';
 import { CartPage } from './pages/Cart';
 import { Catalog } from './pages/Catalog';
 import { Checkout } from './pages/Checkout';
@@ -40,6 +41,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<CustomerLogin />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/admin/login" element={<AdminLogin />} />
 
       <Route element={<Layout />}>
@@ -58,6 +61,8 @@ export default function App() {
           <Route path="pay/return" element={<PayReturn />} />
           <Route path="pay/simulate/:ref" element={<PaySimulate />} />
           <Route path="wishlist" element={<WishlistPage />} />
+          <Route path="account" element={<AccountHome />} />
+          <Route path="account/addresses" element={<AddressBook />} />
           <Route path="account/reviews" element={<MyReviews />} />
           <Route path="account/unrated" element={<UnratedProducts />} />
           <Route path="products/:productId/review" element={<ReviewForm />} />

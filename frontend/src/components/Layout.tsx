@@ -75,10 +75,16 @@ function Header() {
         ) : (
           <>
             {user ? (
-              <button className="action-item" onClick={signOut} title="Sign out">
-                <span className="action-small">Hello, {user.name.split(' ')[0]}</span>
-                <span className="action-label">Sign out</span>
-              </button>
+              <>
+                <Link to="/account" className="action-item" title="Your account">
+                  <span className="action-small">Hello, {user.name.split(' ')[0]}</span>
+                  <span className="action-label">Your account</span>
+                </Link>
+                <button className="action-item" onClick={signOut} title="Sign out">
+                  <span className="action-small">Not you?</span>
+                  <span className="action-label">Sign out</span>
+                </button>
+              </>
             ) : (
               <Link to="/login" className="action-item">
                 <span className="action-small">Hello, sign in</span>
@@ -169,6 +175,7 @@ function Footer() {
         </div>
         <div>
           <h4>Your account</h4>
+          <Link to={user ? '/account' : '/login'}>Your account</Link>
           <Link to={user ? '/orders' : '/login'}>Your orders</Link>
           <Link to="/wishlist">Wish list</Link>
           <Link to="/account/reviews">Your reviews</Link>

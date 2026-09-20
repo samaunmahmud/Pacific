@@ -1,8 +1,8 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import adminAvatar from '../assets/avatar.png';
 import customerAvatar from '../assets/avatarCustomerLogin.png';
-import { ApiError } from '../api/client';
+import { api, ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 
 /** The old split login layout: blush panel with the avatar card on the left, form on the right. */
@@ -62,6 +62,7 @@ export function CustomerLogin() {
         <input className="modern-input" type="password" placeholder="Password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required aria-label="Password" />
         {error && <div className="notice error" role="alert">{error}</div>}
         <button className="login-button" disabled={busy}>{busy ? 'SIGNING IN…' : 'LOGIN'}</button>
+        <Link className="link" to="/forgot-password">Forgot your password?</Link>
         <Link className="link" to="/register" state={location.state}>New to Pacific? Create an account</Link>
         <Link className="link" to="/admin/login">Are you an Admin? Login here</Link>
       </form>
@@ -142,6 +143,107 @@ export function AdminLogin() {
         <button className="login-button" disabled={busy}>{busy ? 'SIGNING IN…' : 'ADMIN LOGIN'}</button>
         <Link className="link" to="/login">Return to Customer Login</Link>
       </form>
+    </AuthShell>
+  );
+}
+
+/** Ask for a password reset email. The answer is the same whether or not the address has an account. */
+export function ForgotPassword() {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    setBusy(true);
+    try {
+      const res = await api<{ message: string }>('/auth/forgot-password', { method: 'POST', body: { email: email.trim() } });
+      setSent(res.message);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not send the email. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <AuthShell image={customerAvatar} heading="WELCOME TO PACIFIC" title="Reset your password">
+      {sent ? (
+        <div className="auth-form">
+          <div className="notice ok" role="status">{sent}</div>
+          <p className="muted">The link works for an hour. Check your spam folder if it doesn't arrive.</p>
+          <Link className="link" to="/login">Back to login</Link>
+        </div>
+      ) : (
+        <form className="auth-form" onSubmit={submit}>
+          <p className="muted">Enter the email you signed up with and we'll send you a link to choose a new password.</p>
+          <input className="modern-input" type="email" placeholder="Email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required aria-label="Email" />
+          {error && <div className="notice error" role="alert">{error}</div>}
+          <button className="login-button" disabled={busy}>{busy ? 'SENDING…' : 'SEND RESET LINK'}</button>
+          <Link className="link" to="/login">Back to login</Link>
+        </form>
+      )}
+    </AuthShell>
+  );
+}
+
+/** Where the emailed link lands: choose a new password. The token is taken out of the address bar straight away. */
+export function ResetPassword() {
+  const [params] = useSearchParams();
+  const [token] = useState(() => params.get('token') ?? '');
+  const [password, setPassword] = useState('');
+  const [again, setAgain] = useState('');
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  // keep the secret out of the browser history and out of any Referer header
+  useEffect(() => {
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
+  }, []);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    if (password !== again) return setError("The two passwords don't match.");
+    setBusy(true);
+    try {
+      await api('/auth/reset-password', { method: 'POST', body: { token, password } });
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not reset your password.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!token) {
+    return (
+      <AuthShell image={customerAvatar} heading="WELCOME TO PACIFIC" title="Reset your password">
+        <div className="auth-form">
+          <div className="notice error" role="alert">This reset link is incomplete. Please use the link from your email, or ask for a new one.</div>
+          <Link className="link" to="/forgot-password">Ask for a new link</Link>
+        </div>
+      </AuthShell>
+    );
+  }
+  return (
+    <AuthShell image={customerAvatar} heading="WELCOME TO PACIFIC" title="Choose a new password">
+      {done ? (
+        <div className="auth-form">
+          <div className="notice ok" role="status">Your password has been changed. You've been signed out everywhere else.</div>
+          <Link className="login-button link-btn" to="/login">LOG IN</Link>
+        </div>
+      ) : (
+        <form className="auth-form" onSubmit={submit}>
+          <input className="modern-input" type="password" placeholder="New password (8 or more characters)" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} maxLength={72} aria-label="New password" />
+          <input className="modern-input" type="password" placeholder="Repeat the new password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} required minLength={8} maxLength={72} aria-label="Repeat the new password" />
+          {error && <div className="notice error" role="alert">{error} {error.includes('expired') && <Link to="/forgot-password">Ask for a new link</Link>}</div>}
+          <button className="login-button" disabled={busy}>{busy ? 'SAVING…' : 'CHANGE PASSWORD'}</button>
+        </form>
+      )}
     </AuthShell>
   );
 }

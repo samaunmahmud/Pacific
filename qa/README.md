@@ -40,6 +40,8 @@ if `backend/target/test-classes` contains stray duplicate files.)
 | `node admin-seller-review.mjs` | Admin login and pages, applying to sell and listing a product through the form, Seller Central pages, and buying, delivering and reviewing a product. |
 | `node cart-controls.mjs` | Cart quantity dropdown, Save for later, Delete and Proceed to checkout (needs the demo shopper's cart: run `screenshot.mjs cart /cart` first). |
 | `node abandoned-payment.mjs` | Checks out by card, walks away from the payment page, cancels from the return page, and checks the cart is back with the right quantities; a paid checkout still leaves the cart empty. Needs the cart-restore change (PR #5). |
+| `node lifecycle.mjs` | Buyer checks out; the seller ships it with a carrier and tracking number through the form; the buyer sees the timeline and a tracking link; an admin reads the emails the shop sent. Needs the order timeline and emails change. |
+| `node returns.mjs` | A card order is delivered; the buyer asks to return one item; the seller approves and refunds it (an over-limit amount is refused); checks the payment, the seller's earnings, and the buyer's view; a second request is declined with a reason; an admin sees every return. Needs the returns change. |
 | `node screenshot.mjs <name> <path> [width] [height] [full\|empty]` | Signs in as the demo shopper (or a fresh customer) and saves `shots/<name>.png`. |
 | `python3 simulator-flow.py` | Backend-only: card checkout, pay, refund, and 25 concurrent pay-versus-cancel races. |
 

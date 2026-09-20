@@ -180,6 +180,7 @@ await page.type('input[aria-label="Email"]', email);
 await page.type('input[aria-label="Password"]', 'correct-horse-battery');
 await page.click('.login-button');
 await page.waitForFunction(() => location.pathname === '/', { timeout: 8000 }).catch(() => {});
+await page.waitForFunction(() => document.querySelector('.header-actions')?.textContent.includes('Quinn'), { timeout: 8000 }).catch(() => {}); // the name appears once the signed-in user has loaded
 check('login form works', new URL(page.url()).pathname === '/' && (await text('.header-actions')).includes('Quinn'));
 expectingRejection = true; // the wrong password below is meant to be refused with a 401
 await page.evaluate(() => localStorage.clear()); // signed-in visitors are redirected away from /login

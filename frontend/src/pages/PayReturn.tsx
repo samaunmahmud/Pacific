@@ -39,7 +39,7 @@ export function PayReturn() {
     setBusy(true);
     try {
       await api<Payment>(`/payments/${ref}/cancel`, { method: 'POST' });
-      toast.show('Payment cancelled');
+      toast.show('Payment cancelled. Your items are back in your cart.');
     } catch (e) {
       toast.show(e instanceof Error ? e.message : 'Could not cancel the payment.', 'error');
     } finally {
@@ -101,7 +101,7 @@ export function PayReturn() {
           <>
             <div className="pay-icon off" aria-hidden="true">✕</div>
             <h1>{p.status === 'EXPIRED' ? 'Payment timed out' : 'Payment cancelled'}</h1>
-            <p>{p.status === 'EXPIRED' ? 'The order was cancelled because it wasn\'t paid in time. ' : ''}Nothing was charged and your items were released.</p>
+            <p>{p.status === 'EXPIRED' ? 'The order was cancelled because it wasn\'t paid in time. ' : ''}Nothing was charged. We've put your items back in your cart (any that are no longer available are left out).</p>
             <div className="pay-actions">
               <Link to="/cart" className="cart-btn big link-btn">Back to cart</Link>
               <Link to="/orders" className="side-btn">My orders</Link>

@@ -31,6 +31,14 @@ abstract class PaymentTestBase extends IntegrationTest {
         send(post("/api/cart/items"), token, Map.of("productId", productId, "quantity", qty), 200);
     }
 
+    /** How many of the product are in the customer's cart (0 if none). */
+    protected int cartQuantity(String token, long productId) throws Exception {
+        for (JsonNode line : send(get("/api/cart"), token, null, 200).get("items")) {
+            if (line.get("productId").asLong() == productId) return line.get("quantity").asInt();
+        }
+        return 0;
+    }
+
     /** Checks out the cart paying by card and returns the whole response ({checkoutRef, orders, total, payment}). */
     protected JsonNode cardCheckout(String token) throws Exception {
         Map<String, Object> req = new LinkedHashMap<>(address());

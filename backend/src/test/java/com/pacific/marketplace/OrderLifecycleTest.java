@@ -39,94 +39,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * really committed, so these tests need real commits (and their own in-memory database). Every test uses fresh
  * accounts, so nothing needs cleaning up.
  */
-@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:lifecycle;MODE=MySQL;DATABASE_TO_LOWER=TRUE;"
-        + "DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1")
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class OrderLifecycleTest {
+class OrderLifecycleTest extends CommittedFlowTestBase {
 
-    @Autowired MockMvc mvc;
-    @Autowired ObjectMapper json;
-    @Autowired ProductRepository products;
-    @Autowired SentEmailRepository sentEmails;
     @MockitoSpyBean Mailer mailer;
-
-    // ---------- helpers ----------
-
-    private JsonNode send(MockHttpServletRequestBuilder b, String token, Object body, int expected) throws Exception {
-        if (token != null) b = b.header("Authorization", "Bearer " + token);
-        if (body != null) b = b.contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body));
-        String text = mvc.perform(b).andExpect(status().is(expected)).andReturn().getResponse().getContentAsString();
-        return text.isEmpty() ? null : json.readTree(text);
-    }
-
-    private record Account(String email, String token) {
-    }
-
-    private Account customer() throws Exception {
-        String email = "c-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
-        JsonNode res = send(post("/api/auth/register"), null,
-                Map.of("name", "Casey Customer", "email", email, "password", "correct-horse-battery"), 201);
-        return new Account(email, res.get("token").asText());
-    }
-
-    private String admin() throws Exception {
-        return send(post("/api/auth/admin/login"), null,
-                Map.of("identifier", "testadmin", "password", "testadmin-password"), 200).get("token").asText();
-    }
-
-    private Account seller() throws Exception {
-        Account a = customer();
-        JsonNode store = send(post("/api/seller/apply"), a.token(),
-                Map.of("storeName", "Store " + UUID.randomUUID().toString().substring(0, 6), "description", "Things"), 201);
-        send(patch("/api/admin/sellers/" + store.get("id").asLong() + "/status"), admin(), Map.of("status", "APPROVED"), 200);
-        return a;
-    }
-
-    private long listProduct(Account seller, String name, String price, int stock) throws Exception {
-        return send(post("/api/seller/products"), seller.token(),
-                Map.of("name", name, "price", price, "stock", stock), 201).get("id").asLong();
-    }
-
-    private void addToCart(Account c, long productId, int qty) throws Exception {
-        send(post("/api/cart/items"), c.token(), Map.of("productId", productId, "quantity", qty), 200);
-    }
-
-    private JsonNode checkout(Account c, String method, int expected) throws Exception {
-        return checkout(c, method, "Casey Customer", expected);
-    }
-
-    private JsonNode checkout(Account c, String method, String recipient, int expected) throws Exception {
-        Map<String, Object> req = new LinkedHashMap<>(Map.of("name", recipient, "line1", "1 High Street", "city", "Uxbridge",
-                "postcode", "UB8 1AA", "country", "United Kingdom"));
-        if (method != null) req.put("paymentMethod", method);
-        return send(post("/api/orders"), c.token(), req, expected);
-    }
-
-    private JsonNode setStatus(Account seller, long orderId, String status, String carrier, String number) throws Exception {
-        Map<String, Object> body = new LinkedHashMap<>(Map.of("status", status));
-        if (carrier != null) body.put("carrier", carrier);
-        if (number != null) body.put("trackingNumber", number);
-        return send(patch("/api/seller/orders/" + orderId + "/status"), seller.token(), body, 200);
-    }
-
-    private JsonNode order(Account c, long id) throws Exception {
-        return send(get("/api/orders/" + id), c.token(), null, 200);
-    }
-
-    private List<SentEmail> emailsTo(String address) {
-        return sentEmails.findAll().stream().filter(e -> e.getToAddress().equals(address)).toList();
-    }
-
-    private static List<String> timeline(JsonNode order) {
-        List<String> types = new ArrayList<>();
-        order.get("timeline").forEach(e -> types.add(e.get("type").asText()));
-        return types;
-    }
-
-    private static long id(JsonNode order) {
-        return order.get("id").asLong();
-    }
 
     // ---------- placing orders ----------
 

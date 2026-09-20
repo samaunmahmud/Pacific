@@ -24,6 +24,11 @@ public class ShopPricing {
         return shop.freeShippingThreshold();
     }
 
+    /** How many days after delivery a customer may ask to return items. */
+    public java.time.Duration returnWindow() {
+        return java.time.Duration.ofDays(shop.returnWindowDays() > 0 ? shop.returnWindowDays() : 30);
+    }
+
     public int maxQuantityPerItem() {
         return shop.maxQuantityPerItem();
     }

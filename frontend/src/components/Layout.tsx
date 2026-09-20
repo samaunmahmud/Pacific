@@ -115,6 +115,7 @@ function NavBar() {
         <NavLink to="/seller" end className="nav-link-bold">☰ Seller Central</NavLink>
         <NavLink to="/seller/products" className="nav-link">Products</NavLink>
         <NavLink to="/seller/orders" className="nav-link">Orders</NavLink>
+        <NavLink to="/seller/returns" className="nav-link">Returns</NavLink>
         <NavLink to="/seller/earnings" className="nav-link">Earnings</NavLink>
         <NavLink to="/seller/questions" className="nav-link">Questions</NavLink>
         <NavLink to="/seller/settings" className="nav-link">Store settings</NavLink>
@@ -131,6 +132,7 @@ function NavBar() {
         <NavLink to="/admin/orders" className="nav-link">Orders</NavLink>
         <NavLink to="/admin/sellers" className="nav-link">Sellers</NavLink>
         <NavLink to="/admin/flagged" className="nav-link">Flagged Reviews</NavLink>
+        <NavLink to="/admin/returns" className="nav-link">Returns</NavLink>
         <NavLink to="/admin/emails" className="nav-link">Emails</NavLink>
         <NavLink to="/" end className="nav-link">View Storefront</NavLink>
       </nav>

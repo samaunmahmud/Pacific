@@ -3,7 +3,7 @@ export type OrderStatus = 'AWAITING_PAYMENT' | 'PLACED' | 'PROCESSING' | 'SHIPPE
 export type VoteType = 'HELPFUL' | 'UNHELPFUL';
 export type ReviewStatus = 'VISIBLE' | 'FLAGGED';
 export type SellerStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
-export type LedgerType = 'SALE' | 'COMMISSION' | 'PAYOUT';
+export type LedgerType = 'SALE' | 'COMMISSION' | 'PAYOUT' | 'REFUND' | 'COMMISSION_REFUND';
 
 export interface User {
   id: number;
@@ -92,6 +92,8 @@ export interface Address {
 }
 
 export interface OrderItem {
+  id: number;
+  returnableQuantity: number;
   productId: number;
   productName: string;
   unitPrice: number;
@@ -125,9 +127,37 @@ export interface Order {
   shippedAt: string | null;
   deliveredAt: string | null;
   timeline: OrderEvent[];
+  canReturn: boolean;
+  returnDeadline: string | null;
+  returns: ReturnRequest[];
 }
 
-export type OrderEventType = 'AWAITING_PAYMENT' | 'PLACED' | 'PAYMENT_RECEIVED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+export type ReturnStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'REFUNDED' | 'CANCELLED';
+export type ReturnReason = 'DAMAGED' | 'NOT_AS_DESCRIBED' | 'WRONG_ITEM' | 'NO_LONGER_NEEDED' | 'OTHER';
+
+export interface ReturnRequest {
+  id: number;
+  orderId: number;
+  status: ReturnStatus;
+  reason: ReturnReason;
+  reasonLabel: string;
+  comment: string | null;
+  sellerNote: string | null;
+  refundAmount: number | null;
+  restocked: boolean;
+  items: { orderItemId: number; productName: string; quantity: number; unitPrice: number; lineTotal: number }[];
+  itemsValue: number;
+  /** Only on an approved return: the most the seller may refund (goods, plus delivery if it completes the order). */
+  maxRefund: number | null;
+  paymentMethod: string;
+  customerName: string;
+  sellerName: string;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export type OrderEventType = 'AWAITING_PAYMENT' | 'PLACED' | 'PAYMENT_RECEIVED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+  | 'RETURN_REQUESTED' | 'RETURN_APPROVED' | 'RETURN_REJECTED' | 'RETURN_CANCELLED' | 'REFUNDED';
 
 /** One thing that happened to an order, oldest first in Order.timeline. */
 export interface OrderEvent {
@@ -277,6 +307,7 @@ export interface SellerStorePage {
 }
 
 export interface SellerStats {
+  openReturns: number;
   grossSales: number;
   orderCount: number;
   ordersByStatus: Record<OrderStatus, number>;
@@ -302,6 +333,7 @@ export interface Earnings {
   sales: number;
   commission: number;
   payouts: number;
+  refunds: number;
   entries: Page<LedgerEntry>;
 }
 

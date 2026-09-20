@@ -50,6 +50,27 @@ public class LedgerService {
         }
     }
 
+    /**
+     * A refund for returned goods. The seller gives back what was refunded, and the marketplace gives back its
+     * commission on the goods part of it (delivery carries no commission). Called once per refund; nothing happens for
+     * Pacific's own products (no seller) or an order whose sale was never booked.
+     *
+     * @param refund    everything refunded to the customer
+     * @param goodsPart the part of it that was for goods rather than delivery
+     */
+    @Transactional
+    public void recordRefund(Order order, BigDecimal refund, BigDecimal goodsPart, String note) {
+        SellerProfile seller = order.getSeller();
+        if (seller == null || !ledger.existsByOrderIdAndType(order.getId(), LedgerType.SALE)) return;
+        ledger.save(new LedgerEntry(seller, order.getId(), LedgerType.REFUND, refund.negate(), note));
+        BigDecimal rate = order.getCommissionRate() == null ? BigDecimal.ZERO : order.getCommissionRate();
+        BigDecimal commissionBack = goodsPart.multiply(rate).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        if (commissionBack.signum() > 0) {
+            ledger.save(new LedgerEntry(seller, order.getId(), LedgerType.COMMISSION_REFUND, commissionBack,
+                    note + " · commission returned"));
+        }
+    }
+
     @Transactional(readOnly = true)
     public BigDecimal balance(Long sellerId) {
         return ledger.balance(sellerId).setScale(2, RoundingMode.HALF_UP);
@@ -57,10 +78,14 @@ public class LedgerService {
 
     @Transactional(readOnly = true)
     public EarningsDto earnings(Long sellerId, int page, int size) {
+        // commission is what the marketplace kept: charged on delivery, less what it gave back on refunds
+        BigDecimal commission = ledger.sumByType(sellerId, LedgerType.COMMISSION).negate()
+                .subtract(ledger.sumByType(sellerId, LedgerType.COMMISSION_REFUND));
         return new EarningsDto(balance(sellerId),
                 ledger.sumByType(sellerId, LedgerType.SALE).setScale(2, RoundingMode.HALF_UP),
-                ledger.sumByType(sellerId, LedgerType.COMMISSION).negate().setScale(2, RoundingMode.HALF_UP),
+                commission.setScale(2, RoundingMode.HALF_UP),
                 ledger.sumByType(sellerId, LedgerType.PAYOUT).negate().setScale(2, RoundingMode.HALF_UP),
+                ledger.sumByType(sellerId, LedgerType.REFUND).negate().setScale(2, RoundingMode.HALF_UP),
                 entries(sellerId, page, size));
     }
 

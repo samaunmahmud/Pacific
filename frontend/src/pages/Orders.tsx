@@ -5,6 +5,7 @@ import type { Order, OrderStatus } from '../api/types';
 import { useCart } from '../cart/CartContext';
 import { OrderActivity, TrackingInfo } from '../components/OrderActivity';
 import { ProductImage } from '../components/ProductImage';
+import { ReturnsPanel } from '../components/ReturnsPanel';
 import { dateOnly, dateTime, money, statusLabel } from '../ui/format';
 import { useToast } from '../ui/Toast';
 import { useAsync } from '../ui/useAsync';
@@ -65,6 +66,7 @@ function OrderCard({ o }: { o: Order }) {
           {o.status === 'AWAITING_PAYMENT' && <p className="order-note">Your items are reserved for a short time while you pay.</p>}
           {o.status === 'SHIPPED' && o.trackingNumber && <p className="order-note">{o.trackingCarrier ?? 'Tracking'}: <b>{o.trackingNumber}</b></p>}
           {o.status === 'DELIVERED' && o.deliveredAt && <p className="order-note">Delivered on {dateOnly(o.deliveredAt)}</p>}
+          {o.returns.some((r) => r.status === 'REQUESTED' || r.status === 'APPROVED') && <p className="order-note">A return is in progress. <Link to={`/orders/${o.id}`}>See details</Link></p>}
           {o.items.map((i) => (
             <div key={i.productId} className="order-item">
               <Link to={`/products/${i.productId}`} className="order-thumb" aria-label={i.productName}>
@@ -205,6 +207,8 @@ export function OrderDetail() {
           </div>
         </div>
       </div>
+
+      <ReturnsPanel order={o} onChange={(u) => setData(() => u)} />
 
       <div className="order-card">
         <div className="order-body single">

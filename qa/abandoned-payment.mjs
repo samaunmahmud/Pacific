@@ -41,10 +41,16 @@ const body = () => page.$eval('body', (e) => e.innerText);
 
 async function cardCheckoutViaUi() {
   await go('/checkout');
+  // a customer who has ordered before is offered their saved address; ask for a new one so the form shows
+  await page.waitForFunction(() => document.querySelector('#line1') || document.querySelector('input[name="address"]'), { timeout: 8000 });
+  if (!(await page.$('#line1'))) {
+    await page.evaluate(() => [...document.querySelectorAll('label.pay-option')].find((l) => l.textContent.includes('Use a different address')).querySelector('input').click());
+  }
+  await page.waitForSelector('#line1', { timeout: 8000 });
   await page.type('#line1', '1 Test Street');
   await page.type('#city', 'London');
   await page.type('#postcode', 'N1 1AA');
-  await page.click('.pay-option:nth-child(2)'); // pay by card now
+  await page.click('[aria-label="Payment method"] .pay-option:nth-child(2)'); // pay by card now
   await page.click('.submit-btn');
   await page.waitForFunction(() => location.pathname.startsWith('/pay/simulate/'), { timeout: 10000 });
   await sleep(400);

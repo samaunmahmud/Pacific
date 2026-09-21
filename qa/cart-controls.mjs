@@ -2,6 +2,15 @@ import puppeteer from 'puppeteer-core';
 const API = 'http://localhost:5180/api';
 const call = async (m, u, t, b) => { const r = await fetch(API + u, { method: m, headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: 'Bearer ' + t } : {}) }, body: b ? JSON.stringify(b) : undefined }); const x = await r.text(); return x ? JSON.parse(x) : null; };
 const token = (await call('POST', '/auth/login', null, { identifier: 'demo.shopper@example.com', password: 'Demo-Pacific-123' })).token;
+// start from a known cart, whatever the shopper had before: two of a product from each of three different sellers
+for (const line of (await call('GET', '/cart', token)).items) await call('DELETE', `/cart/items/${line.productId}`, token);
+const bySeller = new Map();
+for (let pageNo = 0; pageNo < 6 && bySeller.size < 3; pageNo++) {
+  for (const p of (await call('GET', `/products?size=50&page=${pageNo}`, token)).items) {
+    if (p.stock >= 5 && p.sellerSlug && !bySeller.has(p.sellerSlug) && bySeller.size < 3) bySeller.set(p.sellerSlug, p);
+  }
+}
+for (const p of bySeller.values()) await call('POST', '/cart/items', token, { productId: p.id, quantity: 2 });
 const results = [];
 const check = (n, ok, d = '') => { results.push(ok); console.log((ok ? 'PASS ' : 'FAIL ') + n + (ok ? '' : `  [${d}]`)); };
 

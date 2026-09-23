@@ -20,7 +20,8 @@ public record AppProperties(
         Mail mail,
         Security security,
         AdminBootstrap adminBootstrap,
-        LegacyImport legacyImport) {
+        LegacyImport legacyImport,
+        Uploads uploads) {
 
     public record Jwt(@NotBlank @Size(min = 32, message = "JWT_SECRET must be at least 32 characters") String secret,
                       long expiryHours) {
@@ -61,5 +62,12 @@ public record AppProperties(
     }
 
     public record LegacyImport(String sqlitePath, int defaultStock) {
+    }
+
+    /**
+     * Product photos uploaded by sellers and admins. dir: where the files are kept. maxBytes: the largest file accepted.
+     * maxDimension: photos with a longer side than this are scaled down. hourlyLimit: uploads per account per hour.
+     */
+    public record Uploads(String dir, long maxBytes, int maxDimension, int hourlyLimit) {
     }
 }

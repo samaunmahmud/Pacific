@@ -18,7 +18,7 @@ class ProductionChecksTest {
         return new AppProperties(new AppProperties.Jwt("x".repeat(40), 12), new AppProperties.Cors(origins),
                 new AppProperties.Reviews(5), new AppProperties.Shop("GBP", new BigDecimal("3.99"), new BigDecimal("50"), 10, 30),
                 publicUrl, new AppProperties.Payments(35, false, new AppProperties.Payments.Stripe(stripeKey, "", ""), simulator),
-                new AppProperties.Mail("Pacific <a@b.c>", false), new AppProperties.Security(60, 5, 15, 50, production), null, null);
+                new AppProperties.Mail("Pacific <a@b.c>", false), new AppProperties.Security(60, 5, 15, 50, production), null, null, null);
     }
 
     @Test

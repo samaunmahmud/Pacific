@@ -4,6 +4,8 @@ spring:
     username: sa
     password:
 app:
+  uploads:
+    dir: target/test-uploads
   mail:
     async: false
   payments:

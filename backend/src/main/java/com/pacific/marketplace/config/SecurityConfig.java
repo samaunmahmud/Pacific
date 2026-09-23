@@ -53,7 +53,9 @@ public class SecurityConfig {
                         // the review list can show the viewer's own vote and their own reviews.
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/*",
                                 "/api/products/*/reviews", "/api/products/*/questions", "/api/categories",
-                                "/api/sellers/*").permitAll()
+                                "/api/sellers/*", "/api/images/*").permitAll()
+                        // Approved sellers and admins upload product photos; the service checks seller approval.
+                        .requestMatchers(HttpMethod.POST, "/api/images").hasAnyRole("CUSTOMER", "ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // Sellers are ordinary customer accounts; approval is checked per request in the service.
                         .requestMatchers("/api/cart/**", "/api/orders/**", "/api/payments/**", "/api/me/**",

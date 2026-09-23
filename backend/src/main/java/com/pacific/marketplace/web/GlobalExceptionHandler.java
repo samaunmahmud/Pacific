@@ -15,6 +15,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -54,6 +56,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
     ResponseEntity<ErrorResponse> handleUnreadable(Exception e) {
         return respond(HttpStatus.BAD_REQUEST, "Malformed request.", Map.of());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ErrorResponse> handleTooLarge(MaxUploadSizeExceededException e) {
+        return respond(HttpStatus.PAYLOAD_TOO_LARGE, "That file is too large to upload.", Map.of());
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    ResponseEntity<ErrorResponse> handleMultipart(MultipartException e) {
+        return respond(HttpStatus.BAD_REQUEST, "The upload didn't arrive in one piece. Please try again.", Map.of());
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

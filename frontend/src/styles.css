@@ -576,6 +576,16 @@ table.data tr:hover td { background: #fdf8fa; }
 .form-grid .full { grid-column: 1 / -1; }
 .form-field { display: flex; flex-direction: column; gap: 6px; }
 
+.photo-field { display: flex; flex-direction: column; gap: 12px; }
+.photo-drop { display: flex; align-items: center; gap: 18px; padding: 14px; border: 2px dashed var(--border); border-radius: 14px; transition: border-color 0.15s, background 0.15s; }
+.photo-drop.dragging { border-color: var(--brand); background: #fdf8fa; }
+.photo-preview { width: 120px; height: 120px; border-radius: 10px; overflow: hidden; background: #fcfcfc; display: grid; place-items: center; flex: none; }
+.photo-preview img, .photo-preview svg { width: 100%; height: 100%; object-fit: cover; }
+.photo-actions { gap: 10px; min-width: 0; }
+.photo-hint { font-size: 13px; color: var(--muted); }
+.photo-link { background: none; border: 0; padding: 0; color: var(--brand); font-size: 13px; cursor: pointer; }
+.photo-link:hover { text-decoration: underline; color: var(--brand-dark); }
+
 .status-pill { display: inline-block; border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: bold; background: var(--line); color: #555; }
 .status-AWAITING_PAYMENT { background: #fff4e0; color: #b26a00; }
 .status-PLACED { background: #fff4e0; color: #b26a00; }
@@ -649,6 +659,8 @@ table.data tr:hover td { background: #fdf8fa; }
   .product-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
   .two-col, .pdp, .summary-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
+  .photo-drop { flex-direction: column; align-items: stretch; }
+  .photo-preview { width: 100%; height: 200px; }
   .auth-page { flex-direction: column; }
   .graphic-container { display: none; }
   .auth-form-side { padding: 30px 16px; min-height: 100vh; }

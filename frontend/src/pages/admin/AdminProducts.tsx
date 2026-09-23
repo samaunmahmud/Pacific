@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 import type { Category, Page, Product, ProductInput } from '../../api/types';
 import { Pagination } from '../../components/Pagination';
 import { ProductImage } from '../../components/ProductImage';
+import { PhotoField } from '../../components/PhotoField';
 import { money } from '../../ui/format';
 import { useToast } from '../../ui/Toast';
 import { useAsync } from '../../ui/useAsync';
@@ -153,6 +154,7 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
   const [listText, setListText] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   if (editing && existing.data && !form) {
     setForm(toInput(existing.data));
@@ -212,11 +214,14 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
               <option value="hidden">Hidden</option>
             </select>
           </div>
-          <div className="form-field full"><label className="field-label small" htmlFor="pi">Image URL (optional)</label><input id="pi" className="rounded-input" type="url" value={form.imageUrl} onChange={(e) => set('imageUrl', e.target.value)} placeholder="https://…" maxLength={500} /></div>
+          <div className="form-field full"><span className="field-label small">Photo (optional)</span>
+            <PhotoField value={form.imageUrl} onChange={(url) => set('imageUrl', url)} onBusyChange={setUploading} name={form.name}
+              categoryName={categories.data?.find((c) => c.id === form.categoryId)?.name} />
+          </div>
         </div>
         {error && <div className="notice error" role="alert">{error}</div>}
         <div className="row" style={{ justifyContent: 'flex-end' }}>
-          <button className="submit-btn" disabled={busy}>{busy ? 'Saving…' : 'Save product'}</button>
+          <button className="submit-btn" disabled={busy || uploading}>{busy ? 'Saving…' : uploading ? 'Uploading photo…' : 'Save product'}</button>
         </div>
       </div>
     </form>

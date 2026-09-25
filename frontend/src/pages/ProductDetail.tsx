@@ -11,6 +11,7 @@ import { RecentlyViewed } from '../components/RecentlyViewed';
 import { CustomerReviewCard } from '../components/ReviewCard';
 import { Stars } from '../components/Stars';
 import { WishlistButton } from '../components/WishlistButton';
+import { useSeller } from '../seller/SellerContext';
 import { recordView } from '../ui/recent';
 import { useToast } from '../ui/Toast';
 import { useAsync } from '../ui/useAsync';
@@ -26,6 +27,7 @@ export function ProductDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const { add, cart } = useCart();
+  const { seller: mySeller } = useSeller();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -102,6 +104,9 @@ export function ProductDetail() {
           <h1>{p.name}</h1>
           <div className="pdp-sub">
             Sold by {p.sellerSlug ? <Link to={`/sellers/${p.sellerSlug}`}>{p.sellerName}</Link> : <b>{p.sellerName}</b>}
+            {p.sellerSlug && user?.role !== 'ADMIN' && mySeller?.slug !== p.sellerSlug && (
+              <> · <Link to={`/messages/new?seller=${p.sellerSlug}&product=${p.id}`} className="message-seller">Message the seller</Link></>
+            )}
           </div>
           <div className="pdp-rating"><Stars value={p.ratingAvg} count={p.ratingCount} />{p.ratingCount > 0 && <a href="#reviews-h" className="see-reviews">See reviews</a>}</div>
           <hr />

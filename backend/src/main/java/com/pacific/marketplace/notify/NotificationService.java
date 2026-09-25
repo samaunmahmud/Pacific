@@ -92,6 +92,10 @@ public class NotificationService {
         afterCommit(templates.verifyEmail(user, rawToken, hours));
     }
 
+    public void newMessage(User to, String fromName, String path) {
+        afterCommit(templates.newMessage(to, fromName, path));
+    }
+
     public void passwordChanged(User user) {
         afterCommit(templates.passwordChanged(user));
     }

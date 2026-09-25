@@ -402,3 +402,45 @@ export interface SellerQuestion {
   productId: number;
   productName: string;
 }
+
+/** Which side of a buyer–seller conversation the viewer is on. */
+export type MessageSide = 'BUYER' | 'SELLER';
+
+/** A line in an inbox: `with` is the store (for buyers) or the buyer's name (for sellers). */
+export interface ConversationSummary {
+  id: number;
+  side: MessageSide;
+  with: string;
+  sellerSlug: string;
+  preview: string;
+  lastMessageAt: string;
+  unread: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  mine: boolean;
+  senderName: string;
+  body: string;
+  createdAt: string;
+  product: { id: number; name: string } | null;
+  orderId: number | null;
+}
+
+export interface Conversation {
+  id: number;
+  side: MessageSide;
+  storeName: string;
+  sellerSlug: string;
+  buyerName: string;
+  /** False while the store can't be messaged (suspended, say); the history stays readable. */
+  canReply: boolean;
+  /** True when older messages were left out. */
+  earlier: boolean;
+  messages: ChatMessage[];
+}
+
+export interface UnreadMessages {
+  asBuyer: number;
+  asSeller: number;
+}

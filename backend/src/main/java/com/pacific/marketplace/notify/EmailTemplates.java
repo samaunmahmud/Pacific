@@ -198,6 +198,16 @@ public class EmailTemplates {
                 email.text().replace(link, "[confirmation link hidden]"));
     }
 
+    /** Says there's a message waiting without quoting it: the admin email log keeps a copy of every email. */
+    public Email newMessage(User to, String fromName, String path) {
+        Doc d = new Doc().heading("You have a new message");
+        d.para(fromName + " sent you a message on Pacific.");
+        d.button("Read and reply", baseUrl + path);
+        d.para("We only email you about the first message you haven't read yet, so a long conversation won't fill your inbox.");
+        // names are typed by people: keep line breaks out of the subject header
+        return d.build(to.getEmail(), "New message from " + fromName.replaceAll("\\s+", " "), "NEW_MESSAGE");
+    }
+
     public Email passwordChanged(User user) {
         Doc d = new Doc().heading("Your password was changed");
         d.para("The password for your Pacific account was just changed, and you've been signed out on other devices.");

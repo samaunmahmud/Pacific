@@ -45,6 +45,12 @@ commission and payouts · moderation queue · Pacific's own products, categories
 - Payment is **pay on delivery**, or **by card** when Stripe (or the local simulator) is configured.
 - Products are hidden, never hard-deleted, because past orders refer to them.
 
+**Product photos** — sellers and admins upload a photo on the product form (or drop one on it, or paste a link to a
+photo hosted elsewhere). The shop checks it really is a JPEG, PNG or GIF (up to 10 MB), turns sideways phone photos
+the right way up, and saves a fresh copy at most 1600 px on its longer side, which also removes hidden data such as
+where the photo was taken. Photos are kept in `UPLOADS_DIR` (default `backend/uploads/`): on a real server put it on
+a disk that survives redeploys and include it in backups. Uploads are limited to 60 per account per hour.
+
 ## Card payments
 
 Card details are entered on Stripe's own page and never reach this server. Without any payment settings the shop is
@@ -127,7 +133,5 @@ cd frontend && npm run typecheck && npm run build
 
 ## Not built yet
 
-Real seller payouts (the ledger is bookkeeping only), email notifications (order confirmations, payment receipts,
-seller approval, password reset), product image upload (use an image URL for now), returns after delivery (refunds
-happen only when a paid order is cancelled before it ships), restoring the cart when a card payment is abandoned,
-seller-to-buyer messaging, and rate-limiting on login.
+Real seller payouts (the ledger is bookkeeping only), email verification at sign-up, several photos per product,
+cleaning up photos no product uses any more, cloud storage for photos, and seller-to-buyer messaging.

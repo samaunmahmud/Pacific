@@ -4,6 +4,9 @@ frontend/dist/
 frontend/node_modules/
 *.tsbuildinfo
 
+# product photos uploaded while running locally
+backend/uploads/
+
 # local secrets / env
 .env
 .env.local

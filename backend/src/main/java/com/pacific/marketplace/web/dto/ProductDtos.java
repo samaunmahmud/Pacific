@@ -20,6 +20,12 @@ public final class ProductDtos {
     }
 
     public static final String HTTP_URL = "^$|^https?://\\S+$";
+    /**
+     * A web address, a photo uploaded to the shop (see ImageService), or a demo-data drawing ("demo:kind:hue", sent
+     * back unchanged when a demo product is edited).
+     */
+    public static final String PRODUCT_IMAGE =
+            "^$|^https?://\\S+$|^/api/images/[0-9a-f]{32}\\.(jpg|png)$|^demo:[a-z-]{1,30}:\\d{1,3}$";
 
     public record CategoryDto(Long id, String name, String slug) {
         public static CategoryDto from(Category c) {
@@ -54,7 +60,7 @@ public final class ProductDtos {
             @Digits(integer = 8, fraction = 2, message = "List price can have at most 2 decimals.") BigDecimal listPrice,
             @NotNull(message = "Stock is required.") @Min(value = 0, message = "Stock can't be negative.")
             @Max(1_000_000) Integer stock,
-            @Size(max = 500) @Pattern(regexp = HTTP_URL, message = "Image URL must start with http:// or https://")
+            @Size(max = 500) @Pattern(regexp = PRODUCT_IMAGE, message = "Image URL must start with http:// or https://")
             String imageUrl,
             Long categoryId,
             Boolean active) {

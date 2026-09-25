@@ -236,6 +236,13 @@ export interface AdminStats {
   approvedSellers: number;
 }
 
+/** A product photo uploaded to the shop; url goes in the product's imageUrl. */
+export interface UploadedImage {
+  url: string;
+  width: number;
+  height: number;
+}
+
 export interface ProductInput {
   name: string;
   description: string;

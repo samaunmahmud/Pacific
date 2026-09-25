@@ -3,11 +3,14 @@ package com.pacific.marketplace.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
 @org.hibernate.annotations.BatchSize(size = 50) // order lists show product pictures: load them in batches, not one by one
 public class Product {
+
+    public static final int MAX_MORE_IMAGES = 7;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,6 +30,10 @@ public class Product {
 
     @Column(name = "image_url", length = 500)
     private String imageUrl;
+
+    /** Photos shown after the main one on the product page, one address per line (see {@link #MAX_MORE_IMAGES}). */
+    @Column(name = "more_images", length = 4000)
+    private String moreImages;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
@@ -119,6 +126,8 @@ public class Product {
     public int getStock() { return stock; }
     public void setStock(int stock) { this.stock = stock; }
     public String getImageUrl() { return imageUrl; }
+    public List<String> getMoreImages() { return moreImages == null ? List.of() : List.of(moreImages.split("\n")); }
+    public void setMoreImages(List<String> urls) { this.moreImages = urls.isEmpty() ? null : String.join("\n", urls); }
     public Category getCategory() { return category; }
     public SellerProfile getSeller() { return seller; }
     public void setSeller(SellerProfile seller) { this.seller = seller; }

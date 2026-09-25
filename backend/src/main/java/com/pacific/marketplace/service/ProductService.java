@@ -16,6 +16,7 @@ import jakarta.persistence.criteria.JoinType;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -198,11 +199,13 @@ public class ProductService {
 
     private ProductDto createFor(ProductRequest req, SellerProfile seller) {
         checkPrices(req);
+        List<String> photos = photos(req.imageUrl(), req.moreImages() == null ? List.of() : req.moreImages());
         Product p = new Product(req.name().strip(), Text.clean(req.description()), req.price(), req.stock(),
-                Text.clean(req.imageUrl()), category(req.categoryId()));
+                cover(photos), category(req.categoryId()));
         p.setSeller(seller);
         p.update(p.getName(), p.getDescription(), req.price(), req.listPrice(), req.stock(), p.getImageUrl(),
                 p.getCategory(), !Boolean.FALSE.equals(req.active()));
+        p.setMoreImages(rest(photos));
         return ProductDto.from(products.save(p));
     }
 
@@ -210,8 +213,10 @@ public class ProductService {
         checkPrices(req);
         Product p = find(id, sellerId);
         boolean active = req.active() == null ? p.isActive() : req.active();
+        List<String> photos = photos(req.imageUrl(), req.moreImages() == null ? p.getMoreImages() : req.moreImages());
         p.update(req.name().strip(), Text.clean(req.description()), req.price(), req.listPrice(), req.stock(),
-                Text.clean(req.imageUrl()), category(req.categoryId()), active);
+                cover(photos), category(req.categoryId()), active);
+        p.setMoreImages(rest(photos));
         return ProductDto.from(p);
     }
 
@@ -225,6 +230,26 @@ public class ProductService {
         Product p = find(id, sellerId);
         p.setActive(false);
         return ProductDto.from(p);
+    }
+
+    /**
+     * All of a product's photos in order, main one first, without blanks or repeats. With no main photo the first
+     * extra one takes its place, so a product never has a gallery but no picture on its card.
+     */
+    private static List<String> photos(String imageUrl, List<String> more) {
+        LinkedHashSet<String> all = new LinkedHashSet<>();
+        String main = Text.clean(imageUrl);
+        if (main != null) all.add(main);
+        more.stream().map(Text::clean).filter(u -> u != null).forEach(all::add);
+        return List.copyOf(all);
+    }
+
+    private static String cover(List<String> photos) {
+        return photos.isEmpty() ? null : photos.get(0);
+    }
+
+    private static List<String> rest(List<String> photos) {
+        return photos.isEmpty() ? List.of() : photos.subList(1, photos.size());
     }
 
     private static void checkPrices(ProductRequest req) {

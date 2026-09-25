@@ -1,6 +1,7 @@
 // End-to-end QA in a real browser. Buys things by clicking, and records every console error, uncaught exception and
 // failed request on every page visited.
 import puppeteer from 'puppeteer-core';
+import { confirmEmail } from './confirm.mjs';
 
 const BASE = 'http://localhost:5180';
 const OUT = new URL('./shots/', import.meta.url).pathname;
@@ -68,6 +69,7 @@ await go('/admin/orders'); await shot('qa-admin-orders');
 // ---------- a customer applies to sell, admin approves ----------
 const sellerEmail = emailOf('seller');
 const reg = await call('POST', '/auth/register', null, { name: 'Sam Seller', email: sellerEmail, password: 'correct-horse-battery' });
+await confirmEmail(sellerEmail);
 await page.evaluate((t) => localStorage.setItem('pacific.token', t), reg.token);
 await go('/sell');
 await shot('qa-sell');
@@ -110,6 +112,7 @@ await go('/seller/products'); await shot('qa-seller-products');
 
 // ---------- review flow: buy, deliver, review ----------
 const buyer = await call('POST', '/auth/register', null, { name: 'Bea Buyer', email: emailOf('buyer'), password: 'correct-horse-battery' });
+await confirmEmail(buyer.user.email);
 const bt = buyer.token;
 const prod = (await call('GET', '/products?size=1&sort=popular', null)).items[0];
 await call('POST', '/cart/items', bt, { productId: prod.id, quantity: 1 });

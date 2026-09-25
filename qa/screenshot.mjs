@@ -2,6 +2,7 @@
 // mode: empty  -> a brand-new customer with an empty cart
 //       full   -> the demo shopper with items from three sellers in the cart (default)
 import puppeteer from 'puppeteer-core';
+import { confirmEmail } from './confirm.mjs';
 
 const [name, path, width = '1440', height = '900', mode = 'full'] = process.argv.slice(2);
 const API = 'http://localhost:5180/api';
@@ -19,7 +20,9 @@ async function call(method, url, token, body) {
 
 let token;
 if (mode === 'empty') {
-  token = (await call('POST', '/auth/register', null, { name: 'Fresh Shopper', email: `fresh${Date.now()}@example.com`, password: 'correct-horse-battery' })).token;
+  const fresh = await call('POST', '/auth/register', null, { name: 'Fresh Shopper', email: `fresh${Date.now()}@example.com`, password: 'correct-horse-battery' });
+  await confirmEmail(fresh.user.email);
+  token = fresh.token;
 } else {
   token = (await call('POST', '/auth/login', null, { identifier: 'demo.shopper@example.com', password: 'Demo-Pacific-123' })).token;
   // start from a known cart: clear it, then add a few products from different sellers (and one with low stock)

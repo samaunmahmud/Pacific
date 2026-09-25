@@ -1,5 +1,6 @@
 // Real-browser check: abandon or cancel a card payment and the cart comes back. Runs against BASE (dev server).
 import puppeteer from 'puppeteer-core';
+import { confirmEmail } from './confirm.mjs';
 
 const BASE = process.env.BASE || 'http://localhost:5180';
 const API = BASE + '/api';
@@ -18,6 +19,7 @@ async function call(method, url, token, body) {
 // a customer with two products in the cart, set up over the API
 const email = `abandon${Date.now()}@example.com`;
 const reg = await call('POST', '/auth/register', null, { name: 'Abby Doner', email, password: 'correct-horse-battery' });
+await confirmEmail(email);
 const token = reg.body.token;
 const list = await call('GET', '/products?size=40', token);
 const stocked = list.body.items.filter((p) => p.stock >= 6 && p.imageUrl);

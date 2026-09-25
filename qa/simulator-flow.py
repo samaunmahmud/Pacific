@@ -37,6 +37,7 @@ A = admin["token"]
 def new_customer():
     email = f"e2e-{uuid.uuid4().hex[:8]}@example.com"
     _, r = call("POST", "/auth/register", body=dict(name="E2E Buyer", email=email, password="correct-horse-battery"))
+    call("POST", "/admin/customers/verify-email", A, dict(email=email))  # new customers confirm before ordering
     return r["token"]
 
 

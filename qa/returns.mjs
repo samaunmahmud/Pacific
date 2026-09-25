@@ -1,5 +1,6 @@
 // Real-browser check of the order lifecycle: buyer checks out, seller ships with tracking, buyer follows it, admin reads the emails.
 import puppeteer from 'puppeteer-core';
+import { confirmEmail } from './confirm.mjs';
 
 const BASE = process.env.BASE || 'http://localhost:5180';
 const API = BASE + '/api';
@@ -16,7 +17,12 @@ async function call(method, url, token, body) {
   return t ? JSON.parse(t) : null;
 }
 const stamp = Date.now();
-const reg = async (name) => (await call('POST', '/auth/register', null, { name, email: `${name.split(' ')[0].toLowerCase()}${stamp}@example.com`, password: 'correct-horse-battery' })).token;
+const reg = async (name) => {
+  const email = `${name.split(' ')[0].toLowerCase()}${stamp}@example.com`;
+  const { token } = await call('POST', '/auth/register', null, { name, email, password: 'correct-horse-battery' });
+  await confirmEmail(email);
+  return token;
+};
 
 const admin = (await call('POST', '/auth/admin/login', null, { identifier: 'e2eadmin', password: 'e2e-admin-password' })).token;
 const seller = await reg('Sasha Seller');

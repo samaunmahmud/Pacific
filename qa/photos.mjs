@@ -6,6 +6,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
+import { confirmEmail } from './confirm.mjs';
 
 const BASE = process.env.QA_BASE || 'http://localhost:5180';
 const OUT = new URL('./shots/', import.meta.url).pathname;
@@ -49,7 +50,8 @@ const browser = await puppeteer.launch({ executablePath: '/Applications/Google C
 const page = await browser.newPage();
 await page.setViewport({ width: 1440, height: 900 });
 page.on('pageerror', (e) => problems.push(`[${where}] uncaught: ${e.message}`));
-page.on('console', (m) => { if (m.type() === 'error' && !(expectingRejection && m.text().includes('400'))) problems.push(`[${where}] console.error: ${m.text().slice(0, 160)}`); });
+let typingLink = false; // the preview follows the link as it's typed, so half-typed hosts ("https://exa") fail to resolve
+page.on('console', (m) => { if (m.type() === 'error' && !(expectingRejection && m.text().includes('400')) && !(typingLink && m.text().includes('ERR_NAME_NOT_RESOLVED'))) problems.push(`[${where}] console.error: ${m.text().slice(0, 160)}`); });
 page.on('response', (r) => {
   const u = r.url();
   if (u.startsWith(BASE) && r.status() >= 400 && !(expectingRejection && r.status() === 400) && !u.includes('/@vite')) problems.push(`[${where}] HTTP ${r.status()} ${r.request().method()} ${u.replace(BASE, '')}`);
@@ -74,6 +76,7 @@ async function waitForPreview(prefix) {
 
 // ---------- an approved seller ----------
 const reg = await call('POST', '/auth/register', null, { name: 'Pia Photos', email: `photos${Date.now()}@example.com`, password: 'correct-horse-battery' });
+await confirmEmail(reg.user.email);
 const store = await call('POST', '/seller/apply', reg.token, { storeName: 'Photo QA ' + Date.now(), description: 'Photographed things' });
 const adminTok = (await call('POST', '/auth/admin/login', null, { identifier: 'e2eadmin', password: 'e2e-admin-password' })).token;
 await call('PATCH', `/admin/sellers/${store.id}/status`, adminTok, { status: 'APPROVED' });
@@ -129,7 +132,10 @@ await sleep(200);
 check('removing the photo falls back to a drawing', (await previewSrc()) === null && (await text('.photo-field')).includes('No photo yet'));
 await clickText('.photo-field button', 'Use a link instead');
 await sleep(200);
+typingLink = true;
 await page.type('.photo-field input[type=url]', 'https://example.com/lamp.jpg');
+await sleep(500);
+typingLink = false;
 check('typing a link keeps what was typed', (await page.$eval('.photo-field input[type=url]', (e) => e.value)) === 'https://example.com/lamp.jpg');
 await clickText('.app-main button', 'Save product');
 await sleep(1200);

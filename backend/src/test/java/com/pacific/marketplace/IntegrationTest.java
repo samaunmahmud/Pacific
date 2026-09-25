@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Each test runs in a transaction that is rolled back, so tests don't see each other's data. */
 @SpringBootTest
@@ -54,10 +55,22 @@ abstract class IntegrationTest {
         return registerCustomer(uniqueEmail());
     }
 
+    /** Registers a customer and confirms their email, as most tests need a customer who can order and sell. */
     protected String registerCustomer(String email) throws Exception {
+        String token = registerUnconfirmed(email);
+        confirmEmail(email);
+        return token;
+    }
+
+    protected String registerUnconfirmed(String email) throws Exception {
         MvcResult r = mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                 .content(body(Map.of("name", "Test Customer", "email", email, "password", PASSWORD)))).andReturn();
         return read(r).get("token").asText();
+    }
+
+    protected void confirmEmail(String email) throws Exception {
+        mvc.perform(bearer(post("/api/admin/customers/verify-email"), adminToken()).contentType(MediaType.APPLICATION_JSON)
+                .content(body(Map.of("email", email)))).andExpect(status().isOk());
     }
 
     protected String adminToken() throws Exception {

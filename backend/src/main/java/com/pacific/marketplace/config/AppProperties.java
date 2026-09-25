@@ -54,8 +54,8 @@ public record AppProperties(
      * and address within loginWindowMinutes; ipMaxFailures: wrong passwords allowed from one address across accounts.
      * production: refuse to start with development-only settings switched on.
      */
-    public record Security(int resetTokenMinutes, int loginMaxFailures, int loginWindowMinutes, int ipMaxFailures,
-                           boolean production) {
+    public record Security(int resetTokenMinutes, int verifyTokenHours, int loginMaxFailures, int loginWindowMinutes,
+                           int ipMaxFailures, boolean production) {
     }
 
     public record AdminBootstrap(String username, String password) {

@@ -19,6 +19,12 @@
 
 body { background: var(--page-bg); }
 .page { padding: 24px 32px; gap: 22px; }
+.confirm-email-bar { padding: 16px 32px 0; }
+.confirm-email { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+.confirm-email > span:first-child { flex: 1 1 280px; }
+.confirm-email-actions { display: flex; gap: 16px; }
+.confirm-email-msg { flex-basis: 100%; }
+.confirm-email-msg.error { color: var(--danger); }
 
 /* ---------- top bar ---------- */
 .header-box {
@@ -363,6 +369,7 @@ body { background: var(--page-bg); }
   .home-body { padding: 0 12px; margin-top: -110px; }
   .cat-cards { grid-template-columns: 1fr; }
   .page { padding: 16px; }
+  .confirm-email-bar { padding: 12px 16px 0; }
   .shelf-arrow { display: none; }
 }
 

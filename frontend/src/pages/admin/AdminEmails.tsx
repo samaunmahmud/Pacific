@@ -1,6 +1,7 @@
+import { useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api } from '../../api/client';
-import type { Page, SentEmail } from '../../api/types';
+import { api, ApiError } from '../../api/client';
+import type { Page, SentEmail, User } from '../../api/types';
 import { Pagination } from '../../components/Pagination';
 import { dateTime } from '../../ui/format';
 import { useAsync } from '../../ui/useAsync';
@@ -23,6 +24,7 @@ export function AdminEmails() {
           No mail server is set up, so these emails were recorded but <b>not delivered</b>. Set <code>MAIL_HOST</code> (and the other <code>MAIL_*</code> settings) to send them for real.
         </div>
       )}
+      <ConfirmCustomerEmail />
       {error && <div className="notice error">{error}</div>}
       {loading && !data ? <div className="loading">Loading…</div> : data && data.items.length === 0 ? <div className="empty">No emails yet.</div> : (
         <div className="stack">
@@ -43,5 +45,39 @@ export function AdminEmails() {
       )}
       {data && <Pagination page={data.page} totalPages={data.totalPages} onChange={(p) => setParams(p ? { page: String(p) } : {})} />}
     </div>
+  );
+}
+
+/** Support: confirm a customer's address by hand when their confirmation email never arrived. */
+function ConfirmCustomerEmail() {
+  const [email, setEmail] = useState('');
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setResult(null);
+    try {
+      const user = await api<User>('/admin/customers/verify-email', { method: 'POST', body: { email: email.trim() } });
+      setResult({ ok: true, text: `${user.name}'s email (${user.email}) is confirmed.` });
+      setEmail('');
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof ApiError ? err.message : 'Could not confirm that email.' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <details className="square-review-box static">
+      <summary style={{ cursor: 'pointer' }}><b>Confirm a customer's email by hand</b> <span className="muted">(if their confirmation email never arrived)</span></summary>
+      <form className="row-wrap" style={{ marginTop: 12 }} onSubmit={submit}>
+        <input className="rounded-input" type="email" placeholder="customer@example.com" value={email} onChange={(e) => setEmail(e.target.value)}
+          required maxLength={190} aria-label="Customer's email" style={{ flex: '1 1 240px' }} />
+        <button className="submit-btn" disabled={busy || !email.trim()}>{busy ? 'Confirming…' : 'Confirm email'}</button>
+      </form>
+      {result && <div className={`notice ${result.ok ? 'ok' : 'error'}`} role={result.ok ? 'status' : 'alert'} style={{ marginTop: 12 }}>{result.text}</div>}
+    </details>
   );
 }

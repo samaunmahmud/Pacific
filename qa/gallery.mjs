@@ -6,6 +6,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
+import { confirmEmail } from './confirm.mjs';
 
 const BASE = process.env.QA_BASE || 'http://localhost:5180';
 const OUT = new URL('./shots/', import.meta.url).pathname;
@@ -73,6 +74,7 @@ const pdpSrc = () => page.$eval('.pdp-image .image-container img', (i) => i.getA
 
 // ---------- an approved seller ----------
 const reg = await call('POST', '/auth/register', null, { name: 'Gia Gallery', email: `gallery${Date.now()}@example.com`, password: 'correct-horse-battery' });
+await confirmEmail(reg.user.email);
 const store = await call('POST', '/seller/apply', reg.token, { storeName: 'Gallery QA ' + Date.now(), description: 'Photographed from every side' });
 const adminTok = (await call('POST', '/auth/admin/login', null, { identifier: 'e2eadmin', password: 'e2e-admin-password' })).token;
 await call('PATCH', `/admin/sellers/${store.id}/status`, adminTok, { status: 'APPROVED' });

@@ -12,6 +12,7 @@ import com.pacific.marketplace.web.dto.ReturnDtos.DecisionRequest;
 import com.pacific.marketplace.web.dto.ReturnDtos.RefundRequest;
 import com.pacific.marketplace.web.dto.ReturnDtos.ReturnDto;
 import com.pacific.marketplace.service.SellerService;
+import com.pacific.marketplace.service.EmailVerificationService;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
 import com.pacific.marketplace.web.dto.OrderDtos.StatusRequest;
 import com.pacific.marketplace.web.dto.PageResponse;
@@ -55,20 +56,24 @@ public class SellerController {
     private final LedgerService ledger;
     private final QaService qa;
     private final ReturnService returns;
+    private final EmailVerificationService verification;
 
     public SellerController(SellerService sellers, ProductService products, OrderService orders, LedgerService ledger,
-                            QaService qa, ReturnService returns) {
+                            QaService qa, ReturnService returns,
+                            EmailVerificationService verification) {
         this.sellers = sellers;
         this.products = products;
         this.orders = orders;
         this.ledger = ledger;
         this.qa = qa;
         this.returns = returns;
+        this.verification = verification;
     }
 
     @PostMapping("/apply")
     @ResponseStatus(HttpStatus.CREATED)
     public SellerDto apply(@Valid @RequestBody ApplyRequest req, @AuthenticationPrincipal Jwt jwt) {
+        verification.requireConfirmed(CurrentUser.id(jwt), "sell on Pacific");
         return sellers.apply(CurrentUser.id(jwt), req);
     }
 

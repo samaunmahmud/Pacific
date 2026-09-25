@@ -16,6 +16,7 @@ import com.pacific.marketplace.web.dto.OrderDtos.StatusRequest;
 import com.pacific.marketplace.domain.ReturnStatus;
 import com.pacific.marketplace.notify.NotificationService;
 import com.pacific.marketplace.service.ReturnService;
+import com.pacific.marketplace.service.EmailVerificationService;
 import com.pacific.marketplace.web.dto.ReturnDtos.DecisionRequest;
 import com.pacific.marketplace.web.dto.ReturnDtos.RefundRequest;
 import com.pacific.marketplace.web.dto.ReturnDtos.ReturnDto;
@@ -35,6 +36,8 @@ import com.pacific.marketplace.web.dto.SellerDtos.DefaultCommissionRequest;
 import com.pacific.marketplace.web.dto.SellerDtos.LedgerEntryDto;
 import com.pacific.marketplace.web.dto.SellerDtos.PayoutRequest;
 import com.pacific.marketplace.web.dto.SellerDtos.SellerStatusRequest;
+import com.pacific.marketplace.web.dto.AuthDtos.AdminVerifyEmailRequest;
+import com.pacific.marketplace.web.dto.AuthDtos.UserDto;
 import java.math.BigDecimal;
 import java.util.Map;
 import jakarta.validation.Valid;
@@ -67,11 +70,13 @@ public class AdminController {
     private final SellerReviewService sellerReviews;
     private final NotificationService notifications;
     private final ReturnService returns;
+    private final EmailVerificationService verification;
 
     public AdminController(ProductService products, OrderService orders, ReviewService reviews,
                            AdminStatsService stats, SellerService sellers, LedgerService ledger,
                            SettingsService settings, SellerReviewService sellerReviews,
-                           NotificationService notifications, ReturnService returns) {
+                           NotificationService notifications, ReturnService returns,
+                           EmailVerificationService verification) {
         this.products = products;
         this.orders = orders;
         this.reviews = reviews;
@@ -82,6 +87,7 @@ public class AdminController {
         this.sellerReviews = sellerReviews;
         this.notifications = notifications;
         this.returns = returns;
+        this.verification = verification;
     }
 
     @GetMapping("/stats")
@@ -174,6 +180,12 @@ public class AdminController {
     public ReturnDto refundReturn(@PathVariable Long id, @Valid @RequestBody(required = false) RefundRequest req) {
         return returns.refund(null, id, req == null ? null : req.amount(), req == null ? null : req.restock(),
                 req == null ? null : req.note());
+    }
+
+    /** Support: confirm a customer's email by hand, e.g. when the confirmation email never arrived. */
+    @PostMapping("/customers/verify-email")
+    public UserDto verifyCustomerEmail(@Valid @RequestBody AdminVerifyEmailRequest req) {
+        return verification.confirmByAdmin(req.email());
     }
 
     /** Every email the shop has sent (or, with no mail server, would have sent). */

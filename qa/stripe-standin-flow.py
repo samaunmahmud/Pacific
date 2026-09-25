@@ -50,7 +50,9 @@ def signed(payload: str):
 
 
 A = api("POST", "/auth/admin/login", body=dict(identifier="e2eadmin", password="e2e-admin-password"))[1]["token"]
-tok = api("POST", "/auth/register", body=dict(name="Stripe Buyer", email=f"s-{uuid.uuid4().hex[:8]}@example.com", password="correct-horse-battery"))[1]["token"]
+buyer_email = f"s-{uuid.uuid4().hex[:8]}@example.com"
+tok = api("POST", "/auth/register", body=dict(name="Stripe Buyer", email=buyer_email, password="correct-horse-battery"))[1]["token"]
+api("POST", "/admin/customers/verify-email", A, dict(email=buyer_email))  # new customers confirm before ordering
 pid = api("POST", "/admin/products", A, dict(name="Stub Widget", description="d", price="30.00", stock=5))[1]["id"]
 stock = lambda: api("GET", f"/products/{pid}")[1]["stock"]
 addr = dict(name="B", line1="1 High St", city="Uxbridge", postcode="UB8 1AA", country="UK", paymentMethod="CARD")

@@ -12,6 +12,8 @@ interface AuthState {
   /** Use a fresh sign-in (after changing the password every other session ends, this one gets a new token). */
   adopt: (res: AuthResponse) => void;
   setName: (name: string) => void;
+  /** Use fresh account details from the server (after confirming the email address, say). */
+  setUserData: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -42,6 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Customers often confirm their email on another device: when they come back to this tab, check again.
+  const awaitingConfirmation = user?.role === 'CUSTOMER' && !user.emailVerified;
+  useEffect(() => {
+    if (!awaitingConfirmation) return;
+    const check = () => { api<User>('/auth/me').then(setUser).catch(() => {}); };
+    window.addEventListener('focus', check);
+    return () => window.removeEventListener('focus', check);
+  }, [awaitingConfirmation]);
+
   const finish = useCallback((res: AuthResponse) => {
     tokenStore.set(res.token);
     setUser(res.user);
@@ -70,7 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [finish]);
   const setName = useCallback((name: string) => setUser((u) => (u ? { ...u, name } : u)), []);
 
-  const value = useMemo(() => ({ user, loading, login, register, logout, adopt, setName }), [user, loading, login, register, logout, adopt, setName]);
+  const setUserData = useCallback((u: User) => setUser(u), []);
+
+  const value = useMemo(() => ({ user, loading, login, register, logout, adopt, setName, setUserData }),
+    [user, loading, login, register, logout, adopt, setName, setUserData]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

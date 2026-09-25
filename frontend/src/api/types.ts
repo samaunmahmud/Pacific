@@ -11,6 +11,8 @@ export interface User {
   email: string | null;
   username: string | null;
   role: Role;
+  /** Whether a customer has confirmed their email address (always true for admins). */
+  emailVerified: boolean;
 }
 
 export interface SavedAddress {

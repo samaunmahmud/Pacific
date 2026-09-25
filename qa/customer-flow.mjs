@@ -1,6 +1,7 @@
 // End-to-end QA in a real browser. Buys things by clicking, and records every console error, uncaught exception and
 // failed request on every page visited.
 import puppeteer from 'puppeteer-core';
+import { confirmEmail } from './confirm.mjs';
 
 const BASE = 'http://localhost:5180';
 const OUT = new URL('./shots/', import.meta.url).pathname;
@@ -53,6 +54,11 @@ await page.waitForFunction(() => location.pathname === '/', { timeout: 8000 }).c
 check('register form signs the new customer in and lands on the home page', new URL(page.url()).pathname === '/', page.url());
 await sleep(500);
 check('header greets them by name', (await text('.header-actions')).includes('Quinn'));
+check('a new customer is asked to confirm their email', (await text('.confirm-email')).includes(email), await text('.confirm-email'));
+await confirmEmail(email);
+await clickText('.confirm-email button', "I've confirmed it");
+await sleep(600);
+check('once confirmed, the reminder goes away', (await page.$('.confirm-email')) === null);
 
 // ---------- 2. browse: header search with category, filter, sort, product page ----------
 await page.select('.search-cat', 'audio');

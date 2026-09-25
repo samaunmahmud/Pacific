@@ -1,6 +1,7 @@
 package com.pacific.marketplace.web;
 
 import com.pacific.marketplace.service.QaService;
+import com.pacific.marketplace.service.EmailVerificationService;
 import com.pacific.marketplace.web.dto.QaDtos.AnswerDto;
 import com.pacific.marketplace.web.dto.QaDtos.AnswerRequest;
 import com.pacific.marketplace.web.dto.QaDtos.QuestionDto;
@@ -25,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class QaController {
 
     private final QaService qa;
+    private final EmailVerificationService verification;
 
-    public QaController(QaService qa) {
+    public QaController(QaService qa, EmailVerificationService verification) {
         this.qa = qa;
+        this.verification = verification;
     }
 
     @GetMapping("/products/{productId}/questions")
@@ -39,6 +42,7 @@ public class QaController {
     @ResponseStatus(HttpStatus.CREATED)
     public QuestionDto ask(@PathVariable Long productId, @Valid @RequestBody QuestionRequest req,
                            @AuthenticationPrincipal Jwt jwt) {
+        verification.requireConfirmed(CurrentUser.id(jwt), "ask questions");
         return qa.ask(CurrentUser.id(jwt), productId, req.text());
     }
 
@@ -46,6 +50,7 @@ public class QaController {
     @ResponseStatus(HttpStatus.CREATED)
     public AnswerDto answer(@PathVariable Long id, @Valid @RequestBody AnswerRequest req,
                             @AuthenticationPrincipal Jwt jwt) {
+        verification.requireConfirmed(CurrentUser.id(jwt), "answer questions");
         return qa.answer(CurrentUser.id(jwt), CurrentUser.role(jwt), id, req.text());
     }
 

@@ -34,6 +34,9 @@ if `backend/target/test-classes` contains stray duplicate files.)
 
 ## 2. Run the checks (from `qa/`)
 
+New customers must confirm their email before ordering or selling, so scripts that register customers confirm them
+through the admin endpoint (`confirm.mjs`); only `verification.mjs` uses the real link.
+
 | Script | What it does |
 | --- | --- |
 | `node customer-flow.mjs` | Registers through the form, searches, filters, sorts, buys (pay on delivery, then card via the simulator, paid and abandoned), admin-cancels a paid order and checks the refund, signs out and in, and sweeps pages for console errors and failed requests. |
@@ -45,6 +48,7 @@ if `backend/target/test-classes` contains stray duplicate files.)
 | `BACKEND_LOG=<file> node account.mjs` | Forgot password through the UI (the dev-only reset link is read from the backend's output, so start it with its output going to `<file>`), the reset page, old sessions and links dying, the admin log hiding the link, changing name and password, the address book, checkout with a saved address, and the sign-in lockout. Needs the account security change. |
 | `node photos.mjs` | A seller uploads a photo through the product form (checks it's resized to 1600 px and shown on the product page and catalogue), a file that isn't a photo gets a clear message, the photo is removed and replaced by a link, the form fits a phone screen, and an admin saves a demo product without losing its drawing. Needs `DEMO_DATA=true`. |
 | `node gallery.mjs` | A seller adds three more photos at once, reorders, removes one and makes another the main photo; shoppers switch photos on the product page by clicking thumbnails and with the arrow keys; a one-photo product has no thumbnails; choosing too many keeps seven more and says so; phone layouts fit. |
+| `BACKEND_LOG=<file> node verification.mjs` | Sign up through the form, the confirm-your-email reminder, checkout and "Sell on Pacific" waiting for it, "send it again" and its one-a-minute limit, opening the link (read from the backend output, like `account.mjs`) twice and a broken one, ordering afterwards, confirming on another device, the admin log hiding the link, an admin confirming by hand, and the phone layout. |
 | `node screenshot.mjs <name> <path> [width] [height] [full\|empty]` | Signs in as the demo shopper (or a fresh customer) and saves `shots/<name>.png`. |
 | `python3 simulator-flow.py` | Backend-only: card checkout, pay, refund, and 25 concurrent pay-versus-cancel races. |
 

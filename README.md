@@ -44,6 +44,11 @@ commission and payouts · moderation queue · Pacific's own products, categories
 - A reported review is hidden from the product page (its author still sees it) until an admin decides.
 - Payment is **pay on delivery**, or **by card** when Stripe (or the local simulator) is configured.
 - Products are hidden, never hard-deleted, because past orders refer to them.
+- New customers **confirm their email** with the link sent at sign-up (valid 48 hours, `app.security.verify-token-hours`)
+  before they can order, apply to sell or post questions and answers; browsing, the cart and the wish list work
+  straight away. Accounts from before this rule, demo accounts and imported ones count as confirmed. The admin
+  Emails page can confirm a customer by hand if the email never arrives. Without a mail server, the link is written
+  to the backend's output in development (never with `APP_PRODUCTION=true`) and hidden in the admin email log.
 
 **Product photos** — sellers and admins upload a photo on the product form (or drop one on it, or paste a link to a
 photo hosted elsewhere). The shop checks it really is a JPEG, PNG or GIF (up to 10 MB), turns sideways phone photos
@@ -137,5 +142,5 @@ cd frontend && npm run typecheck && npm run build
 
 ## Not built yet
 
-Real seller payouts (the ledger is bookkeeping only), email verification at sign-up,
+Real seller payouts (the ledger is bookkeeping only), changing the email address on an account,
 cleaning up photos no product uses any more, cloud storage for photos, and seller-to-buyer messaging.

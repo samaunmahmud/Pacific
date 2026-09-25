@@ -1,7 +1,7 @@
 import { Link, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { RequireRole, RequireSeller } from './components/Guards';
-import { ForgotPassword, ResetPassword, AdminLogin, CustomerLogin, Register } from './pages/AuthPages';
+import { ForgotPassword, ResetPassword, AdminLogin, CustomerLogin, Register, VerifyEmail } from './pages/AuthPages';
 import { AccountHome, AddressBook } from './pages/AccountPages';
 import { CartPage } from './pages/Cart';
 import { Catalog } from './pages/Catalog';
@@ -43,6 +43,7 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/admin/login" element={<AdminLogin />} />
 
       <Route element={<Layout />}>

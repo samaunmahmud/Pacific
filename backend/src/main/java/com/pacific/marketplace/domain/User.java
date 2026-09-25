@@ -35,6 +35,10 @@ public class User {
     @Column(name = "password_version", nullable = false)
     private int passwordVersion;
 
+    /** When the customer confirmed they own their email address; null until then. */
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -66,6 +70,12 @@ public class User {
         this.passwordHash = newHash;
         this.passwordVersion++;
     }
+
+    public void markEmailVerified() {
+        if (emailVerifiedAt == null) emailVerifiedAt = Instant.now();
+    }
+
+    public boolean isEmailVerified() { return emailVerifiedAt != null; }
 
     public void rename(String name) {
         this.name = name;

@@ -32,16 +32,18 @@ public class AuthService {
     private final JwtEncoder jwtEncoder;
     private final AppProperties props;
     private final Throttles throttles;
+    private final EmailVerificationService verification;
     /** Compared against when the account doesn't exist, so response time doesn't reveal which emails are registered. */
     private final String dummyHash;
 
     public AuthService(UserRepository users, PasswordEncoder encoder, JwtEncoder jwtEncoder, AppProperties props,
-                       Throttles throttles) {
+                       Throttles throttles, EmailVerificationService verification) {
         this.users = users;
         this.encoder = encoder;
         this.jwtEncoder = jwtEncoder;
         this.props = props;
         this.throttles = throttles;
+        this.verification = verification;
         this.dummyHash = encoder.encode("not-a-real-password");
     }
 
@@ -57,6 +59,7 @@ public class AuthService {
         } catch (DataIntegrityViolationException e) {
             throw ApiException.conflict("An account with that email already exists.");
         }
+        verification.sendLink(user);
         return issue(user);
     }
 

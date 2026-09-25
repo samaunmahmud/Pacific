@@ -88,6 +88,10 @@ public class NotificationService {
         afterCommit(templates.passwordReset(user, rawToken, minutes));
     }
 
+    public void verifyEmail(User user, String rawToken, int hours) {
+        afterCommit(templates.verifyEmail(user, rawToken, hours));
+    }
+
     public void passwordChanged(User user) {
         afterCommit(templates.passwordChanged(user));
     }

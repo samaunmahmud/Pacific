@@ -15,9 +15,11 @@ public class OrderCancellation {
 
     private final ProductRepository products;
     private final BuyBox buyBox;
+    private final Promotions promotions;
 
-    public OrderCancellation(ProductRepository products, BuyBox buyBox) {
+    public OrderCancellation(ProductRepository products, BuyBox buyBox, Promotions promotions) {
         this.buyBox = buyBox;
+        this.promotions = promotions;
         this.products = products;
     }
 
@@ -26,6 +28,7 @@ public class OrderCancellation {
         for (OrderItem item : order.getItems()) {
             products.incrementStock(item.getProduct().getId(), item.getQuantity());
         }
+        promotions.release(order); // deal units, coupon and promo code uses go back
         buyBox.refreshFor(order.getItems().stream().map(i -> i.getProduct().getId()).toList());
     }
 }

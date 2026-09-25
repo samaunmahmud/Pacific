@@ -14,8 +14,14 @@ public final class CartDtos {
     private CartDtos() {
     }
 
+    /** unitPrice is after promotions; listUnitPrice (the regular price) and promotion are set when one applies. */
     public record CartItemDto(Long productId, String name, String imageUrl, String categoryName, BigDecimal unitPrice,
-                              int quantity, BigDecimal lineTotal, int stock, String sellerName, String sellerSlug) {
+                              int quantity, BigDecimal lineTotal, int stock, String sellerName, String sellerSlug,
+                              BigDecimal listUnitPrice, String promotion) {
+    }
+
+    /** A promo code applied to the cart: how much it takes off which store's items. */
+    public record PromoDto(String code, int percentOff, String storeName, BigDecimal discount) {
     }
 
     /** One way to deliver a shipment: its price and the days it would arrive if ordered now. */
@@ -34,7 +40,7 @@ public final class CartDtos {
     /** {@code saved} are "saved for later" lines, not counted in the totals. orderWithin: today's order cut-off. */
     public record CartDto(List<CartItemDto> items, List<ShipmentDto> shipments, int itemCount, BigDecimal subtotal,
                           BigDecimal shipping, BigDecimal total, BigDecimal freeShippingThreshold,
-                          List<CartItemDto> saved, Instant orderWithin) {
+                          List<CartItemDto> saved, Instant orderWithin, PromoDto promo, String promoError) {
     }
 
     public record AddToCartRequest(@NotNull Long productId, @NotNull @Min(1) @Max(100) Integer quantity) {

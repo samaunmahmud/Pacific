@@ -127,6 +127,10 @@ public class Order {
         items.add(new OrderItem(this, product, quantity));
     }
 
+    public void addItem(Product product, int quantity, OrderItem.Pricing price) {
+        items.add(new OrderItem(this, product, quantity, price));
+    }
+
     public void addEvent(OrderEventType type, String note) {
         events.add(new OrderEvent(this, type, note));
     }

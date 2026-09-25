@@ -27,17 +27,26 @@ public class OfferService {
     private final SellerService sellers;
     private final BuyBox buyBox;
     private final Delivery delivery;
+    private final Promotions promotions;
 
-    public OfferService(ProductRepository products, SellerService sellers, BuyBox buyBox, Delivery delivery) {
+    public OfferService(ProductRepository products, SellerService sellers, BuyBox buyBox, Delivery delivery,
+                        Promotions promotions) {
         this.products = products;
         this.sellers = sellers;
         this.buyBox = buyBox;
         this.delivery = delivery;
+        this.promotions = promotions;
     }
 
     /** The listings on sale for this product (any listing's id works), buy box first. */
     @Transactional(readOnly = true)
     public List<OfferDto> offers(Long productId) {
+        return offers(productId, null);
+    }
+
+    /** {@code viewerId} (null when signed out) decides whether each coupon shows as clipped. */
+    @Transactional(readOnly = true)
+    public List<OfferDto> offers(Long productId, Long viewerId) {
         Long catalogId = products.findById(productId).map(Product::catalogId)
                 .orElseThrow(() -> ApiException.notFound("Product not found."));
         List<BuyBox.Listing> ranked = buyBox.ranked(catalogId);
@@ -46,6 +55,7 @@ public class OfferService {
         products.findWithCategoryByIdIn(ranked.stream().map(BuyBox.Listing::id).toList()).forEach(p -> byId.put(p.getId(), p));
         List<OfferDto> out = new ArrayList<>();
         java.time.Instant orderWithin = delivery.orderWithin();
+        Promotions.Live live = promotions.live(ranked.stream().map(BuyBox.Listing::id).toList(), viewerId);
         for (int i = 0; i < ranked.size(); i++) {
             BuyBox.Listing l = ranked.get(i);
             Product p = byId.get(l.id());
@@ -57,7 +67,8 @@ public class OfferService {
                     l.price(), p.getListPrice(), p.getDiscountPercent(), l.stock(), p.getCondition(), p.getCondition().label(),
                     i == 0 && l.stock() > 0,
                     delivery.fee(DeliveryOption.STANDARD, l.price(), s), delivery.freeThreshold(s), standard.from(), standard.to(),
-                    delivery.fee(DeliveryOption.EXPRESS, l.price(), s), express.to(), orderWithin));
+                    delivery.fee(DeliveryOption.EXPRESS, l.price(), s), express.to(), orderWithin,
+                    Promotions.dealDto(live, p.getId()), Promotions.couponDto(live, p.getId())));
         }
         return out;
     }

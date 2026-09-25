@@ -14,6 +14,7 @@ import com.pacific.marketplace.web.dto.ProductDtos.ProductRequest;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -33,11 +34,49 @@ public class ProductService {
     private final ProductRepository products;
     private final CategoryRepository categories;
     private final BuyBox buyBox;
+    private final Promotions promotions;
 
-    public ProductService(ProductRepository products, CategoryRepository categories, BuyBox buyBox) {
+    public ProductService(ProductRepository products, CategoryRepository categories, BuyBox buyBox, Promotions promotions) {
         this.products = products;
         this.categories = categories;
         this.buyBox = buyBox;
+        this.promotions = promotions;
+    }
+
+    /** Adds the Lightning Deal and coupon running on the listing each card would buy. */
+    public List<ProductDto> decorate(List<ProductDto> cards) {
+        if (cards.isEmpty()) return cards;
+        java.util.function.Function<ProductDto, Long> buys = d -> d.catalogId().equals(d.id()) ? d.boxProductId() : d.id();
+        Promotions.Live live = promotions.live(cards.stream().map(buys).toList(), null);
+        return cards.stream().map(d -> d.withPromotions(Promotions.dealDto(live, buys.apply(d)),
+                Promotions.couponDto(live, buys.apply(d)))).toList();
+    }
+
+    /**
+     * Today's Deals: a "was" price, or a Lightning Deal or coupon running on any of the product's listings (for a
+     * store's page, on that listing).
+     */
+    private static Specification<Product> onDeal(boolean catalog) {
+        return (root, cq, cb) -> {
+            Instant now = Instant.now();
+            var deal = cq.subquery(Long.class);
+            var d = deal.from(com.pacific.marketplace.domain.LightningDeal.class);
+            var dp = d.join("product");
+            deal.select(d.get("id")).where(inGroup(cb, dp, root, catalog), cb.lessThanOrEqualTo(d.get("startsAt"), now),
+                    cb.greaterThan(d.get("endsAt"), now), cb.lessThan(d.get("claimed"), d.<Integer>get("quantity")));
+            var coupon = cq.subquery(Long.class);
+            var c = coupon.from(com.pacific.marketplace.domain.Coupon.class);
+            var cp = c.join("product");
+            coupon.select(c.get("id")).where(inGroup(cb, cp, root, catalog), cb.isTrue(c.get("active")),
+                    cb.greaterThan(c.get("endsAt"), now), cb.lessThan(c.get("used"), c.<Integer>get("budget")));
+            return cb.or(cb.greaterThan(root.<Integer>get("discountPercent"), 0), cb.exists(deal), cb.exists(coupon));
+        };
+    }
+
+    private static jakarta.persistence.criteria.Predicate inGroup(jakarta.persistence.criteria.CriteriaBuilder cb,
+            jakarta.persistence.criteria.Path<?> listing, jakarta.persistence.criteria.Root<Product> page, boolean catalog) {
+        return catalog ? cb.or(cb.equal(listing.get("id"), page.get("id")), cb.equal(listing.get("groupId"), page.get("id")))
+                : cb.equal(listing.get("id"), page.get("id"));
     }
 
     // ---------- storefront ----------
@@ -118,8 +157,9 @@ public class ProductService {
             spec = spec.and((root, cq, cb) -> cb.greaterThanOrEqualTo(root.<BigDecimal>get("ratingAvg"), min));
         }
         if (seller != null) spec = spec.and((root, cq, cb) -> cb.equal(root.get("seller").get("slug"), seller));
-        if (dealsOnly) spec = spec.and((root, cq, cb) -> cb.greaterThan(root.<Integer>get("discountPercent"), 0));
-        return page(spec, q, categorySlug, sort, priceField, page, size, this::card);
+        if (dealsOnly) spec = spec.and(onDeal(catalog));
+        PageResponse<ProductDto> found = page(spec, q, categorySlug, sort, priceField, page, size, this::card);
+        return new PageResponse<>(decorate(found.items()), found.page(), found.size(), found.totalItems(), found.totalPages());
     }
 
     @Transactional(readOnly = true)
@@ -127,7 +167,7 @@ public class ProductService {
         // An offer's id opens the product's catalog page, which is what shoppers see.
         Long catalogId = products.findById(id).map(Product::catalogId).orElse(id);
         if (!buyBox.catalogVisible(catalogId)) throw ApiException.notFound("Product not found.");
-        return products.findWithCategoryById(catalogId).map(this::card)
+        return products.findWithCategoryById(catalogId).map(p -> decorate(List.of(card(p))).get(0))
                 .orElseThrow(() -> ApiException.notFound("Product not found."));
     }
 
@@ -138,7 +178,7 @@ public class ProductService {
         Map<Long, Product> byId = new HashMap<>();
         products.findWithCategoryByIdIn(wanted).stream().filter(p -> !p.isOffer() && buyBox.catalogVisible(p.getId()))
                 .forEach(p -> byId.put(p.getId(), p));
-        return wanted.stream().map(byId::get).filter(p -> p != null).map(this::card).toList();
+        return decorate(wanted.stream().map(byId::get).filter(p -> p != null).map(this::card).toList());
     }
 
     @Transactional(readOnly = true)

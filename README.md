@@ -50,6 +50,16 @@ commission and payouts · moderation queue · Pacific's own products, categories
   Emails page can confirm a customer by hand if the email never arrives. Without a mail server, the link is written
   to the backend's output in development (never with `APP_PRODUCTION=true`) and hidden in the admin email log.
 
+**Several sellers per product** — like Amazon, a product has one page however many stores sell it. An approved
+seller can "Sell on Pacific" from any product page to add their own offer (price, stock and condition: new or used)
+instead of creating a duplicate listing. The **buy box** goes to the best offer on sale: in stock beats out of stock,
+new beats used, then the lowest price, then whoever listed first; the rest appear under "Other sellers on Pacific".
+Search shows one card per product at the buy-box price, and "Add to cart" there buys the buy-box offer. When the
+winner sells out, is hidden or its store is suspended, the next offer takes over (and the product stays on sale while
+anyone sells it). Reviews and questions live on the product page, so a buyer from any seller can review it. An offer's
+name, photos and description follow the product page; its seller sets only their price, stock, condition and
+visibility. Each offer is still its own listing, so the cart, orders, stock and seller earnings work as before.
+
 **Messages** — buyers can write privately to a store from a product page or one of their orders ("Message the
 seller"), and sellers can write to the buyer of one of their orders; each side has an inbox (Your Messages, and
 Messages in Seller Central) with unread badges. There's one conversation per buyer and store, each message can say

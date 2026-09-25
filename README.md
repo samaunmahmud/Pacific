@@ -50,6 +50,14 @@ commission and payouts · moderation queue · Pacific's own products, categories
   Emails page can confirm a customer by hand if the email never arrives. Without a mail server, the link is written
   to the backend's output in development (never with `APP_PRODUCTION=true`) and hidden in the admin email log.
 
+**Delivery** — each seller's part of an order can go **Standard** (free once that seller's part reaches their
+free-delivery amount, otherwise £3.99) or **Express** (£5.99, faster), chosen per seller at checkout. Dates are
+promised everywhere: the buy box ("FREE delivery Thu 1 Oct – Fri 2 Oct … Order within 3 hrs 12 mins"), the cart,
+checkout, the confirmation email and the order page ("Arriving …"). They count business days: orders before 2pm on
+a weekday count from that day, then the seller's dispatch time (set in Seller Central → Store settings, with their own
+free-delivery amount), then 2–3 days standard or 1 day express. Prices, days and the cut-off are in `app.shop`.
+**Save for later** keeps items in the cart but out of its total and of checkout, until moved back.
+
 **Several sellers per product** — like Amazon, a product has one page however many stores sell it. An approved
 seller can "Sell on Pacific" from any product page to add their own offer (price, stock and condition: new or used)
 instead of creating a duplicate listing. The **buy box** goes to the best offer on sale: in stock beats out of stock,

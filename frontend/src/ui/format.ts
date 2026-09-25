@@ -20,3 +20,25 @@ export function minutesLeft(iso: string | null): number {
 
 /** "AWAITING_PAYMENT" -> "Awaiting payment" */
 export const statusLabel = (status: string) => (status.charAt(0) + status.slice(1).toLowerCase()).replace(/_/g, ' ');
+
+/** A delivery date (YYYY-MM-DD, no time zone) as "Thursday 1 October", or "Thu 1 Oct" when short. */
+export function deliveryDay(isoDate: string, short = false): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-GB', short
+    ? { weekday: 'short', day: 'numeric', month: 'short' }
+    : { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+/** "Thursday 1 October" or "Thu 1 Oct – Fri 2 Oct" for a range. */
+export function deliveryRange(from: string, to: string | null | undefined): string {
+  return !to || to === from ? deliveryDay(from) : `${deliveryDay(from, true)} – ${deliveryDay(to, true)}`;
+}
+
+/** "3 hrs 12 mins" until the order cut-off, or null once it's passed. */
+export function timeLeft(untilIso: string | null, now = Date.now()): string | null {
+  if (!untilIso) return null;
+  const mins = Math.floor((new Date(untilIso).getTime() - now) / 60000);
+  if (mins <= 0) return null;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h > 0 ? `${h} hr${h === 1 ? '' : 's'} ${m} min${m === 1 ? '' : 's'}` : `${m} min${m === 1 ? '' : 's'}`;
+}

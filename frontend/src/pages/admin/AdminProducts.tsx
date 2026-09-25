@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
-import type { Category, Page, Product, ProductInput } from '../../api/types';
+import { CONDITION_LABELS, type Category, type ItemCondition, type Page, type Product, type ProductInput } from '../../api/types';
 import { Pagination } from '../../components/Pagination';
 import { ProductImage } from '../../components/ProductImage';
 import { MorePhotosField } from '../../components/MorePhotosField';
@@ -111,7 +111,7 @@ export function AdminProducts() {
           <tbody>
             {products.data?.items.map((p) => (
               <tr key={p.id} style={{ opacity: p.active ? 1 : 0.6 }}>
-                <td><span className="row"><span className="thumb"><ProductImage imageUrl={p.imageUrl} categoryName={p.category?.name} alt="" /></span><b>{p.name}</b></span></td>
+                <td><span className="row"><span className="thumb"><ProductImage imageUrl={p.imageUrl} categoryName={p.category?.name} alt="" /></span><b>{p.name}</b>{p.catalogId !== p.id && <span className="chip small">Offer</span>}</span></td>
                 <td>{p.sellerName}</td>
                 <td>{p.category?.name ?? <span className="muted">—</span>}</td>
                 <td>{money(p.price)}{p.discountPercent > 0 && <span className="deal-badge" style={{ marginLeft: 6 }}>-{p.discountPercent}%</span>}</td>
@@ -134,7 +134,7 @@ export function AdminProducts() {
 }
 
 export function toInput(p: Product, override: Partial<ProductInput> = {}): ProductInput {
-  return { name: p.name, description: p.description ?? '', price: p.price, listPrice: p.listPrice, stock: p.stock, imageUrl: p.imageUrl ?? '', moreImages: p.moreImages ?? [], categoryId: p.category?.id ?? null, active: p.active, ...override };
+  return { name: p.name, description: p.description ?? '', price: p.price, listPrice: p.listPrice, stock: p.stock, imageUrl: p.imageUrl ?? '', moreImages: p.moreImages ?? [], categoryId: p.category?.id ?? null, active: p.active, condition: p.condition, ...override };
 }
 
 /**
@@ -168,6 +168,8 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
   if (!form) return <div className="loading">Loading…</div>;
 
   // From the latest state: uploads finish after later edits and must not undo them.
+  // Another seller's product page: the details come from that page, so only this listing's terms are editable.
+  const isOffer = !!existing.data && existing.data.catalogId !== existing.data.id;
   const set = <K extends keyof ProductInput>(k: K, v: ProductInput[K]) => setForm((f) => f && { ...f, [k]: v });
 
   /** Swaps the main photo with extra photo {@code i} (or just promotes it when there's no main photo). */
@@ -205,27 +207,41 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
     <form className="page page-narrow" onSubmit={submit}>
       <div className="row" style={{ gap: 20 }}>
         <Link to={base} className="back-btn" aria-label="Back to products">←</Link>
-        <h1 className="page-title">{editing ? 'Edit product' : 'Add product'}</h1>
+        <h1 className="page-title">{isOffer ? 'Edit your offer' : editing ? 'Edit product' : 'Add product'}</h1>
       </div>
+      {isOffer && existing.data && (
+        <div className="notice">
+          You sell <b>{existing.data.name}</b> on its <Link to={`/products/${existing.data.catalogId}`}>shared product page</Link>.
+          The name, photos and description come from that page; set your own price, stock and condition here.
+        </div>
+      )}
       <div className="square-review-box static stack">
         <div className="form-grid">
-          <div className="form-field full"><label className="field-label small" htmlFor="pn">Name</label><input id="pn" className="rounded-input" value={form.name} onChange={(e) => set('name', e.target.value)} required maxLength={160} /></div>
-          <div className="form-field full"><label className="field-label small" htmlFor="pd">Description</label><textarea id="pd" className="rounded-input" value={form.description} onChange={(e) => set('description', e.target.value)} maxLength={2000} /></div>
+          {!isOffer && <div className="form-field full"><label className="field-label small" htmlFor="pn">Name</label><input id="pn" className="rounded-input" value={form.name} onChange={(e) => set('name', e.target.value)} required maxLength={160} /></div>}
+          {!isOffer && <div className="form-field full"><label className="field-label small" htmlFor="pd">Description</label><textarea id="pd" className="rounded-input" value={form.description} onChange={(e) => set('description', e.target.value)} maxLength={2000} /></div>}
           <div className="form-field"><label className="field-label small" htmlFor="pp">Price (£)</label><input id="pp" className="rounded-input" inputMode="decimal" value={priceText} onChange={(e) => setPriceText(e.target.value)} required /></div>
           <div className="form-field"><label className="field-label small" htmlFor="pl">"Was" price (£, optional — makes it a deal)</label><input id="pl" className="rounded-input" inputMode="decimal" value={listText} onChange={(e) => setListText(e.target.value)} placeholder="e.g. 29.99" /></div>
           <div className="form-field"><label className="field-label small" htmlFor="ps">Stock</label><input id="ps" className="rounded-input" type="number" min={0} value={form.stock} onChange={(e) => set('stock', Math.max(0, Math.floor(Number(e.target.value) || 0)))} required /></div>
-          <div className="form-field"><label className="field-label small" htmlFor="pc">Category</label>
+          {isOffer && (
+            <div className="form-field"><label className="field-label small" htmlFor="pcond">Condition</label>
+              <select id="pcond" className="rounded-input" value={form.condition ?? 'NEW'} onChange={(e) => set('condition', e.target.value as ItemCondition)}>
+                {(Object.keys(CONDITION_LABELS) as ItemCondition[]).map((c) => <option key={c} value={c}>{CONDITION_LABELS[c]}</option>)}
+              </select>
+            </div>
+          )}
+          {!isOffer && <div className="form-field"><label className="field-label small" htmlFor="pc">Category</label>
             <select id="pc" className="rounded-input" value={form.categoryId ?? ''} onChange={(e) => set('categoryId', e.target.value ? Number(e.target.value) : null)}>
               <option value="">Uncategorised</option>
               {categories.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-          </div>
+          </div>}
           <div className="form-field"><label className="field-label small" htmlFor="pa">Visibility</label>
             <select id="pa" className="rounded-input" value={form.active ? 'live' : 'hidden'} onChange={(e) => set('active', e.target.value === 'live')}>
               <option value="live">Live on the storefront</option>
               <option value="hidden">Hidden</option>
             </select>
           </div>
+          {!isOffer && <>
           <div className="form-field full"><span className="field-label small">Photo (optional)</span>
             <PhotoField value={form.imageUrl} onChange={(url) => set('imageUrl', url)} onBusyChange={setUploading} name={form.name}
               categoryName={categories.data?.find((c) => c.id === form.categoryId)?.name} />
@@ -234,6 +250,7 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
             <MorePhotosField value={form.moreImages} onChange={(urls) => set('moreImages', urls)} onMakeMain={makeMain} onBusyChange={setUploadingMore}
               name={form.name} categoryName={categories.data?.find((c) => c.id === form.categoryId)?.name} />
           </div>
+          </>}
         </div>
         {error && <div className="notice error" role="alert">{error}</div>}
         <div className="row" style={{ justifyContent: 'flex-end' }}>

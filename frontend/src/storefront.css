@@ -652,3 +652,31 @@ body { background: var(--page-bg); }
   .chat-msg { max-width: 92%; }
   .chat-log { padding: 14px; max-height: none; }
 }
+
+/* ---------- several sellers per product ---------- */
+.chip.small { padding: 2px 8px; font-size: 11px; margin-left: 8px; cursor: default; }
+.more-offers { display: block; font-size: 12px; color: var(--brand); }
+.bb-condition { font-size: 14px; }
+.other-sellers { border: 1px solid #d5d9d9; border-radius: 8px; padding: 16px 20px; background: #fff; }
+.other-sellers-h { font-size: 18px; margin: 0 0 8px; }
+.other-sellers ul { list-style: none; margin: 0; padding: 0; }
+.offer-row { display: grid; grid-template-columns: 160px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 12px 0; border-top: 1px solid #eee; }
+.offer-row:first-child { border-top: 0; }
+.offer-price { display: flex; flex-direction: column; gap: 2px; }
+.offer-price b { font-size: 18px; }
+.offer-condition { font-size: 13px; color: #007600; }
+.offer-condition.used { color: #b45309; }
+.offer-seller { display: flex; flex-direction: column; gap: 2px; font-size: 13px; min-width: 0; }
+.offer-stock { color: #007600; }
+.offer-stock.low { color: #b12704; }
+.offer-stock.out { color: var(--muted); }
+.offer-row .cart-btn { width: auto; padding: 0 18px; }
+.sell-this { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid #eee; font-size: 13px; }
+.sell-this.open { flex-direction: column; align-items: stretch; }
+.sell-this-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sell-this-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; }
+.sell-this-fields label:last-child { grid-column: 1 / -1; }
+@media (max-width: 820px) {
+  .offer-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .offer-seller { grid-column: 1 / -1; grid-row: 2; }
+}

@@ -16,6 +16,8 @@ public class Throttles {
     public final AttemptLimiter loginByAddress;
     /** Password reset emails asked for, per address. */
     public final AttemptLimiter resetRequests;
+    /** Email confirmation links asked for again, per account. */
+    public final AttemptLimiter verifyRequests;
     /** Wrong current password when changing it, per account. */
     public final AttemptLimiter passwordChange;
 
@@ -26,6 +28,7 @@ public class Throttles {
         this.login = new AttemptLimiter(clock, s.loginMaxFailures(), window, "Too many failed sign-in attempts.");
         this.loginByAddress = new AttemptLimiter(clock, s.ipMaxFailures(), window, "Too many failed sign-in attempts from your network.");
         this.resetRequests = new AttemptLimiter(clock, 10, Duration.ofHours(1), "Too many password reset requests.");
+        this.verifyRequests = new AttemptLimiter(clock, 10, Duration.ofHours(1), "Too many confirmation emails asked for.");
         this.passwordChange = new AttemptLimiter(clock, s.loginMaxFailures(), window, "Too many wrong passwords.");
     }
 
@@ -34,6 +37,7 @@ public class Throttles {
         login.purge();
         loginByAddress.purge();
         resetRequests.purge();
+        verifyRequests.purge();
         passwordChange.purge();
     }
 }

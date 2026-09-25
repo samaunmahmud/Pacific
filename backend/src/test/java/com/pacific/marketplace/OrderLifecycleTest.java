@@ -286,7 +286,8 @@ class OrderLifecycleTest extends CommittedFlowTestBase {
 
         ArgumentCaptor<Email> sent = ArgumentCaptor.forClass(Email.class);
         verify(mailer, org.mockito.Mockito.atLeastOnce()).send(sent.capture());
-        Email toSeller = sent.getAllValues().stream().filter(e -> e.to().equals(seller.email())).findFirst().orElseThrow();
+        Email toSeller = sent.getAllValues().stream().filter(e -> e.to().equals(seller.email()) && !e.kind().equals("VERIFY_EMAIL"))
+                .findFirst().orElseThrow();
         assertThat(toSeller.html()).contains("&lt;script&gt;alert(1)&lt;/script&gt;").doesNotContain("<script>");
     }
 

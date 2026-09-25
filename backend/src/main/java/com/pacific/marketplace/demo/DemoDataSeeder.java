@@ -108,7 +108,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         Map<String, SellerProfile> stores = new HashMap<>();
         for (DemoCatalog.Store s : DemoCatalog.STORES) {
             String slug = slugify(s.name());
-            User owner = users.save(new User(s.name(), "seller." + slug + "@example.com", null, unusable, Role.CUSTOMER));
+            User owner = users.save(confirmed(new User(s.name(), "seller." + slug + "@example.com", null, unusable, Role.CUSTOMER)));
             SellerProfile profile = new SellerProfile(owner, s.name(), slug, s.description());
             profile.setStatus(SellerStatus.APPROVED, null);
             profile.setRating(BigDecimal.valueOf(4.0 + rnd.nextInt(9) / 10.0).setScale(2), 20 + rnd.nextInt(280));
@@ -116,13 +116,13 @@ public class DemoDataSeeder implements ApplicationRunner {
         }
 
         List<User> shoppers = new ArrayList<>();
-        shoppers.add(users.save(new User("Demo Shopper", SHOPPER_EMAIL, null, encoder.encode(SHOPPER_PASSWORD), Role.CUSTOMER)));
+        shoppers.add(users.save(confirmed(new User("Demo Shopper", SHOPPER_EMAIL, null, encoder.encode(SHOPPER_PASSWORD), Role.CUSTOMER))));
         for (int i = 0; i < SHOPPERS; i++) {
             String first = DemoCatalog.FIRST_NAMES.get(i % DemoCatalog.FIRST_NAMES.size());
             String last = DemoCatalog.LAST_NAMES.get((i * 7 + 3) % DemoCatalog.LAST_NAMES.size());
-            shoppers.add(users.save(new User(first + " " + last,
+            shoppers.add(users.save(confirmed(new User(first + " " + last,
                     "demo." + first.toLowerCase(Locale.ROOT) + "." + last.toLowerCase(Locale.ROOT) + i + "@example.com",
-                    null, unusable, Role.CUSTOMER)));
+                    null, unusable, Role.CUSTOMER))));
         }
 
         int productCount = 0;
@@ -251,5 +251,11 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     private static String slugify(String name) {
         return name.toLowerCase(Locale.ROOT).replaceAll("&", "and").replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
+    }
+
+    /** Demo accounts use made-up example.com addresses, so they start out confirmed. */
+    private static User confirmed(User user) {
+        user.markEmailVerified();
+        return user;
     }
 }

@@ -185,6 +185,19 @@ public class EmailTemplates {
                 email.text().replace(link, "[reset link hidden]"));
     }
 
+    public Email verifyEmail(User user, String rawToken, int hours) {
+        String link = baseUrl + "/verify-email?token=" + rawToken;
+        Doc d = new Doc().heading("Confirm your email address");
+        d.para("Hi " + user.getName() + ", welcome to Pacific! Please confirm this is your email address so we can send you order updates. The link works for "
+                + hours + " hours.");
+        d.button("Confirm my email", link);
+        d.para("You can browse and fill your cart straight away; you'll need to confirm before placing an order or selling on Pacific.");
+        d.para("If you didn't create a Pacific account, you can ignore this email.");
+        Email email = d.build(user.getEmail(), "Confirm your email for Pacific", "VERIFY_EMAIL");
+        return new Email(email.to(), email.subject(), email.text(), email.html(), email.kind(),
+                email.text().replace(link, "[confirmation link hidden]"));
+    }
+
     public Email passwordChanged(User user) {
         Doc d = new Doc().heading("Your password was changed");
         d.para("The password for your Pacific account was just changed, and you've been signed out on other devices.");

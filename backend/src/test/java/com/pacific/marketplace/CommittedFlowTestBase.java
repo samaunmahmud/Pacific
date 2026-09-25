@@ -54,6 +54,7 @@ abstract class CommittedFlowTestBase {
         String email = "c-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         JsonNode res = send(post("/api/auth/register"), null,
                 Map.of("name", "Casey Customer", "email", email, "password", "correct-horse-battery"), 201);
+        send(post("/api/admin/customers/verify-email"), admin(), Map.of("email", email), 200);
         return new Account(email, res.get("token").asText());
     }
 
@@ -101,8 +102,10 @@ abstract class CommittedFlowTestBase {
         return send(get("/api/orders/" + id), c.token(), null, 200);
     }
 
+    /** Emails sent to this address, apart from the "confirm your email" one every new customer gets at sign-up. */
     protected List<SentEmail> emailsTo(String address) {
-        return sentEmails.findAll().stream().filter(e -> e.getToAddress().equals(address)).toList();
+        return sentEmails.findAll().stream()
+                .filter(e -> e.getToAddress().equals(address) && !e.getKind().equals("VERIFY_EMAIL")).toList();
     }
 
     protected static List<String> timeline(JsonNode order) {

@@ -153,6 +153,7 @@ public class LegacyDataImporter implements ApplicationRunner {
                 }
                 Instant created = parse(rs.getString("created_at"));
                 if (created != null) u.setCreatedAt(created);
+                u.markEmailVerified(); // existing customers carry on as before, like those migrated by V8
                 customerById.put(rs.getLong("customer_id"), users.save(u));
             }
         }

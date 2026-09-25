@@ -3,6 +3,7 @@ package com.pacific.marketplace.web;
 import com.pacific.marketplace.service.CheckoutService;
 import com.pacific.marketplace.service.OrderService;
 import com.pacific.marketplace.service.ReturnService;
+import com.pacific.marketplace.service.EmailVerificationService;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutRequest;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutResponse;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
@@ -28,16 +29,20 @@ public class OrderController {
     private final OrderService orders;
     private final CheckoutService checkouts;
     private final ReturnService returns;
+    private final EmailVerificationService verification;
 
-    public OrderController(OrderService orders, CheckoutService checkouts, ReturnService returns) {
+    public OrderController(OrderService orders, CheckoutService checkouts, ReturnService returns,
+                           EmailVerificationService verification) {
         this.orders = orders;
         this.checkouts = checkouts;
         this.returns = returns;
+        this.verification = verification;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CheckoutResponse checkout(@Valid @RequestBody CheckoutRequest req, @AuthenticationPrincipal Jwt jwt) {
+        verification.requireConfirmed(CurrentUser.id(jwt), "place an order");
         return checkouts.checkout(CurrentUser.id(jwt), req);
     }
 

@@ -49,10 +49,20 @@ public final class AuthDtos {
     public record MessageResponse(String message) {
     }
 
-    public record UserDto(Long id, String name, String email, String username, Role role) {
+    /** emailVerified: whether a customer has confirmed their email address (always true for admins). */
+    public record UserDto(Long id, String name, String email, String username, Role role, boolean emailVerified) {
         public static UserDto from(User u) {
-            return new UserDto(u.getId(), u.getName(), u.getEmail(), u.getUsername(), u.getRole());
+            return new UserDto(u.getId(), u.getName(), u.getEmail(), u.getUsername(), u.getRole(),
+                    u.getRole() != Role.CUSTOMER || u.isEmailVerified());
         }
+    }
+
+    public record VerifyEmailRequest(@NotBlank(message = "This confirmation link is incomplete.") @Size(max = 200) String token) {
+    }
+
+    public record AdminVerifyEmailRequest(
+            @NotBlank(message = "Please enter the customer's email.") @Email(message = "Please enter a valid email.")
+            @Size(max = 190) String email) {
     }
 
     public record AuthResponse(String token, Instant expiresAt, UserDto user) {

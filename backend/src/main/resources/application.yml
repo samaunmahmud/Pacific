@@ -71,6 +71,8 @@ app:
   security:
     # A password reset link works for this long.
     reset-token-minutes: 60
+    # A link confirming a new customer's email address works for this long.
+    verify-token-hours: 48
     # Wrong passwords allowed within the window: per account from one address, and across accounts from one address.
     login-max-failures: 5
     login-window-minutes: 15

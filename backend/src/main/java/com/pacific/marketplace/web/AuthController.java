@@ -3,6 +3,7 @@ package com.pacific.marketplace.web;
 import com.pacific.marketplace.domain.Role;
 import com.pacific.marketplace.service.AuthService;
 import com.pacific.marketplace.service.PasswordResetService;
+import com.pacific.marketplace.service.EmailVerificationService;
 import com.pacific.marketplace.web.dto.AuthDtos.ForgotPasswordRequest;
 import com.pacific.marketplace.web.dto.AuthDtos.MessageResponse;
 import com.pacific.marketplace.web.dto.AuthDtos.ResetPasswordRequest;
@@ -10,6 +11,7 @@ import com.pacific.marketplace.web.dto.AuthDtos.AuthResponse;
 import com.pacific.marketplace.web.dto.AuthDtos.LoginRequest;
 import com.pacific.marketplace.web.dto.AuthDtos.RegisterRequest;
 import com.pacific.marketplace.web.dto.AuthDtos.UserDto;
+import com.pacific.marketplace.web.dto.AuthDtos.VerifyEmailRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -28,10 +30,12 @@ public class AuthController {
 
     private final AuthService auth;
     private final PasswordResetService resets;
+    private final EmailVerificationService verification;
 
-    public AuthController(AuthService auth, PasswordResetService resets) {
+    public AuthController(AuthService auth, PasswordResetService resets, EmailVerificationService verification) {
         this.auth = auth;
         this.resets = resets;
+        this.verification = verification;
     }
 
     @PostMapping("/register")
@@ -62,6 +66,19 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
         resets.reset(req.token(), req.password());
+    }
+
+    /** Opens the link from the sign-up email. No sign-in needed: people often open it on another device. */
+    @PostMapping("/verify-email")
+    public UserDto verifyEmail(@Valid @RequestBody VerifyEmailRequest req) {
+        return verification.confirm(req.token());
+    }
+
+    @PostMapping("/verify-email/resend")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public MessageResponse resendVerification(@AuthenticationPrincipal Jwt jwt) {
+        verification.resend(CurrentUser.id(jwt));
+        return new MessageResponse("We've sent you a new link. It can take a minute to arrive.");
     }
 
     @GetMapping("/me")

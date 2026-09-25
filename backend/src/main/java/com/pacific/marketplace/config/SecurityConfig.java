@@ -45,7 +45,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login",
-                                "/api/auth/admin/login", "/api/auth/forgot-password", "/api/auth/reset-password")
+                                "/api/auth/admin/login", "/api/auth/forgot-password", "/api/auth/reset-password",
+                                "/api/auth/verify-email")
                         .permitAll()
                         // Stripe calls this itself (no login); the handler verifies the request's signature.
                         .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()

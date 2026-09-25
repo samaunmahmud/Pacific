@@ -18,6 +18,7 @@ import { recordView } from '../ui/recent';
 import { useToast } from '../ui/Toast';
 import { useAsync } from '../ui/useAsync';
 import { DealBadge } from '../components/Promotions';
+import { FrequentlyBoughtTogether, RelatedProducts, type ProductRecommendations } from '../components/Recommendations';
 
 /** What the buy box sells: the winning offer, or the page's own listing while offers load. */
 type BuyTarget = Pick<Offer, 'productId' | 'sellerName' | 'sellerSlug' | 'price' | 'listPrice' | 'discountPercent' | 'stock' | 'condition' | 'conditionLabel'>;
@@ -42,6 +43,7 @@ export function ProductDetail() {
   const [sort, setSort] = useState('newest');
 
   const product = useAsync(() => api<Product>(`/products/${id}`), [id]);
+  const recs = useAsync(() => api<ProductRecommendations>(`/products/${id}/recommendations`).catch((): ProductRecommendations => ({ boughtTogether: [], related: [] })), [id]);
   const offers = useAsync(() => api<Offer[]>(`/products/${id}/offers`).catch((): Offer[] => []), [id, user?.id]);
   const [busyOffer, setBusyOffer] = useState<number | null>(null);
   const [clipping, setClipping] = useState(false);
@@ -106,6 +108,16 @@ export function ProductDetail() {
       toast.show(e instanceof Error ? e.message : 'Could not apply the coupon.', 'error');
     } finally {
       setClipping(false);
+    }
+  }
+
+  async function addAll(productIds: number[]) {
+    if (!signedInCustomer()) return;
+    try {
+      for (const pid of productIds) await add(pid, 1);
+      toast.show(`Added ${productIds.length} item${productIds.length === 1 ? '' : 's'} to your cart`);
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : 'Could not add everything to your cart.', 'error');
     }
   }
 
@@ -218,6 +230,12 @@ export function ProductDetail() {
       </div>
 
       <OtherSellers offers={others} onAdd={addOffer} busyId={busyOffer} inCart={quantityInCart} />
+
+      {recs.data && (
+        <FrequentlyBoughtTogether key={p.id} others={recs.data.boughtTogether} onAddAll={addAll}
+          current={{ name: p.name, imageUrl: p.imageUrl, categoryName: p.category?.name, productId: box.productId, price: box.price, stock: box.stock }} />
+      )}
+      <RelatedProducts products={recs.data?.related} />
 
       <hr />
 

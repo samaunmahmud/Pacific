@@ -131,7 +131,16 @@ export function OrderDetail() {
   const location = useLocation();
   const { data, error, loading, setData } = useAsync(() => api<Order>(`/orders/${id}`), [id]);
   const toast = useToast();
-  const { refresh } = useCart();
+  const { refresh, add } = useCart();
+
+  async function buyAgain(productId: number, name: string) {
+    try {
+      await add(productId, 1);
+      toast.show(`Added ${name} to your cart`);
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : 'That item is no longer available.', 'error');
+    }
+  }
   const [busy, setBusy] = useState(false);
   const justPlaced = (location.state as { placed?: number } | null)?.placed;
 
@@ -216,6 +225,7 @@ export function OrderDetail() {
                     {i.listUnitPrice != null && <> <s className="was">{money(i.listUnitPrice)}</s> <span className="promo-label">{i.promotion}</span></>}
                   </div>
                   <div className="order-item-sub"><b>{money(i.lineTotal)}</b></div>
+                  {o.status === 'DELIVERED' && <button className="cart-btn buy-again" onClick={() => void buyAgain(i.productId, i.productName)}>Buy it again</button>}
                 </div>
               </div>
             ))}

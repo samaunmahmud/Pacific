@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Page, Product } from '../api/types';
+import { useAuth } from '../auth/AuthContext';
 import { DemoArt } from '../components/DemoArt';
 import type { DemoArtKind } from '../components/demoArtKinds';
-import { ProductCard } from '../components/ProductCard';
 import { ProductImage } from '../components/ProductImage';
+import { ProductShelf } from '../components/ProductShelf';
 import { RecentlyViewed } from '../components/RecentlyViewed';
 import { useAsync } from '../ui/useAsync';
 import { useCategories } from '../ui/useCategories';
@@ -80,26 +81,14 @@ function CategoryCard({ name, slug }: { name: string; slug: string }) {
 
 function Shelf({ title, query, more }: { title: string; query: Record<string, string>; more: string }) {
   const { data, error } = useAsync(() => api<Page<Product>>('/products', { query: { ...query, size: 12 } }), [JSON.stringify(query)]);
-  const row = useRef<HTMLDivElement>(null);
-  if (data && data.items.length === 0 && !error) return null;
-  const scroll = (dir: number) => row.current?.scrollBy({ left: dir * row.current.clientWidth * 0.85, behavior: 'smooth' });
-  return (
-    <section className="shelf" aria-label={title}>
-      <div className="shelf-head">
-        <h2>{title}</h2>
-        <Link to={more} className="see-more">See all</Link>
-      </div>
-      {error && <div className="notice error">{error}</div>}
-      <div className="shelf-wrap">
-        <button className="shelf-arrow left" onClick={() => scroll(-1)} aria-label={`Scroll ${title} left`}>‹</button>
-        <div className="shelf-row" ref={row}>
-          {(data?.items ?? []).map((p) => <div key={p.id} className="shelf-item"><ProductCard product={p} /></div>)}
-          {!data && Array.from({ length: 6 }, (_, n) => <div key={n} className="shelf-item"><div className="product-card skeleton-card" /></div>)}
-        </div>
-        <button className="shelf-arrow right" onClick={() => scroll(1)} aria-label={`Scroll ${title} right`}>›</button>
-      </div>
-    </section>
-  );
+  return <ProductShelf title={title} products={data?.items} more={more} error={error} />;
+}
+
+/** Things the signed-in customer has had delivered, to reorder in one click. */
+function BuyItAgain() {
+  const { user } = useAuth();
+  const { data } = useAsync(() => (user?.role === 'CUSTOMER' ? api<Product[]>('/me/buy-again').catch((): Product[] => []) : Promise.resolve([] as Product[])), [user?.id]);
+  return <ProductShelf title="Buy it again" products={data} more="/orders" />;
 }
 
 export function Home() {
@@ -111,6 +100,7 @@ export function Home() {
         <div className="cat-cards">
           {categories.slice(0, 8).map((c) => <CategoryCard key={c.id} name={c.name} slug={c.slug} />)}
         </div>
+        <BuyItAgain />
         <Shelf title="Today's Deals" query={{ deals: 'true', sort: 'discount' }} more="/deals" />
         <Shelf title="Best sellers" query={{ sort: 'popular' }} more="/products?sort=popular" />
         <Shelf title="Top rated" query={{ sort: 'rating' }} more="/products?sort=rating&minRating=4" />

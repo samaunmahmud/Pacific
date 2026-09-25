@@ -362,18 +362,54 @@ public class ProductService {
                                           java.util.function.Function<Product, ProductDto> toDto) {
         Specification<Product> spec = base;
         String query = Text.clean(q);
-        if (query != null) {
-            String pattern = Text.contains(query);
-            spec = spec.and((root, cq, cb) -> cb.or(
-                    cb.like(cb.lower(root.get("name")), pattern),
-                    cb.like(cb.lower(cb.coalesce(root.<String>get("description"), "")), pattern)));
-        }
+        boolean relevance = query != null && (sort == null || "relevance".equalsIgnoreCase(sort));
+        if (query != null) spec = spec.and(matching(query, relevance));
         String slug = Text.clean(categorySlug);
         if (slug != null) {
             spec = spec.and((root, cq, cb) -> cb.equal(root.get("category").get("slug"), slug));
         }
-        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 48), sortFor(sort, priceField));
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 48),
+                relevance ? Sort.unsorted() : sortFor(sort, priceField)); // relevance orders inside matching()
         return PageResponse.of(products.findAll(spec, pageable), toDto);
+    }
+
+    /** The words of a search, lower-cased and de-duplicated (at most 8, so a pasted paragraph can't build a huge query). */
+    static List<String> words(String query) {
+        return java.util.Arrays.stream(query.toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}]+"))
+                .filter(w -> !w.isBlank()).distinct().limit(8).toList();
+    }
+
+    /**
+     * Every word of the search appears in the name, description or category (so "wireless headphones" finds
+     * "Headphones, wireless"). With {@code rank}, best matches come first: the whole phrase in the name, then every
+     * word in the name, then the rest, most-reviewed first within each.
+     */
+    private static Specification<Product> matching(String query, boolean rank) {
+        List<String> words = words(query);
+        String phrase = Text.contains(query);
+        return (root, cq, cb) -> {
+            var category = root.join("category", JoinType.LEFT);
+            var name = cb.lower(root.get("name"));
+            var text = cb.lower(cb.coalesce(root.<String>get("description"), ""));
+            var categoryName = cb.lower(cb.coalesce(category.<String>get("name"), ""));
+            List<jakarta.persistence.criteria.Predicate> all = new ArrayList<>();
+            List<jakarta.persistence.criteria.Predicate> inName = new ArrayList<>();
+            for (String w : words) {
+                String p = Text.contains(w);
+                all.add(cb.or(cb.like(name, p), cb.like(text, p), cb.like(categoryName, p)));
+                inName.add(cb.like(name, p));
+            }
+            if (words.isEmpty()) all.add(cb.or(cb.like(name, phrase), cb.like(text, phrase)));
+            // Count queries use the same predicate; only the page query gets the ranking.
+            if (rank && cq.getResultType() != Long.class && cq.getResultType() != long.class) {
+                var score = cb.selectCase()
+                        .when(cb.like(name, phrase), 0)
+                        .when(inName.isEmpty() ? cb.disjunction() : cb.and(inName.toArray(jakarta.persistence.criteria.Predicate[]::new)), 1)
+                        .otherwise(2);
+                cq.orderBy(cb.asc(score), cb.desc(root.get("ratingCount")), cb.asc(root.get("id")));
+            }
+            return cb.and(all.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
     }
 
     private static Sort sortFor(String sort, String priceField) {

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Seller } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
+import { ConfirmEmailNotice, needsConfirmation } from '../components/ConfirmEmailNotice';
 import { useSeller } from '../seller/SellerContext';
 import { useToast } from '../ui/Toast';
 
@@ -71,6 +72,7 @@ export function Sell() {
       ) : user.role !== 'CUSTOMER' ? (
         <div className="notice">Admin accounts can't sell. Sign in with a customer account to apply.</div>
       ) : loading ? <div className="loading">Loading…</div>
+      : !seller && needsConfirmation(user) ? <ConfirmEmailNotice what="apply to sell" />
       : !seller ? <ApplyForm onDone={refresh} />
       : seller.status === 'PENDING' ? (
         <div className="square-review-box static stack"><h2 style={{ margin: 0 }}>Application received</h2><p style={{ margin: 0 }}><b>{seller.storeName}</b> is awaiting review. We'll approve it as soon as we've had a look — check back here.</p></div>

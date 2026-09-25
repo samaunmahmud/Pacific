@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import type { CheckoutResponse, PaymentConfig, PaymentMethod, SavedAddress } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
+import { ConfirmEmailNotice, needsConfirmation } from '../components/ConfirmEmailNotice';
 import { money } from '../ui/format';
 import { useAsync } from '../ui/useAsync';
 
@@ -149,8 +150,9 @@ export function Checkout() {
           <div className="line"><span>Subtotal</span><span>{money(cart.subtotal)}</span></div>
           <div className="line"><span>Shipping</span><span>{cart.shipping === 0 ? 'FREE' : money(cart.shipping)}</span></div>
           <div className="line grand"><span>Total</span><span>{money(cart.total)}</span></div>
+          <ConfirmEmailNotice what="place your order" />
           {error && <div className="notice error" role="alert">{error}</div>}
-          <button className="submit-btn block" disabled={busy}>{busy ? (paying ? 'Taking you to payment…' : 'Placing order…') : paying ? 'Continue to payment' : 'Place order'}</button>
+          <button className="submit-btn block" disabled={busy || needsConfirmation(user)}>{busy ? (paying ? 'Taking you to payment…' : 'Placing order…') : paying ? 'Continue to payment' : 'Place order'}</button>
         </aside>
       </form>
     </div>

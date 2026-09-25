@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react
 import adminAvatar from '../assets/avatar.png';
 import customerAvatar from '../assets/avatarCustomerLogin.png';
 import { api, ApiError } from '../api/client';
+import type { User } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
 /** The old split login layout: blush panel with the avatar card on the left, form on the right. */
@@ -244,6 +245,54 @@ export function ResetPassword() {
           <button className="login-button" disabled={busy}>{busy ? 'SAVING…' : 'CHANGE PASSWORD'}</button>
         </form>
       )}
+    </AuthShell>
+  );
+}
+
+/** Where the link in the sign-up email lands. Works signed in or not: people often open it on their phone. */
+export function VerifyEmail() {
+  const [params] = useSearchParams();
+  const [token] = useState(() => params.get('token') ?? '');
+  const { user, setUserData } = useAuth();
+  const [state, setState] = useState<'working' | 'done' | 'failed'>(token ? 'working' : 'failed');
+  const [error, setError] = useState(token ? '' : 'This confirmation link is incomplete. Please use the link from your email.');
+
+  // keep the secret out of the browser history and out of any Referer header
+  useEffect(() => {
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
+  }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    api<User>('/auth/verify-email', { method: 'POST', body: { token } })
+      .then((confirmed) => {
+        setState('done');
+        if (user?.id === confirmed.id) setUserData(confirmed);
+      })
+      .catch((err) => {
+        setState('failed');
+        setError(err instanceof ApiError ? err.message : 'Could not confirm your email.');
+      });
+    // once per link (the signed-in user may still be loading, which is fine: they are only updated if it is them)
+  }, [token]);
+
+  return (
+    <AuthShell image={customerAvatar} heading="WELCOME TO PACIFIC" title="Confirm your email">
+      <div className="auth-form">
+        {state === 'working' && <div className="notice" role="status">Confirming your email…</div>}
+        {state === 'done' && (
+          <>
+            <div className="notice ok" role="status">Thanks, your email is confirmed. You can now place orders and sell on Pacific.</div>
+            <Link className="login-button link-btn" to={user ? '/' : '/login'}>{user ? 'CONTINUE SHOPPING' : 'LOG IN'}</Link>
+          </>
+        )}
+        {state === 'failed' && (
+          <>
+            <div className="notice error" role="alert">{error}</div>
+            <Link className="link" to={user ? '/' : '/login'}>{user ? 'Back to the shop (you can ask for a new link there)' : 'Sign in to ask for a new link'}</Link>
+          </>
+        )}
+      </div>
     </AuthShell>
   );
 }

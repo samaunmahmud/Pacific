@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
 import { useSeller } from '../seller/SellerContext';
 import { useCategories } from '../ui/useCategories';
+import { ConfirmEmailNotice } from './ConfirmEmailNotice';
 
 function Header() {
   const { user, logout } = useAuth();
@@ -202,6 +203,9 @@ function Footer() {
   );
 }
 
+/** Pages that explain what confirming the email unlocks themselves, so the site-wide reminder would repeat it. */
+const OWN_CONFIRM_NOTICE = ['/checkout', '/sell'];
+
 export function Layout() {
   const location = useLocation();
   // start each page at the top
@@ -212,7 +216,10 @@ export function Layout() {
     <div className="app-shell">
       <Header />
       <NavBar />
-      <main className="app-main"><Outlet /></main>
+      <main className="app-main">
+        {!OWN_CONFIRM_NOTICE.includes(location.pathname) && <div className="confirm-email-bar"><ConfirmEmailNotice /></div>}
+        <Outlet />
+      </main>
       <Footer />
     </div>
   );

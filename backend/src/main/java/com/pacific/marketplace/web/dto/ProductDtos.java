@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public final class ProductDtos {
 
@@ -33,9 +34,10 @@ public final class ProductDtos {
         }
     }
 
-    /** sellerName is "Pacific" for house products (sellerSlug is then null). */
+    /** sellerName is "Pacific" for house products (sellerSlug is then null). moreImages follow imageUrl in a gallery. */
     public record ProductDto(Long id, String name, String description, BigDecimal price, BigDecimal listPrice,
-                             int discountPercent, int stock, String imageUrl, CategoryDto category, boolean active,
+                             int discountPercent, int stock, String imageUrl, List<String> moreImages,
+                             CategoryDto category, boolean active,
                              double ratingAvg, int ratingCount, String sellerName, String sellerSlug,
                              Instant createdAt) {
         public static final String HOUSE_STORE = "Pacific";
@@ -43,7 +45,7 @@ public final class ProductDtos {
         public static ProductDto from(Product p) {
             var seller = p.getSeller();
             return new ProductDto(p.getId(), p.getName(), p.getDescription(), p.getPrice(), p.getListPrice(),
-                    p.getDiscountPercent(), p.getStock(), p.getImageUrl(), CategoryDto.from(p.getCategory()),
+                    p.getDiscountPercent(), p.getStock(), p.getImageUrl(), p.getMoreImages(), CategoryDto.from(p.getCategory()),
                     p.isActive(), p.getRatingAvg().doubleValue(), p.getRatingCount(),
                     seller == null ? HOUSE_STORE : seller.getStoreName(), seller == null ? null : seller.getSlug(),
                     p.getCreatedAt());
@@ -62,6 +64,10 @@ public final class ProductDtos {
             @Max(1_000_000) Integer stock,
             @Size(max = 500) @Pattern(regexp = PRODUCT_IMAGE, message = "Image URL must start with http:// or https://")
             String imageUrl,
+            /** Photos after the main one, in order. Null leaves them as they are; an empty list removes them. */
+            @Size(max = Product.MAX_MORE_IMAGES, message = "A product can have at most 8 photos.")
+            List<@NotBlank @Size(max = 500)
+                 @Pattern(regexp = PRODUCT_IMAGE, message = "Photo links must start with http:// or https://") String> moreImages,
             Long categoryId,
             Boolean active) {
     }

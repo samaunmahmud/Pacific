@@ -621,7 +621,6 @@ body { background: var(--page-bg); }
 .address-card { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; padding: 16px; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
 .address-card.is-default { border-color: var(--brand); }
 .address-card address { font-style: normal; font-size: 14px; line-height: 1.5; }
-.link-btn.login-button { text-align: center; text-decoration: none; }
 
 /* ---------- messages ---------- */
 .count-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px; border-radius: 9px; background: #f0a33a; color: #1a1a1a; font-size: 11px; font-weight: 700; line-height: 1; vertical-align: middle; }

@@ -14,8 +14,10 @@ import org.springframework.stereotype.Component;
 public class OrderCancellation {
 
     private final ProductRepository products;
+    private final BuyBox buyBox;
 
-    public OrderCancellation(ProductRepository products) {
+    public OrderCancellation(ProductRepository products, BuyBox buyBox) {
+        this.buyBox = buyBox;
         this.products = products;
     }
 
@@ -24,5 +26,6 @@ public class OrderCancellation {
         for (OrderItem item : order.getItems()) {
             products.incrementStock(item.getProduct().getId(), item.getQuantity());
         }
+        buyBox.refreshFor(order.getItems().stream().map(i -> i.getProduct().getId()).toList());
     }
 }

@@ -40,6 +40,7 @@ public class OrderService {
     private final OrderRepository orders;
     private final CartItemRepository cart;
     private final ProductRepository products;
+    private final BuyBox buyBox;
     private final UserRepository users;
     private final ShopPricing pricing;
     private final SettingsService settings;
@@ -51,7 +52,8 @@ public class OrderService {
     public OrderService(OrderRepository orders, CartItemRepository cart, ProductRepository products,
                         UserRepository users, ShopPricing pricing, SettingsService settings, LedgerService ledger,
                         OrderCancellation cancellation, PaymentService payments,
-                        NotificationService notifications) {
+                        NotificationService notifications, BuyBox buyBox) {
+        this.buyBox = buyBox;
         this.orders = orders;
         this.cart = cart;
         this.products = products;
@@ -92,6 +94,8 @@ public class OrderService {
                 throw ApiException.conflict(p.getName() + " no longer has enough stock. Please update your cart.");
             }
         }
+        // a listing that just sold out hands the buy box to the next seller
+        buyBox.refreshFor(items.stream().map(i -> i.getProduct().getId()).toList());
 
         Map<Long, List<CartItem>> bySeller = new LinkedHashMap<>();
         for (CartItem item : items) {

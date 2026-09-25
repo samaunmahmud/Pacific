@@ -35,11 +35,13 @@ public class QaService {
     private final QuestionRepository questions;
     private final AnswerRepository answers;
     private final ProductRepository products;
+    private final BuyBox buyBox;
     private final OrderItemRepository orderItems;
     private final UserRepository users;
 
     public QaService(QuestionRepository questions, AnswerRepository answers, ProductRepository products,
-                     OrderItemRepository orderItems, UserRepository users) {
+                     OrderItemRepository orderItems, UserRepository users, BuyBox buyBox) {
+        this.buyBox = buyBox;
         this.questions = questions;
         this.answers = answers;
         this.products = products;
@@ -51,7 +53,7 @@ public class QaService {
     @Transactional(readOnly = true)
     public QuestionsResponse list(Long productId, Long viewerId, Role role) {
         Product product = visibleProduct(productId);
-        List<Question> list = questions.findByProductIdOrderByCreatedAtDescIdDesc(productId,
+        List<Question> list = questions.findByProductIdOrderByCreatedAtDescIdDesc(product.getId(),
                 PageRequest.of(0, MAX_QUESTIONS));
 
         Set<Long> authorIds = new HashSet<>();
@@ -88,7 +90,7 @@ public class QaService {
         Question question = questions.findWithUserAndProductById(questionId)
                 .orElseThrow(() -> ApiException.notFound("Question not found."));
         Product product = question.getProduct();
-        if (role != Role.ADMIN && !product.isVisibleInStore()) throw ApiException.notFound("Question not found.");
+        if (role != Role.ADMIN && !buyBox.catalogVisible(product.getId())) throw ApiException.notFound("Question not found.");
         boolean allowed = role == Role.ADMIN || isSellerOf(product, userId)
                 || orderItems.countPurchases(userId, product.getId()) > 0;
         if (!allowed) {
@@ -132,8 +134,10 @@ public class QaService {
 
     // ---------- helpers ----------
 
+    /** The product's catalog page (questions live there, whichever seller's offer they came from), if on sale. */
     private Product visibleProduct(Long productId) {
-        return products.findById(productId).filter(Product::isVisibleInStore)
+        Long catalogId = products.findById(productId).map(Product::catalogId).orElse(productId);
+        return products.findById(catalogId).filter(p -> buyBox.catalogVisible(p.getId()))
                 .orElseThrow(() -> ApiException.notFound("Product not found."));
     }
 

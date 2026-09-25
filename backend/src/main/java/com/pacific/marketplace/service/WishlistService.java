@@ -17,18 +17,24 @@ public class WishlistService {
     private final WishlistItemRepository wishlist;
     private final ProductRepository products;
     private final UserRepository users;
+    private final ProductService catalog;
+    private final BuyBox buyBox;
 
-    public WishlistService(WishlistItemRepository wishlist, ProductRepository products, UserRepository users) {
+    public WishlistService(WishlistItemRepository wishlist, ProductRepository products, UserRepository users,
+                           ProductService catalog, BuyBox buyBox) {
         this.wishlist = wishlist;
         this.products = products;
         this.users = users;
+        this.catalog = catalog;
+        this.buyBox = buyBox;
     }
 
-    /** Saved products that can still be bought (hidden or suspended-seller products are left out). */
+    /** Saved products that some seller still sells (the buy box may be another seller's listing). */
     @Transactional(readOnly = true)
     public List<ProductDto> list(Long userId) {
-        return wishlist.findProductsForUser(userId).stream().filter(Product::isVisibleInStore)
-                .map(ProductDto::from).toList();
+        return wishlist.findProductsForUser(userId).stream()
+                .filter(p -> p.isOffer() ? p.isVisibleInStore() : buyBox.catalogVisible(p.getId()))
+                .map(catalog::card).toList();
     }
 
     @Transactional(readOnly = true)

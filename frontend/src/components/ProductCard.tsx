@@ -8,6 +8,7 @@ import { Price } from './Price';
 import { ProductImage } from './ProductImage';
 import { Stars } from './Stars';
 import { WishlistButton } from './WishlistButton';
+import { CouponTag, DealBadge } from './Promotions';
 
 export function ProductCard({ product }: { product: Product }) {
   const { user } = useAuth();
@@ -49,7 +50,10 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="card-body">
         <h3 className="card-title" title={product.name}>{product.name}</h3>
         <Stars value={product.ratingAvg} count={product.ratingCount} />
-        <Price price={price} listPrice={ownPriceShown ? product.listPrice : null} discountPercent={ownPriceShown ? product.discountPercent : 0} />
+        {product.deal && <DealBadge deal={product.deal} compact />}
+        <Price price={price} listPrice={product.deal ? product.deal.regularPrice : ownPriceShown ? product.listPrice : null}
+          discountPercent={product.deal ? product.deal.percentOff : ownPriceShown ? product.discountPercent : 0} />
+        {product.coupon && <CouponTag coupon={product.coupon} />}
         <div className="card-meta">
           {soldOut ? <span className="stock-note low">Currently unavailable</span>
             : stock <= 5 ? <span className="stock-note low">Only {stock} left in stock</span>

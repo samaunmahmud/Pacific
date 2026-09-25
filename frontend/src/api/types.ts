@@ -47,6 +47,26 @@ export const CONDITION_LABELS: Record<ItemCondition, string> = {
   USED_ACCEPTABLE: 'Used – acceptable',
 };
 
+/** A Lightning Deal running now. */
+export interface Deal {
+  id: number;
+  productId: number;
+  price: number;
+  regularPrice: number;
+  percentOff: number;
+  endsAt: string;
+  percentClaimed: number;
+  soldOut: boolean;
+}
+
+/** "Save 10% with coupon"; clipped once the signed-in shopper has applied it. */
+export interface Coupon {
+  id: number;
+  productId: number;
+  percentOff: number;
+  clipped: boolean;
+}
+
 export interface Product {
   id: number;
   /** The product page this listing belongs to: its own id unless it's another seller's offer. */
@@ -74,6 +94,9 @@ export interface Product {
   boxProductId: number;
   boxStock: number;
   boxSellerName: string;
+  /** The Lightning Deal and coupon on the listing "Add to cart" buys. */
+  deal: Deal | null;
+  coupon: Coupon | null;
   ratingAvg: number;
   ratingCount: number;
   createdAt: string;
@@ -98,6 +121,9 @@ export interface CartItem {
   stock: number;
   sellerName: string;
   sellerSlug: string | null;
+  /** The regular price, when a deal, coupon or promo code lowered unitPrice. */
+  listUnitPrice: number | null;
+  promotion: string | null;
 }
 
 export type DeliveryOption = 'STANDARD' | 'EXPRESS';
@@ -137,6 +163,9 @@ export interface Cart {
   saved: CartItem[];
   /** Today's order cut-off, while orders still count from today. */
   orderWithin: string | null;
+  /** A promo code applied as a preview (GET /cart?promo=…), and why one couldn't be. */
+  promo: { code: string; percentOff: number; storeName: string; discount: number } | null;
+  promoError: string | null;
 }
 
 export interface Address {
@@ -158,6 +187,9 @@ export interface OrderItem {
   lineTotal: number;
   imageUrl: string | null;
   categoryName: string | null;
+  /** The regular price and what lowered it (a deal, coupon or promo code). */
+  listUnitPrice: number | null;
+  promotion: string | null;
 }
 
 export interface Order {
@@ -522,4 +554,47 @@ export interface Offer {
   expressFee: number;
   expressDate: string;
   orderWithin: string | null;
+  deal: Deal | null;
+  coupon: Coupon | null;
+}
+
+export interface StoreDeal {
+  id: number;
+  productId: number;
+  productName: string;
+  price: number;
+  regularPrice: number;
+  quantity: number;
+  claimed: number;
+  startsAt: string;
+  endsAt: string;
+  status: 'SCHEDULED' | 'LIVE' | 'SOLD_OUT' | 'ENDED';
+}
+
+export interface StoreCoupon {
+  id: number;
+  productId: number;
+  productName: string;
+  percentOff: number;
+  budget: number;
+  used: number;
+  endsAt: string;
+  live: boolean;
+}
+
+export interface StoreCode {
+  id: number;
+  code: string;
+  percentOff: number;
+  minSpend: number;
+  maxUses: number | null;
+  used: number;
+  endsAt: string;
+  live: boolean;
+}
+
+export interface StorePromotions {
+  deals: StoreDeal[];
+  coupons: StoreCoupon[];
+  codes: StoreCode[];
 }

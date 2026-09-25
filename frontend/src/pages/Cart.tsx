@@ -124,7 +124,10 @@ export function CartPage() {
                           : i.quantity > i.stock ? <div className="bb-stock out">Only {i.stock} left in stock. Please lower the quantity.</div>
                           : i.stock <= 5 ? <div className="bb-stock low">Only {i.stock} left in stock</div>
                           : <div className="bb-stock in">In stock</div>}
-                        <div className="cart-item-sub">{money(i.unitPrice)} each</div>
+                        <div className="cart-item-sub">
+                          {money(i.unitPrice)} each
+                          {i.listUnitPrice != null && <> <s className="was">{money(i.listUnitPrice)}</s> <span className="promo-label">{i.promotion}</span></>}
+                        </div>
                         <div className="cart-actions">
                           <label className="bb-qty">
                             <span>Qty:</span>

@@ -4,6 +4,7 @@ import { api, ApiError } from '../api/client';
 import { CONDITION_LABELS, type ItemCondition, type Offer } from '../api/types';
 import { money } from '../ui/format';
 import { Stars } from './Stars';
+import { CouponTag } from './Promotions';
 
 /** The other sellers of a product (everyone but the buy box), each with their own "Add to cart". */
 export function OtherSellers({ offers, onAdd, busyId, inCart }: {
@@ -25,6 +26,8 @@ export function OtherSellers({ offers, onAdd, busyId, inCart }: {
             <div className="offer-price">
               <b>{money(o.price)}</b>
               <span className={`offer-condition${o.condition === 'NEW' ? '' : ' used'}`}>{o.conditionLabel}</span>
+              {o.deal && <span className="deal-tag small">Lightning Deal -{o.deal.percentOff}%</span>}
+              {o.coupon && <CouponTag coupon={o.coupon} />}
             </div>
             <div className="offer-seller">
               <span>Sold by {o.sellerSlug ? <Link to={`/sellers/${o.sellerSlug}`}>{o.sellerName}</Link> : <b>{o.sellerName}</b>}</span>

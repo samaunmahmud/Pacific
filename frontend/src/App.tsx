@@ -13,6 +13,7 @@ import { OrderDetail, OrdersPage } from './pages/Orders';
 import { PayReturn } from './pages/PayReturn';
 import { PaySimulate } from './pages/PaySimulate';
 import { ProductDetail } from './pages/ProductDetail';
+import { PromotionsManager } from './pages/PromotionsManager';
 import { ReviewForm } from './pages/ReviewForm';
 import { Sell } from './pages/Sell';
 import { SellerStore } from './pages/SellerStore';
@@ -86,6 +87,7 @@ export default function App() {
           <Route path="seller/messages/new" element={<NewMessage side="SELLER" />} />
           <Route path="seller/messages/:id" element={<MessageThread side="SELLER" />} />
           <Route path="seller/questions" element={<SellerQuestions />} />
+          <Route path="seller/promotions" element={<PromotionsManager base="seller" />} />
           <Route path="seller/settings" element={<SellerSettings />} />
         </Route>
 
@@ -99,6 +101,7 @@ export default function App() {
           <Route path="admin/products/:id" element={<AdminProductForm />} />
           <Route path="admin/orders" element={<AdminOrders />} />
           <Route path="admin/emails" element={<AdminEmails />} />
+          <Route path="admin/promotions" element={<PromotionsManager base="admin" />} />
           <Route path="admin/returns" element={<ReturnsManager base="admin" />} />
         </Route>
 

@@ -132,6 +132,7 @@ function NavBar() {
         <NavLink to="/seller/returns" className="nav-link">Returns</NavLink>
         <NavLink to="/seller/earnings" className="nav-link">Earnings</NavLink>
         <NavLink to="/seller/messages" className="nav-link">Messages{unread.asSeller > 0 && <span className="count-badge" aria-label={`${unread.asSeller} unread`}>{unread.asSeller}</span>}</NavLink>
+        <NavLink to="/seller/promotions" className="nav-link">Promotions</NavLink>
         <NavLink to="/seller/questions" className="nav-link">Questions</NavLink>
         <NavLink to="/seller/settings" className="nav-link">Store settings</NavLink>
         <Link to="/" className="nav-link">← Back to shopping</Link>
@@ -148,6 +149,7 @@ function NavBar() {
         <NavLink to="/admin/sellers" className="nav-link">Sellers</NavLink>
         <NavLink to="/admin/flagged" className="nav-link">Flagged Reviews</NavLink>
         <NavLink to="/admin/returns" className="nav-link">Returns</NavLink>
+        <NavLink to="/admin/promotions" className="nav-link">Promotions</NavLink>
         <NavLink to="/admin/emails" className="nav-link">Emails</NavLink>
         <NavLink to="/" end className="nav-link">View Storefront</NavLink>
       </nav>

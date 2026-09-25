@@ -693,3 +693,36 @@ body { background: var(--page-bg); }
 .saved-thumb { display: block; aspect-ratio: 1; background: #f7f7f7; border-radius: 8px; overflow: hidden; }
 .saved-thumb img, .saved-thumb svg { width: 100%; height: 100%; object-fit: contain; display: block; }
 .saved-item .cart-actions { gap: 0; }
+
+/* ---------- promotions ---------- */
+.deal-block { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; }
+.deal-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }
+.deal-tag { background: #cc0c39; color: #fff; font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+.deal-tag.small { font-size: 11px; padding: 1px 6px; align-self: flex-start; }
+.deal-off { color: #cc0c39; font-weight: 700; }
+.deal-ends { color: #565959; }
+.deal-bar { height: 6px; border-radius: 3px; background: #f0d7dd; overflow: hidden; }
+.deal-bar span { display: block; height: 100%; background: #cc0c39; }
+.deal-block.compact .deal-bar { height: 4px; }
+.deal-claimed { font-size: 12px; color: #565959; }
+.coupon-tag { display: inline-block; align-self: flex-start; font-size: 12px; font-weight: 600; color: #007600; background: #e8f5e9; border: 1px dashed #7cb342; border-radius: 4px; padding: 1px 6px; }
+.coupon-tag.clipped { border-style: solid; }
+.bb-coupon { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; background: #f3faf3; border: 1px dashed #7cb342; border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+.bb-coupon input { margin-top: 3px; }
+.was { color: #565959; font-size: 12px; }
+.promo-label { color: #cc0c39; font-size: 12px; font-weight: 600; }
+.promo-line { color: #cc0c39; }
+.promo-box { display: flex; flex-direction: column; gap: 6px; }
+.promo-box .row { gap: 8px; }
+.promo-box .rounded-input { flex: 1; min-width: 0; }
+.promo-form { display: grid; grid-template-columns: 2fr repeat(4, minmax(0, 1fr)) auto; gap: 10px; align-items: end; }
+.promo-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; min-width: 0; }
+.promo-form .submit-btn { white-space: nowrap; }
+.promo-error { grid-column: 1 / -1; }
+.status-pill.promo-LIVE { background: #e8f5e9; color: #007600; }
+.status-pill.promo-SCHEDULED { background: #fff4e5; color: #b45309; }
+.status-pill.promo-SOLD_OUT { background: #fdecea; color: #cc0c39; }
+@media (max-width: 900px) {
+  .promo-form { grid-template-columns: 1fr 1fr; }
+  .promo-form label:first-child { grid-column: 1 / -1; }
+}

@@ -3,8 +3,17 @@ import { api } from '../api/client';
 import type { UploadedImage } from '../api/types';
 import { ProductImage } from './ProductImage';
 
-const MAX_MB = 10;
-const ACCEPTED = ['image/jpeg', 'image/png', 'image/gif'];
+export const MAX_MB = 10;
+export const ACCEPTED = ['image/jpeg', 'image/png', 'image/gif'];
+
+/** Checks a chosen file and uploads it; the shop re-saves it and returns the address to store on the product. */
+export async function uploadPhoto(file: File): Promise<string> {
+  if (!ACCEPTED.includes(file.type)) throw new Error('Choose a JPEG, PNG or GIF photo.');
+  if (file.size > MAX_MB * 1024 * 1024) throw new Error(`That photo is over ${MAX_MB} MB. Choose a smaller one.`);
+  const form = new FormData();
+  form.append('file', file);
+  return (await api<UploadedImage>('/images', { method: 'POST', body: form })).url;
+}
 
 /**
  * A product's photo: upload one (click or drop), remove it, or paste a link to a photo hosted elsewhere. The shop
@@ -25,15 +34,10 @@ export function PhotoField({ value, onChange, onBusyChange, name, categoryName }
 
   async function upload(file: File) {
     setError('');
-    if (!ACCEPTED.includes(file.type)) return setError('Choose a JPEG, PNG or GIF photo.');
-    if (file.size > MAX_MB * 1024 * 1024) return setError(`That photo is over ${MAX_MB} MB. Choose a smaller one.`);
-    const form = new FormData();
-    form.append('file', file);
     setUploading(true);
     onBusyChange?.(true);
     try {
-      const uploaded = await api<UploadedImage>('/images', { method: 'POST', body: form });
-      onChange(uploaded.url);
+      onChange(await uploadPhoto(file));
       setShowLink(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The photo could not be uploaded.');

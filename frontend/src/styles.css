@@ -585,6 +585,16 @@ table.data tr:hover td { background: #fdf8fa; }
 .photo-hint { font-size: 13px; color: var(--muted); }
 .photo-link { background: none; border: 0; padding: 0; color: var(--brand); font-size: 13px; cursor: pointer; }
 .photo-link:hover { text-decoration: underline; color: var(--brand-dark); }
+.more-photos { display: flex; flex-direction: column; gap: 12px; }
+.more-photos-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 12px; }
+.more-photo { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.more-photo-img { width: 100%; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #fcfcfc; border: 1px solid var(--line); }
+.more-photo-img img, .more-photo-img svg { width: 100%; height: 100%; object-fit: cover; display: block; }
+.more-photo-actions { display: flex; gap: 4px; }
+.more-photo-btn { width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); cursor: pointer; font-size: 14px; }
+.more-photo-btn:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.more-photo-btn:disabled { opacity: 0.35; cursor: default; }
+.more-photos-drop { flex-wrap: wrap; gap: 12px; }
 
 .status-pill { display: inline-block; border-radius: 999px; padding: 3px 12px; font-size: 12px; font-weight: bold; background: var(--line); color: #555; }
 .status-AWAITING_PAYMENT { background: #fff4e0; color: #b26a00; }

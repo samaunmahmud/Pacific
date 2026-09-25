@@ -5,7 +5,7 @@ import type { Product, ProductReviews, Review } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
 import { Price } from '../components/Price';
-import { ProductImage } from '../components/ProductImage';
+import { ProductGallery } from '../components/ProductGallery';
 import { QandA } from '../components/QandA';
 import { RecentlyViewed } from '../components/RecentlyViewed';
 import { CustomerReviewCard } from '../components/ReviewCard';
@@ -96,11 +96,7 @@ export function ProductDetail() {
       </nav>
 
       <div className="pdp">
-        <div className="pdp-image">
-          <div className="image-container">
-            <ProductImage imageUrl={p.imageUrl} categoryName={p.category?.name} alt={p.name} />
-          </div>
-        </div>
+        <ProductGallery key={p.id} product={p} />
 
         <div className="pdp-info">
           <h1>{p.name}</h1>

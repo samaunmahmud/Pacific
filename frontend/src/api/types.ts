@@ -48,6 +48,8 @@ export interface Product {
   sellerSlug: string | null;
   stock: number;
   imageUrl: string | null;
+  /** Photos after the main one (imageUrl), in the order the product page shows them. */
+  moreImages: string[];
   category: Category | null;
   active: boolean;
   ratingAvg: number;
@@ -250,6 +252,7 @@ export interface ProductInput {
   listPrice: number | null;
   stock: number;
   imageUrl: string;
+  moreImages: string[];
   categoryId: number | null;
   active: boolean;
 }

@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 import type { Category, Page, Product, ProductInput } from '../../api/types';
 import { Pagination } from '../../components/Pagination';
 import { ProductImage } from '../../components/ProductImage';
+import { MorePhotosField } from '../../components/MorePhotosField';
 import { PhotoField } from '../../components/PhotoField';
 import { money } from '../../ui/format';
 import { useToast } from '../../ui/Toast';
@@ -133,7 +134,7 @@ export function AdminProducts() {
 }
 
 export function toInput(p: Product, override: Partial<ProductInput> = {}): ProductInput {
-  return { name: p.name, description: p.description ?? '', price: p.price, listPrice: p.listPrice, stock: p.stock, imageUrl: p.imageUrl ?? '', categoryId: p.category?.id ?? null, active: p.active, ...override };
+  return { name: p.name, description: p.description ?? '', price: p.price, listPrice: p.listPrice, stock: p.stock, imageUrl: p.imageUrl ?? '', moreImages: p.moreImages ?? [], categoryId: p.category?.id ?? null, active: p.active, ...override };
 }
 
 /**
@@ -149,12 +150,14 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
   const categories = useAsync(() => api<Category[]>('/categories'), []);
   const existing = useAsync(() => (editing ? api<Product>(`${base}/${id}`) : Promise.resolve(null)), [id]);
 
-  const [form, setForm] = useState<ProductInput | null>(editing ? null : { name: '', description: '', price: 0, listPrice: null, stock: 0, imageUrl: '', categoryId: null, active: true });
+  const [form, setForm] = useState<ProductInput | null>(editing ? null : { name: '', description: '', price: 0, listPrice: null, stock: 0, imageUrl: '', moreImages: [], categoryId: null, active: true });
   const [priceText, setPriceText] = useState('');
   const [listText, setListText] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingMain, setUploading] = useState(false);
+  const [uploadingMore, setUploadingMore] = useState(false);
+  const uploading = uploadingMain || uploadingMore;
 
   if (editing && existing.data && !form) {
     setForm(toInput(existing.data));
@@ -164,7 +167,16 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
   if (existing.error) return <div className="page page-narrow"><div className="notice error">{existing.error}</div></div>;
   if (!form) return <div className="loading">Loading…</div>;
 
-  const set = <K extends keyof ProductInput>(k: K, v: ProductInput[K]) => setForm({ ...form, [k]: v });
+  // From the latest state: uploads finish after later edits and must not undo them.
+  const set = <K extends keyof ProductInput>(k: K, v: ProductInput[K]) => setForm((f) => f && { ...f, [k]: v });
+
+  /** Swaps the main photo with extra photo {@code i} (or just promotes it when there's no main photo). */
+  const makeMain = (i: number) => setForm((f) => {
+    if (!f) return f;
+    const more = [...f.moreImages];
+    const [chosen] = more.splice(i, 1, f.imageUrl.trim());
+    return { ...f, imageUrl: chosen, moreImages: more.filter((u) => u !== '') };
+  });
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -217,6 +229,10 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
           <div className="form-field full"><span className="field-label small">Photo (optional)</span>
             <PhotoField value={form.imageUrl} onChange={(url) => set('imageUrl', url)} onBusyChange={setUploading} name={form.name}
               categoryName={categories.data?.find((c) => c.id === form.categoryId)?.name} />
+          </div>
+          <div className="form-field full"><span className="field-label small">More photos (optional, shown on the product page)</span>
+            <MorePhotosField value={form.moreImages} onChange={(urls) => set('moreImages', urls)} onMakeMain={makeMain} onBusyChange={setUploadingMore}
+              name={form.name} categoryName={categories.data?.find((c) => c.id === form.categoryId)?.name} />
           </div>
         </div>
         {error && <div className="notice error" role="alert">{error}</div>}

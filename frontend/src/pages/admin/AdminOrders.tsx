@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { Order, OrderStatus, Page } from '../../api/types';
 import { OrderActivity, TrackingInfo } from '../../components/OrderActivity';
@@ -57,6 +57,7 @@ function OrderRow({ order, onChanged, base }: { order: Order; onChanged: (o: Ord
           Ship to: {order.address.name}, {order.address.line1}{order.address.line2 ? `, ${order.address.line2}` : ''}, {order.address.city} {order.address.postcode}, {order.address.country}
         </div>
         <TrackingInfo order={order} />
+        {base === 'seller' && <div><Link to={`/seller/messages/new?order=${order.id}`} className="message-seller">Message {order.customerName}</Link></div>}
         <details className="activity-toggle">
           <summary>Order activity</summary>
           <OrderActivity order={order} />

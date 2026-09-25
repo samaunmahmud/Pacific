@@ -4,12 +4,14 @@ import cartIcon from '../assets/cart1.png';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
 import { useSeller } from '../seller/SellerContext';
+import { UnreadProvider, useUnread } from '../messages/UnreadContext';
 import { useCategories } from '../ui/useCategories';
 import { ConfirmEmailNotice } from './ConfirmEmailNotice';
 
 function Header() {
   const { user, logout } = useAuth();
   const { count } = useCart();
+  const { unread } = useUnread();
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -81,6 +83,10 @@ function Header() {
                   <span className="action-small">Hello, {user.name.split(' ')[0]}</span>
                   <span className="action-label">Your account</span>
                 </Link>
+                <Link to="/messages" className="action-item" aria-label={unread.asBuyer ? `Messages, ${unread.asBuyer} unread` : 'Messages'}>
+                  <span className="action-small">Your</span>
+                  <span className="action-label">Messages{unread.asBuyer > 0 && <span className="count-badge">{unread.asBuyer}</span>}</span>
+                </Link>
                 <button className="action-item" onClick={signOut} title="Sign out">
                   <span className="action-small">Not you?</span>
                   <span className="action-label">Sign out</span>
@@ -112,6 +118,7 @@ function Header() {
 
 function NavBar() {
   const { user } = useAuth();
+  const { unread } = useUnread();
   const { seller } = useSeller();
   const location = useLocation();
   const categories = useCategories();
@@ -124,6 +131,7 @@ function NavBar() {
         <NavLink to="/seller/orders" className="nav-link">Orders</NavLink>
         <NavLink to="/seller/returns" className="nav-link">Returns</NavLink>
         <NavLink to="/seller/earnings" className="nav-link">Earnings</NavLink>
+        <NavLink to="/seller/messages" className="nav-link">Messages{unread.asSeller > 0 && <span className="count-badge" aria-label={`${unread.asSeller} unread`}>{unread.asSeller}</span>}</NavLink>
         <NavLink to="/seller/questions" className="nav-link">Questions</NavLink>
         <NavLink to="/seller/settings" className="nav-link">Store settings</NavLink>
         <Link to="/" className="nav-link">← Back to shopping</Link>
@@ -213,14 +221,16 @@ export function Layout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
   return (
-    <div className="app-shell">
-      <Header />
-      <NavBar />
-      <main className="app-main">
-        {!OWN_CONFIRM_NOTICE.includes(location.pathname) && <div className="confirm-email-bar"><ConfirmEmailNotice /></div>}
-        <Outlet />
-      </main>
-      <Footer />
-    </div>
+    <UnreadProvider>
+      <div className="app-shell">
+        <Header />
+        <NavBar />
+        <main className="app-main">
+          {!OWN_CONFIRM_NOTICE.includes(location.pathname) && <div className="confirm-email-bar"><ConfirmEmailNotice /></div>}
+          <Outlet />
+        </main>
+        <Footer />
+      </div>
+    </UnreadProvider>
   );
 }

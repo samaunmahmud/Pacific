@@ -7,6 +7,7 @@ import { CartPage } from './pages/Cart';
 import { Catalog } from './pages/Catalog';
 import { Checkout } from './pages/Checkout';
 import { Home } from './pages/Home';
+import { MessageThread, MessagesInbox, NewMessage } from './pages/Messages';
 import { MyReviews, UnratedProducts } from './pages/MyReviews';
 import { OrderDetail, OrdersPage } from './pages/Orders';
 import { PayReturn } from './pages/PayReturn';
@@ -58,6 +59,9 @@ export default function App() {
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<Checkout />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="messages" element={<MessagesInbox side="BUYER" />} />
+          <Route path="messages/new" element={<NewMessage side="BUYER" />} />
+          <Route path="messages/:id" element={<MessageThread side="BUYER" />} />
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="pay/return" element={<PayReturn />} />
           <Route path="pay/simulate/:ref" element={<PaySimulate />} />
@@ -78,6 +82,9 @@ export default function App() {
           <Route path="seller/orders" element={<SellerOrders />} />
           <Route path="seller/returns" element={<ReturnsManager base="seller" />} />
           <Route path="seller/earnings" element={<SellerEarnings />} />
+          <Route path="seller/messages" element={<MessagesInbox side="SELLER" />} />
+          <Route path="seller/messages/new" element={<NewMessage side="SELLER" />} />
+          <Route path="seller/messages/:id" element={<MessageThread side="SELLER" />} />
           <Route path="seller/questions" element={<SellerQuestions />} />
           <Route path="seller/settings" element={<SellerSettings />} />
         </Route>

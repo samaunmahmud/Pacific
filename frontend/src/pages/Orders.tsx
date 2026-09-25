@@ -165,7 +165,10 @@ export function OrderDetail() {
         <header className="order-head">
           <div><span>Ordered on</span><b>{dateTime(o.createdAt)}</b></div>
           <div><span>Order #</span><b>{o.id}</b></div>
-          <div><span>Sold and shipped by</span><b>{o.sellerSlug ? <Link to={`/sellers/${o.sellerSlug}`}>{o.sellerName}</Link> : o.sellerName}</b></div>
+          <div>
+            <span>Sold and shipped by</span><b>{o.sellerSlug ? <Link to={`/sellers/${o.sellerSlug}`}>{o.sellerName}</Link> : o.sellerName}</b>
+            {o.sellerSlug && <Link to={`/messages/new?seller=${o.sellerSlug}&order=${o.id}`} className="message-seller">Message the seller</Link>}
+          </div>
           <div className="order-no"><StatusPill status={o.status} /></div>
         </header>
         <div className="order-detail-grid">

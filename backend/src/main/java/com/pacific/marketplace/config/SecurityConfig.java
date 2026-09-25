@@ -59,8 +59,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/images").hasAnyRole("CUSTOMER", "ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // Sellers are ordinary customer accounts; approval is checked per request in the service.
-                        .requestMatchers("/api/cart/**", "/api/orders/**", "/api/payments/**", "/api/me/**",
-                                "/api/reviews/**", "/api/wishlist/**", "/api/seller/**", "/api/sellers/**")
+                        .requestMatchers("/api/cart/**", "/api/orders/**", "/api/payments/**", "/api/messages", "/api/me/**",
+                                "/api/reviews/**", "/api/wishlist/**", "/api/seller/**", "/api/sellers/**", "/api/messages/**")
                         .hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.POST, "/api/products/*/reviews", "/api/products/*/questions")
                         .hasRole("CUSTOMER")

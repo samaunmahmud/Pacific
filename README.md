@@ -51,6 +51,10 @@ the right way up, and saves a fresh copy at most 1600 px on its longer side, whi
 where the photo was taken. Photos are kept in `UPLOADS_DIR` (default `backend/uploads/`): on a real server put it on
 a disk that survives redeploys and include it in backups. Uploads are limited to 60 per account per hour.
 
+A product can have **up to eight photos**: the main one (shown on cards, in the cart and on orders) and up to seven
+more, added several at a time. Sellers can reorder them or make any of them the main photo; shoppers switch between
+them on the product page with the thumbnails or the arrow keys.
+
 ## Card payments
 
 Card details are entered on Stripe's own page and never reach this server. Without any payment settings the shop is
@@ -133,5 +137,5 @@ cd frontend && npm run typecheck && npm run build
 
 ## Not built yet
 
-Real seller payouts (the ledger is bookkeeping only), email verification at sign-up, several photos per product,
+Real seller payouts (the ledger is bookkeeping only), email verification at sign-up,
 cleaning up photos no product uses any more, cloud storage for photos, and seller-to-buyer messaging.

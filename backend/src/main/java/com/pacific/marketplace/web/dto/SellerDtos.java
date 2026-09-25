@@ -24,20 +24,35 @@ public final class SellerDtos {
     private SellerDtos() {
     }
 
+    /** freeDeliveryThreshold null: use the shop's default. */
+    public record DeliverySettingsRequest(
+            @DecimalMin(value = "0.00", message = "The free delivery amount can't be negative.")
+            @DecimalMax(value = "100000.00") @Digits(integer = 6, fraction = 2, message = "Use at most 2 decimals.")
+            BigDecimal freeDeliveryThreshold,
+            @NotNull(message = "Choose how long you take to dispatch.")
+            @Min(value = 0, message = "Dispatch time can't be negative.") @Max(value = 5, message = "Dispatch within 5 business days.")
+            Integer dispatchDays) {
+    }
+
     public record ApplyRequest(
             @NotBlank(message = "Please choose a store name.")
             @Size(min = 3, max = 80, message = "Store name must be 3 to 80 characters.") String storeName,
             @Size(max = 1000) String description) {
     }
 
-    /** The seller's own view of their profile. */
+    /**
+     * The seller's own view of their profile. freeDeliveryThreshold is null while the shop's default applies
+     * (defaultFreeDelivery).
+     */
     public record SellerDto(Long id, String storeName, String slug, String description, SellerStatus status,
                             String statusNote, BigDecimal commissionPercent, boolean commissionOverridden,
-                            double ratingAvg, int ratingCount, Instant createdAt, Instant approvedAt) {
-        public static SellerDto from(SellerProfile s, BigDecimal effectiveCommission) {
+                            double ratingAvg, int ratingCount, Instant createdAt, Instant approvedAt,
+                            BigDecimal freeDeliveryThreshold, BigDecimal defaultFreeDelivery, int dispatchDays) {
+        public static SellerDto from(SellerProfile s, BigDecimal effectiveCommission, BigDecimal defaultFreeDelivery) {
             return new SellerDto(s.getId(), s.getStoreName(), s.getSlug(), s.getDescription(), s.getStatus(),
                     s.getStatusNote(), effectiveCommission, s.getCommissionOverride() != null,
-                    s.getRatingAvg().doubleValue(), s.getRatingCount(), s.getCreatedAt(), s.getApprovedAt());
+                    s.getRatingAvg().doubleValue(), s.getRatingCount(), s.getCreatedAt(), s.getApprovedAt(),
+                    s.getFreeDeliveryThreshold(), defaultFreeDelivery, s.getDispatchDays());
         }
     }
 

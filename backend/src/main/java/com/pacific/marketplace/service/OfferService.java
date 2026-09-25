@@ -1,5 +1,6 @@
 package com.pacific.marketplace.service;
 
+import com.pacific.marketplace.domain.DeliveryOption;
 import com.pacific.marketplace.domain.Product;
 import com.pacific.marketplace.domain.SellerProfile;
 import com.pacific.marketplace.repo.ProductRepository;
@@ -25,11 +26,13 @@ public class OfferService {
     private final ProductRepository products;
     private final SellerService sellers;
     private final BuyBox buyBox;
+    private final Delivery delivery;
 
-    public OfferService(ProductRepository products, SellerService sellers, BuyBox buyBox) {
+    public OfferService(ProductRepository products, SellerService sellers, BuyBox buyBox, Delivery delivery) {
         this.products = products;
         this.sellers = sellers;
         this.buyBox = buyBox;
+        this.delivery = delivery;
     }
 
     /** The listings on sale for this product (any listing's id works), buy box first. */
@@ -42,14 +45,19 @@ public class OfferService {
         Map<Long, Product> byId = new HashMap<>();
         products.findWithCategoryByIdIn(ranked.stream().map(BuyBox.Listing::id).toList()).forEach(p -> byId.put(p.getId(), p));
         List<OfferDto> out = new ArrayList<>();
+        java.time.Instant orderWithin = delivery.orderWithin();
         for (int i = 0; i < ranked.size(); i++) {
             BuyBox.Listing l = ranked.get(i);
             Product p = byId.get(l.id());
             SellerProfile s = p.getSeller();
+            Delivery.Window standard = delivery.window(DeliveryOption.STANDARD, s);
+            Delivery.Window express = delivery.window(DeliveryOption.EXPRESS, s);
             out.add(new OfferDto(p.getId(), s == null ? ProductDto.HOUSE_STORE : s.getStoreName(), s == null ? null : s.getSlug(),
                     s == null ? 0 : s.getRatingAvg().doubleValue(), s == null ? 0 : s.getRatingCount(),
                     l.price(), p.getListPrice(), p.getDiscountPercent(), l.stock(), p.getCondition(), p.getCondition().label(),
-                    i == 0 && l.stock() > 0));
+                    i == 0 && l.stock() > 0,
+                    delivery.fee(DeliveryOption.STANDARD, l.price(), s), delivery.freeThreshold(s), standard.from(), standard.to(),
+                    delivery.fee(DeliveryOption.EXPRESS, l.price(), s), express.to(), orderWithin));
         }
         return out;
     }

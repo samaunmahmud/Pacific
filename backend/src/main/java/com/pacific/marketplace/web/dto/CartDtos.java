@@ -3,7 +3,10 @@ package com.pacific.marketplace.web.dto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import com.pacific.marketplace.domain.DeliveryOption;
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 public final class CartDtos {
@@ -15,12 +18,23 @@ public final class CartDtos {
                               int quantity, BigDecimal lineTotal, int stock, String sellerName, String sellerSlug) {
     }
 
-    /** Each seller ships (and charges shipping for) their own part of the cart. */
-    public record ShipmentDto(String sellerName, String sellerSlug, BigDecimal subtotal, BigDecimal shipping) {
+    /** One way to deliver a shipment: its price and the days it would arrive if ordered now. */
+    public record DeliveryChoiceDto(DeliveryOption option, String label, BigDecimal fee, LocalDate from, LocalDate to) {
     }
 
+    /**
+     * Each seller ships (and charges delivery for) their own part of the cart. {@code key} identifies it at checkout
+     * (the seller's slug, or "pacific"); shipping is the standard price, and toFreeDelivery how much more would make
+     * standard delivery free (zero once it is).
+     */
+    public record ShipmentDto(String key, String sellerName, String sellerSlug, BigDecimal subtotal, BigDecimal shipping,
+                              BigDecimal freeThreshold, BigDecimal toFreeDelivery, List<DeliveryChoiceDto> choices) {
+    }
+
+    /** {@code saved} are "saved for later" lines, not counted in the totals. orderWithin: today's order cut-off. */
     public record CartDto(List<CartItemDto> items, List<ShipmentDto> shipments, int itemCount, BigDecimal subtotal,
-                          BigDecimal shipping, BigDecimal total, BigDecimal freeShippingThreshold) {
+                          BigDecimal shipping, BigDecimal total, BigDecimal freeShippingThreshold,
+                          List<CartItemDto> saved, Instant orderWithin) {
     }
 
     public record AddToCartRequest(@NotNull Long productId, @NotNull @Min(1) @Max(100) Integer quantity) {

@@ -14,13 +14,15 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
             + "where c.user.id = :userId order by c.id")
     List<CartItem> findAllForUser(@Param("userId") Long userId);
 
-    List<CartItem> findByUserIdOrderById(Long userId);
+    /** The lines being bought now (not those saved for later). */
+    List<CartItem> findByUserIdAndSavedForLaterFalseOrderById(Long userId);
 
     Optional<CartItem> findByUserIdAndProductId(Long userId, Long productId);
 
+    /** Empties the cart after checkout, keeping what was saved for later. */
     @Modifying
-    @Query("delete from CartItem c where c.user.id = :userId")
-    void deleteAllForUser(@Param("userId") Long userId);
+    @Query("delete from CartItem c where c.user.id = :userId and c.savedForLater = false")
+    void deleteCheckedOutForUser(@Param("userId") Long userId);
 
     @Query("select coalesce(sum(c.quantity), 0) from CartItem c where c.user.id = :userId")
     long countUnitsForUser(@Param("userId") Long userId);

@@ -1,6 +1,7 @@
 package com.pacific.marketplace.service;
 
 import com.pacific.marketplace.domain.CartItem;
+import com.pacific.marketplace.domain.DeliveryOption;
 import com.pacific.marketplace.domain.Order;
 import com.pacific.marketplace.domain.OrderEventType;
 import com.pacific.marketplace.domain.OrderStatus;
@@ -17,8 +18,8 @@ import com.pacific.marketplace.web.ApiException;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutRequest;
 import com.pacific.marketplace.web.dto.OrderDtos.CheckoutResponse;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
-import com.pacific.marketplace.web.dto.PaymentDtos.PaymentDto;
 import com.pacific.marketplace.web.dto.PageResponse;
+import com.pacific.marketplace.web.dto.PaymentDtos.PaymentDto;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -41,6 +42,7 @@ public class OrderService {
     private final CartItemRepository cart;
     private final ProductRepository products;
     private final BuyBox buyBox;
+    private final Delivery delivery;
     private final UserRepository users;
     private final ShopPricing pricing;
     private final SettingsService settings;
@@ -52,8 +54,9 @@ public class OrderService {
     public OrderService(OrderRepository orders, CartItemRepository cart, ProductRepository products,
                         UserRepository users, ShopPricing pricing, SettingsService settings, LedgerService ledger,
                         OrderCancellation cancellation, PaymentService payments,
-                        NotificationService notifications, BuyBox buyBox) {
+                        NotificationService notifications, BuyBox buyBox, Delivery delivery) {
         this.buyBox = buyBox;
+        this.delivery = delivery;
         this.orders = orders;
         this.cart = cart;
         this.products = products;
@@ -76,7 +79,7 @@ public class OrderService {
         boolean card = req.paymentMethod() == PaymentMethod.CARD;
         if (card) payments.requireCardAvailable(); // before any stock is reserved
 
-        List<CartItem> items = cart.findByUserIdOrderById(userId);
+        List<CartItem> items = cart.findByUserIdAndSavedForLaterFalseOrderById(userId);
         if (items.isEmpty()) throw ApiException.badRequest("Your cart is empty.");
 
         // Fixed order (by product id) keeps concurrent checkouts from deadlocking on each other's rows.
@@ -129,13 +132,17 @@ public class OrderService {
                 subtotal = subtotal.add(p.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
             }
             subtotal = subtotal.setScale(2);
-            order.setTotals(subtotal, pricing.shippingFor(subtotal));
+            DeliveryOption option = req.delivery() == null ? null : req.delivery().get(CartService.shipmentKey(seller));
+            if (option == null) option = DeliveryOption.STANDARD;
+            Delivery.Window window = delivery.window(option, seller);
+            order.setDelivery(option, window.from(), window.to());
+            order.setTotals(subtotal, delivery.fee(option, subtotal, seller));
             orders.save(order);
             placed.add(order);
             created.add(OrderDto.from(order));
             grandTotal = grandTotal.add(order.getTotal());
         }
-        cart.deleteAllForUser(userId);
+        cart.deleteCheckedOutForUser(userId);
         if (!card) notifications.ordersPlaced(placed); // a card checkout is announced once it has been paid
         // The payment is recorded in the same transaction as the orders; the provider is contacted afterwards.
         PaymentDto payment = card

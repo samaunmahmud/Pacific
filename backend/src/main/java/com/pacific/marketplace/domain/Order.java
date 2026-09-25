@@ -57,6 +57,17 @@ public class Order {
     @BatchSize(size = 50)
     private List<OrderItem> items = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_option", nullable = false, length = 20)
+    private DeliveryOption deliveryOption = DeliveryOption.STANDARD;
+
+    /** The delivery dates promised at checkout (null on orders placed before they were). */
+    @Column(name = "delivery_from")
+    private java.time.LocalDate deliveryFrom;
+
+    @Column(name = "delivery_to")
+    private java.time.LocalDate deliveryTo;
+
     @Column(name = "tracking_carrier", length = 60)
     private String trackingCarrier;
 
@@ -173,6 +184,14 @@ public class Order {
     public ShippingAddress getAddress() { return address; }
     public List<OrderItem> getItems() { return items; }
     public String getTrackingCarrier() { return trackingCarrier; }
+    public DeliveryOption getDeliveryOption() { return deliveryOption; }
+    public java.time.LocalDate getDeliveryFrom() { return deliveryFrom; }
+    public java.time.LocalDate getDeliveryTo() { return deliveryTo; }
+    public void setDelivery(DeliveryOption option, java.time.LocalDate from, java.time.LocalDate to) {
+        this.deliveryOption = option;
+        this.deliveryFrom = from;
+        this.deliveryTo = to;
+    }
     public String getTrackingNumber() { return trackingNumber; }
     public Instant getShippedAt() { return shippedAt; }
     public Instant getDeliveredAt() { return deliveredAt; }

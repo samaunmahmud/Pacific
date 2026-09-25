@@ -16,7 +16,8 @@ class ProductionChecksTest {
 
     private static AppProperties props(boolean production, boolean simulator, String publicUrl, List<String> origins, String stripeKey) {
         return new AppProperties(new AppProperties.Jwt("x".repeat(40), 12), new AppProperties.Cors(origins),
-                new AppProperties.Reviews(5), new AppProperties.Shop("GBP", new BigDecimal("3.99"), new BigDecimal("50"), 10, 30),
+                new AppProperties.Reviews(5), new AppProperties.Shop("GBP", new BigDecimal("3.99"), new BigDecimal("50"), 10, 30,
+                        new BigDecimal("5.99"), 2, 3, 1, 14, "Europe/London"),
                 publicUrl, new AppProperties.Payments(35, false, new AppProperties.Payments.Stripe(stripeKey, "", ""), simulator),
                 new AppProperties.Mail("Pacific <a@b.c>", false), new AppProperties.Security(60, 48, 5, 15, 50, production), null, null, null);
     }

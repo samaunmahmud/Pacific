@@ -50,6 +50,14 @@ commission and payouts · moderation queue · Pacific's own products, categories
   Emails page can confirm a customer by hand if the email never arrives. Without a mail server, the link is written
   to the backend's output in development (never with `APP_PRODUCTION=true`) and hidden in the admin email log.
 
+**Messages** — buyers can write privately to a store from a product page or one of their orders ("Message the
+seller"), and sellers can write to the buyer of one of their orders; each side has an inbox (Your Messages, and
+Messages in Seller Central) with unread badges. There's one conversation per buyer and store, each message can say
+which product or order it's about, and only the two sides can read it (not other customers, not admins). The other
+side is emailed when a conversation gets its first unread message, not for every message, and the email doesn't quote
+it, since the admin email log keeps a copy. Suspended stores can't be messaged (the history stays readable); sending is
+limited to 60 messages an hour per account.
+
 **Product photos** — sellers and admins upload a photo on the product form (or drop one on it, or paste a link to a
 photo hosted elsewhere). The shop checks it really is a JPEG, PNG or GIF (up to 10 MB), turns sideways phone photos
 the right way up, and saves a fresh copy at most 1600 px on its longer side, which also removes hidden data such as
@@ -143,4 +151,5 @@ cd frontend && npm run typecheck && npm run build
 ## Not built yet
 
 Real seller payouts (the ledger is bookkeeping only), changing the email address on an account,
-cleaning up photos no product uses any more, cloud storage for photos, and seller-to-buyer messaging.
+cleaning up photos no product uses any more, cloud storage for photos, and reporting or blocking in messages
+(message attachments, too).

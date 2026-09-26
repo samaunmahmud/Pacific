@@ -7,6 +7,7 @@ import { useSeller } from '../seller/SellerContext';
 import { UnreadProvider, useUnread } from '../messages/UnreadContext';
 import { useCategories } from '../ui/useCategories';
 import { ConfirmEmailNotice } from './ConfirmEmailNotice';
+import { useSearchSuggest } from './SearchSuggest';
 
 function Header() {
   const { user, logout } = useAuth();
@@ -19,6 +20,7 @@ function Header() {
   const [q, setQ] = useState(params.get('q') ?? '');
   const [cat, setCat] = useState(params.get('category') ?? '');
   const isAdmin = user?.role === 'ADMIN';
+  const suggest = useSearchSuggest(isAdmin ? '' : q);
 
   // keep the box in sync when the URL changes (e.g. clearing the search)
   useEffect(() => {
@@ -30,6 +32,7 @@ function Header() {
 
   function submit(e: FormEvent) {
     e.preventDefault();
+    suggest.close();
     const query = new URLSearchParams();
     if (q.trim()) query.set('q', q.trim());
     if (!isAdmin && cat) query.set('category', cat);
@@ -59,7 +62,11 @@ function Header() {
             {categories.map((c) => <option key={c.id} value={c.slug}>{c.name}</option>)}
           </select>
         )}
-        <input className="transparent-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={isAdmin ? 'Search products…' : 'Search Pacific'} aria-label="Search" maxLength={100} />
+        <input className="transparent-search" value={q} onChange={(e) => { setQ(e.target.value); suggest.open(); }}
+          onFocus={suggest.open} onBlur={suggest.close} onKeyDown={(e) => { suggest.onKey(e); }}
+          placeholder={isAdmin ? 'Search products…' : 'Search Pacific'} aria-label="Search" maxLength={100} autoComplete="off"
+          role="combobox" aria-expanded={!!suggest.list} aria-autocomplete="list" aria-activedescendant={suggest.activeId} />
+        {suggest.list}
         <button className="search-submit-btn" type="submit" aria-label="Search"><span aria-hidden="true">🔍</span></button>
       </form>
 

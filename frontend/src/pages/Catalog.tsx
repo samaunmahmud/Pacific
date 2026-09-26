@@ -8,6 +8,7 @@ import { useAsync } from '../ui/useAsync';
 import { useCategories } from '../ui/useCategories';
 
 const SORTS: [string, string][] = [
+  ['relevance', 'Best match'],
   ['popular', 'Featured (most reviewed)'],
   ['newest', 'Newest arrivals'],
   ['rating', 'Avg. customer review'],
@@ -36,7 +37,8 @@ export function Catalog({ dealsOnly = false }: { dealsOnly?: boolean }) {
   const maxPrice = params.get('maxPrice') ?? '';
   const minRating = params.get('minRating') ?? '';
   const deals = dealsOnly || params.get('deals') === 'true';
-  const sort = params.get('sort') ?? (dealsOnly ? 'discount' : 'popular');
+  // A search is ranked by best match unless the shopper picks another order.
+  const sort = params.get('sort') ?? (q ? 'relevance' : dealsOnly ? 'discount' : 'popular');
   const page = Number(params.get('page') ?? '0') || 0;
 
   const [filtersOpen, setFiltersOpen] = useState(false); // only matters on small screens; the sidebar is always shown on wide ones
@@ -129,7 +131,7 @@ export function Catalog({ dealsOnly = false }: { dealsOnly?: boolean }) {
           <label className="sort-by">
             <span>Sort by:</span>
             <select value={sort} onChange={(e) => update({ sort: e.target.value })}>
-              {SORTS.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+              {SORTS.filter(([v]) => v !== 'relevance' || q).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
             </select>
           </label>
         </div>

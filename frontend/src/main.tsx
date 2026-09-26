@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from './auth/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { DeliverToProvider } from './location/DeliverToContext';
 import { CartProvider } from './cart/CartContext';
 import { WishlistProvider } from './cart/WishlistContext';
 import { SellerProvider } from './seller/SellerContext';
@@ -19,9 +20,11 @@ createRoot(document.getElementById('root')!).render(
           <CartProvider>
             <WishlistProvider>
               <SellerProvider>
-                <ErrorBoundary>
-                  <App />
-                </ErrorBoundary>
+                <DeliverToProvider>
+                  <ErrorBoundary>
+                    <App />
+                  </ErrorBoundary>
+                </DeliverToProvider>
               </SellerProvider>
             </WishlistProvider>
           </CartProvider>

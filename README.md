@@ -82,6 +82,14 @@ anyone sells it). Reviews and questions live on the product page, so a buyer fro
 name, photos and description follow the product page; its seller sets only their price, stock, condition and
 visibility. Each offer is still its own listing, so the cart, orders, stock and seller earnings work as before.
 
+**Deliver to** — the top bar shows where orders go. Signed-in customers see their default address ("Deliver to
+Casey · Uxbridge UB8 3PH") and can pick another saved address; anyone can type a UK postcode or use their device's
+location. Checkout starts with the chosen address (or pre-fills the postcode) and the buy box repeats it. Postcodes are
+looked up through the shop with [postcodes.io](https://postcodes.io) (free, no key; `LOCATION_API_BASE` to change it),
+cached and limited to 120 lookups an hour per visitor. If the service can't be reached, a well-formed postcode is still
+accepted without its place name. The choice is kept in the browser, and a customer's address is never shown after they
+sign out.
+
 **Variations** — a product can come in other colours, sizes and so on (one or two things it varies by, e.g. Colour
 and Size). On a product's edit page (Seller Central, or Admin for Pacific's own) the store says what the variations
 differ by and adds them, each with its own price, stock and optionally its own photo. Search shows the family as one

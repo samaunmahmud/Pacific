@@ -8,6 +8,7 @@ import { UnreadProvider, useUnread } from '../messages/UnreadContext';
 import { useCategories } from '../ui/useCategories';
 import { ConfirmEmailNotice } from './ConfirmEmailNotice';
 import { useSearchSuggest } from './SearchSuggest';
+import { useDeliverTo } from '../location/DeliverToContext';
 
 function Header() {
   const { user, logout } = useAuth();
@@ -21,6 +22,7 @@ function Header() {
   const [cat, setCat] = useState(params.get('category') ?? '');
   const isAdmin = user?.role === 'ADMIN';
   const suggest = useSearchSuggest(isAdmin ? '' : q);
+  const deliver = useDeliverTo();
 
   // keep the box in sync when the URL changes (e.g. clearing the search)
   useEffect(() => {
@@ -49,10 +51,10 @@ function Header() {
       <Link to={isAdmin ? '/admin' : '/'} className="logo-text" aria-label="Pacific home">Pacific<span className="logo-star" aria-hidden="true">★</span></Link>
 
       {!isAdmin && (
-        <span className="deliver-to" aria-label="Delivering to Uxbridge">
-          <span className="action-small">Deliver to</span>
-          <span className="action-label"><span aria-hidden="true">📍 </span>Uxbridge</span>
-        </span>
+        <button type="button" className="deliver-to" onClick={deliver.open} aria-label={`${deliver.heading}: ${deliver.place}. Change delivery location`}>
+          <span className="action-small">{deliver.heading}</span>
+          <span className="action-label"><span aria-hidden="true">📍 </span>{deliver.place}</span>
+        </button>
       )}
 
       <form className="search-container" role="search" onSubmit={submit}>
@@ -119,6 +121,11 @@ function Header() {
           </>
         )}
       </div>
+      {!isAdmin && (
+        <button type="button" className="deliver-strip" onClick={deliver.open}>
+          <span aria-hidden="true">📍</span> {deliver.heading} <span aria-hidden="true">–</span> <b>{deliver.place}</b>
+        </button>
+      )}
     </header>
   );
 }

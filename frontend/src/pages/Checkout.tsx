@@ -6,13 +6,16 @@ import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
 import { ConfirmEmailNotice, needsConfirmation } from '../components/ConfirmEmailNotice';
 import { deliveryRange, money, timeLeft } from '../ui/format';
+import { useDeliverTo } from '../location/DeliverToContext';
 import { useAsync } from '../ui/useAsync';
 
 export function Checkout() {
   const { user } = useAuth();
   const { cart, refresh } = useCart();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: user?.name ?? '', line1: '', line2: '', city: '', postcode: '', country: 'United Kingdom' });
+  const deliver = useDeliverTo();
+  // A new address starts with the postcode chosen in "Deliver to", if any.
+  const [form, setForm] = useState({ name: user?.name ?? '', line1: '', line2: '', city: '', postcode: deliver.postcode?.postcode ?? '', country: 'United Kingdom' });
   const [method, setMethod] = useState<PaymentMethod>('PAY_ON_DELIVERY');
   // Delivery per seller's shipment (by shipment key); standard unless changed.
   const [delivery, setDelivery] = useState<Record<string, DeliveryOption>>({});
@@ -29,8 +32,10 @@ export function Checkout() {
   // Saved addresses (default first). If they can't be loaded the customer just types one.
   const { data: saved } = useAsync(() => api<SavedAddress[]>('/me/addresses').catch((): SavedAddress[] => []), []);
   const [choice, setChoice] = useState<number | 'new' | null>(null);
+  // Start with the top bar's "Deliver to" address, else the default (listed first).
+  const preferred = deliver.address && saved?.some((a) => a.id === deliver.address!.id) ? deliver.address.id : null;
   const [saveIt, setSaveIt] = useState(true);
-  const active = choice ?? (saved && saved.length > 0 ? saved[0].id : 'new');
+  const active = choice ?? preferred ?? (saved && saved.length > 0 ? saved[0].id : 'new');
   const picked = typeof active === 'number' ? saved?.find((a) => a.id === active) : undefined;
   const paying = cardEnabled && method === 'CARD';
 

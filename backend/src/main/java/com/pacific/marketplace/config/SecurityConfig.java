@@ -55,7 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/*",
                                 "/api/products/*/reviews", "/api/products/*/questions", "/api/products/*/offers",
                                 "/api/products/*/recommendations", "/api/search/suggest", "/api/categories",
-                                "/api/sellers/*", "/api/images/*").permitAll()
+                                "/api/sellers/*", "/api/images/*", "/api/location/**").permitAll()
                         // Approved sellers and admins upload product photos; the service checks seller approval.
                         .requestMatchers(HttpMethod.POST, "/api/images").hasAnyRole("CUSTOMER", "ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

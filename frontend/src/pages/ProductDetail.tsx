@@ -14,6 +14,7 @@ import { Stars } from '../components/Stars';
 import { VariationPicker } from '../components/VariationPicker';
 import { WishlistButton } from '../components/WishlistButton';
 import { useSeller } from '../seller/SellerContext';
+import { useDeliverTo } from '../location/DeliverToContext';
 import { deliveryRange, money, timeLeft } from '../ui/format';
 import { recordView } from '../ui/recent';
 import { useToast } from '../ui/Toast';
@@ -36,6 +37,7 @@ export function ProductDetail() {
   const { user } = useAuth();
   const { add, cart } = useCart();
   const { seller: mySeller } = useSeller();
+  const deliver = useDeliverTo();
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -203,6 +205,9 @@ export function ProductDetail() {
               <div>Or fastest delivery <b>{deliveryRange(best.expressDate, null)}</b> ({money(best.expressFee)}).{cutoff && <> Order within <span className="bb-cutoff">{cutoff}</span>.</>}</div>
             </div>
           ) : <div className="bb-delivery">Delivery costs are shown at checkout.</div>}
+          <button type="button" className="bb-deliver-to" onClick={deliver.open}>
+            <span aria-hidden="true">📍 </span>{deliver.known ? <>{deliver.heading} – {deliver.place}</> : 'Choose where to deliver'}
+          </button>
           {box.stock === 0 ? <div className="bb-stock out">Currently unavailable.</div>
             : box.stock <= 5 ? <div className="bb-stock low">Only {box.stock} left in stock.</div>
             : <div className="bb-stock in">In stock</div>}

@@ -50,6 +50,20 @@ commission and payouts · moderation queue · Pacific's own products, categories
   Emails page can confirm a customer by hand if the email never arrives. Without a mail server, the link is written
   to the backend's output in development (never with `APP_PRODUCTION=true`) and hidden in the admin email log.
 
+**Promotions** — each store runs, and pays for, its own (Seller Central → Promotions; admins run them on Pacific's own
+products under Admin → Promotions):
+- **Lightning Deals**: a deal price for 1–12 hours on a set number of units. The card and buy box show the deal, a
+  countdown and how much has been claimed; while it runs, the deal price competes for the buy box.
+- **Coupons**: "Save 10% with coupon" on a listing. Shoppers tick "Apply coupon"; each customer can use it once, up to
+  the store's budget of uses.
+- **Promo codes**: typed at checkout for a percentage off that store's items (optional minimum spend and use limit),
+  once per customer. A line gets the better of its deal and coupon, and a code stacks on top.
+
+Every promotion lowers the price paid per unit, so orders, refunds, returns and seller earnings need nothing special.
+Checkout claims deal units, coupon uses and code uses with atomic updates (they can't be oversold), and a cancelled
+order gives them back. "Today's Deals" includes products with a Lightning Deal or coupon. Demo shops get coupons, the
+code WELCOME10 (10% off Pacific's products) and a rolling batch of Lightning Deals.
+
 **Delivery** — each seller's part of an order can go **Standard** (free once that seller's part reaches their
 free-delivery amount, otherwise £3.99) or **Express** (£5.99, faster), chosen per seller at checkout. Dates are
 promised everywhere: the buy box ("FREE delivery Thu 1 Oct – Fri 2 Oct … Order within 3 hrs 12 mins"), the cart,

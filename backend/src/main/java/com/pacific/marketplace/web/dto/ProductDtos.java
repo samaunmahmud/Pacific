@@ -46,7 +46,7 @@ public final class ProductDtos {
                              List<String> moreImages, CategoryDto category, boolean active, ItemCondition condition,
                              BigDecimal boxPrice, int offerCount, Long boxProductId, int boxStock, String boxSellerName,
                              double ratingAvg, int ratingCount, String sellerName, String sellerSlug,
-                             Instant createdAt) {
+                             Instant createdAt, DealDto deal, CouponDto coupon) {
         public static final String HOUSE_STORE = "Pacific";
 
         public static ProductDto from(Product p) {
@@ -57,14 +57,21 @@ public final class ProductDtos {
                     p.getId(), p.getStock(), seller == null ? HOUSE_STORE : seller.getStoreName(),
                     p.getRatingAvg().doubleValue(), p.getRatingCount(),
                     seller == null ? HOUSE_STORE : seller.getStoreName(), seller == null ? null : seller.getSlug(),
-                    p.getCreatedAt());
+                    p.getCreatedAt(), null, null);
+        }
+
+        /** With the Lightning Deal and coupon on the listing "Add to cart" buys (see ProductService.decorate). */
+        public ProductDto withPromotions(DealDto deal, CouponDto coupon) {
+            return new ProductDto(id, catalogId, name, description, price, listPrice, discountPercent, stock, imageUrl,
+                    moreImages, category, active, condition, boxPrice, offerCount, boxProductId, boxStock, boxSellerName,
+                    ratingAvg, ratingCount, sellerName, sellerSlug, createdAt, deal, coupon);
         }
 
         /** The same product page with its live buy box (another seller's listing may be the one on sale). */
         public ProductDto withBuyBox(Long productId, BigDecimal price, int stock, String sellerName, int offers) {
             return new ProductDto(id, catalogId, name, description, this.price, listPrice, discountPercent, this.stock,
                     imageUrl, moreImages, category, active, condition, price, offers, productId, stock, sellerName,
-                    ratingAvg, ratingCount, this.sellerName, sellerSlug, createdAt);
+                    ratingAvg, ratingCount, this.sellerName, sellerSlug, createdAt, deal, coupon);
         }
     }
 
@@ -102,6 +109,23 @@ public final class ProductDtos {
             @NotNull(message = "Choose the condition.") ItemCondition condition) {
     }
 
+    /** A Lightning Deal running now: its price, how much is off, when it ends and how much has gone. */
+    public record DealDto(Long id, Long productId, BigDecimal price, BigDecimal regularPrice, int percentOff,
+                          Instant endsAt, int percentClaimed, boolean soldOut) {
+        public static DealDto from(com.pacific.marketplace.domain.LightningDeal d) {
+            BigDecimal regular = d.getProduct().getPrice();
+            return new DealDto(d.getId(), d.getProduct().getId(), d.getDealPrice(), regular,
+                    regular.signum() == 0 ? 0 : regular.subtract(d.getDealPrice()).multiply(BigDecimal.valueOf(100))
+                            .divide(regular, 0, java.math.RoundingMode.DOWN).intValue(),
+                    d.getEndsAt(), d.getQuantity() == 0 ? 100 : d.getClaimed() * 100 / d.getQuantity(),
+                    d.getClaimed() >= d.getQuantity());
+        }
+    }
+
+    /** "Save 10% with coupon"; clipped says whether the signed-in shopper has applied it. */
+    public record CouponDto(Long id, Long productId, int percentOff, boolean clipped) {
+    }
+
     /**
      * One seller's listing on a product page, as the buy box and "Other sellers" show it, with its delivery for one
      * unit ordered now: standard (free from freeDeliveryFrom) and express. orderWithin is today's order cut-off.
@@ -111,7 +135,7 @@ public final class ProductDtos {
                            ItemCondition condition, String conditionLabel, boolean buyBox,
                            BigDecimal standardFee, BigDecimal freeDeliveryFrom, java.time.LocalDate standardFrom,
                            java.time.LocalDate standardTo, BigDecimal expressFee, java.time.LocalDate expressDate,
-                           java.time.Instant orderWithin) {
+                           java.time.Instant orderWithin, DealDto deal, CouponDto coupon) {
     }
 
     public record StockRequest(@NotNull @Min(0) @Max(1_000_000) Integer stock) {

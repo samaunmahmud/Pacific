@@ -32,9 +32,9 @@ public class WishlistService {
     /** Saved products that some seller still sells (the buy box may be another seller's listing). */
     @Transactional(readOnly = true)
     public List<ProductDto> list(Long userId) {
-        return wishlist.findProductsForUser(userId).stream()
+        return catalog.decorate(wishlist.findProductsForUser(userId).stream()
                 .filter(p -> p.isOffer() ? p.isVisibleInStore() : buyBox.catalogVisible(p.getId()))
-                .map(catalog::card).toList();
+                .map(catalog::card).toList());
     }
 
     @Transactional(readOnly = true)

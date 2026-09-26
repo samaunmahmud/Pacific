@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Which of a product's listings wins the buy box, and keeping the catalog page's copy of that price up to date.
  *
+ * <p>Lightning Deals count at their deal price while they run, so a deal can win the buy box; DealWindows refreshes
+ * pages when deals start and end.
+ *
  * <p>The winner is the best listing shoppers can buy: in stock beats out of stock, new beats used, then the lowest
  * price, then the listing that came first. Search sorts and filters by the catalog page's {@code box_price}, so every
  * change to a listing's price, stock or visibility, or to a seller's status, calls {@link #refresh}.
@@ -40,12 +43,17 @@ public class BuyBox {
     @PersistenceContext
     private EntityManager em;
 
-    /** Every listing on this catalog page, visible or not. */
+    /**
+     * Every listing on this catalog page, visible or not. A listing's price is its Lightning Deal price while one is
+     * running with units left.
+     */
     public List<Listing> listings(Long catalogId) {
-        return em.createQuery("select new com.pacific.marketplace.service.BuyBox$Listing(p.id, p.price, p.stock, "
-                        + "p.condition, p.active, s.status) from Product p left join p.seller s "
+        return em.createQuery("select new com.pacific.marketplace.service.BuyBox$Listing(p.id, coalesce(d.dealPrice, p.price), "
+                        + "p.stock, p.condition, p.active, s.status) from Product p left join p.seller s "
+                        + "left join LightningDeal d on d.product = p and d.startsAt <= :now and d.endsAt > :now "
+                        + "and d.claimed < d.quantity "
                         + "where p.id = :g or p.groupId = :g", Listing.class)
-                .setParameter("g", catalogId).getResultList();
+                .setParameter("g", catalogId).setParameter("now", java.time.Instant.now()).getResultList();
     }
 
     /** The listings shoppers can buy from, best first (the first one is the buy box). */

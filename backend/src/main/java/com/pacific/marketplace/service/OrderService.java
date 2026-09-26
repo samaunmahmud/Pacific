@@ -4,6 +4,7 @@ import com.pacific.marketplace.domain.CartItem;
 import com.pacific.marketplace.domain.DeliveryOption;
 import com.pacific.marketplace.domain.Order;
 import com.pacific.marketplace.domain.OrderEventType;
+import com.pacific.marketplace.domain.OrderItem;
 import com.pacific.marketplace.domain.OrderStatus;
 import com.pacific.marketplace.domain.PaymentMethod;
 import com.pacific.marketplace.domain.Product;
@@ -43,6 +44,8 @@ public class OrderService {
     private final ProductRepository products;
     private final BuyBox buyBox;
     private final Delivery delivery;
+    private final CartService carts;
+    private final Promotions promotions;
     private final UserRepository users;
     private final ShopPricing pricing;
     private final SettingsService settings;
@@ -54,9 +57,12 @@ public class OrderService {
     public OrderService(OrderRepository orders, CartItemRepository cart, ProductRepository products,
                         UserRepository users, ShopPricing pricing, SettingsService settings, LedgerService ledger,
                         OrderCancellation cancellation, PaymentService payments,
-                        NotificationService notifications, BuyBox buyBox, Delivery delivery) {
+                        NotificationService notifications, BuyBox buyBox, Delivery delivery,
+                        CartService carts, Promotions promotions) {
         this.buyBox = buyBox;
         this.delivery = delivery;
+        this.carts = carts;
+        this.promotions = promotions;
         this.orders = orders;
         this.cart = cart;
         this.products = products;
@@ -100,6 +106,10 @@ public class OrderService {
         // a listing that just sold out hands the buy box to the next seller
         buyBox.refreshFor(items.stream().map(i -> i.getProduct().getId()).toList());
 
+        // Deals, clipped coupons and a promo code, priced exactly as the cart showed them; claimed below.
+        CartService.Priced priced = carts.price(items, userId, req.promoCode());
+        if (priced.promoError() != null) throw ApiException.badRequest(priced.promoError());
+
         Map<Long, List<CartItem>> bySeller = new LinkedHashMap<>();
         for (CartItem item : items) {
             SellerProfile seller = item.getProduct().getSeller();
@@ -128,8 +138,9 @@ public class OrderService {
             BigDecimal subtotal = BigDecimal.ZERO;
             for (CartItem item : group) {
                 Product p = item.getProduct();
-                order.addItem(p, item.getQuantity());
-                subtotal = subtotal.add(p.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+                OrderItem.Pricing price = priced.prices().get(item);
+                order.addItem(p, item.getQuantity(), price);
+                subtotal = subtotal.add(price.unitPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
             }
             subtotal = subtotal.setScale(2);
             DeliveryOption option = req.delivery() == null ? null : req.delivery().get(CartService.shipmentKey(seller));
@@ -138,6 +149,7 @@ public class OrderService {
             order.setDelivery(option, window.from(), window.to());
             order.setTotals(subtotal, delivery.fee(option, subtotal, seller));
             orders.save(order);
+            promotions.claim(order, userId); // deal units, coupon and code uses; throws (undoing it all) if one ran out
             placed.add(order);
             created.add(OrderDto.from(order));
             grandTotal = grandTotal.add(order.getTotal());

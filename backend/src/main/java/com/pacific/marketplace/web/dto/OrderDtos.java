@@ -33,7 +33,9 @@ public final class OrderDtos {
             /** Pay on delivery when omitted. */
             PaymentMethod paymentMethod,
             /** The delivery chosen per shipment, by the cart's shipment key; standard when omitted. */
-            Map<String, DeliveryOption> delivery) {
+            Map<String, DeliveryOption> delivery,
+            /** A promo code for one store's items (optional). */
+            @Size(max = 30) String promoCode) {
     }
 
     /** carrier and trackingNumber are only used when the order is being marked as shipped, and are optional. */
@@ -56,14 +58,16 @@ public final class OrderDtos {
     }
 
     /** imageUrl and categoryName come from the product as it is now (name and price are the order's own snapshot). */
+    /** listUnitPrice and promotion are set when a deal, coupon or promo code lowered the price. */
     public record OrderItemDto(Long id, Long productId, String productName, BigDecimal unitPrice, int quantity,
-                               BigDecimal lineTotal, String imageUrl, String categoryName, int returnableQuantity) {
+                               BigDecimal lineTotal, String imageUrl, String categoryName, int returnableQuantity,
+                               BigDecimal listUnitPrice, String promotion) {
         static OrderItemDto from(OrderItem i) {
             var product = i.getProduct();
             return new OrderItemDto(i.getId(), product.getId(), i.getProductName(), i.getUnitPrice(), i.getQuantity(),
                     i.lineTotal(), product.getImageUrl(),
                     product.getCategory() == null ? null : product.getCategory().getName(),
-                    i.getOrder().canReturn() ? i.getOrder().returnableUnits(i) : 0);
+                    i.getOrder().canReturn() ? i.getOrder().returnableUnits(i) : 0, i.getListUnitPrice(), i.getPromotion());
         }
     }
 

@@ -17,6 +17,7 @@ import { deliveryRange, money, timeLeft } from '../ui/format';
 import { recordView } from '../ui/recent';
 import { useToast } from '../ui/Toast';
 import { useAsync } from '../ui/useAsync';
+import { DealBadge } from '../components/Promotions';
 
 /** What the buy box sells: the winning offer, or the page's own listing while offers load. */
 type BuyTarget = Pick<Offer, 'productId' | 'sellerName' | 'sellerSlug' | 'price' | 'listPrice' | 'discountPercent' | 'stock' | 'condition' | 'conditionLabel'>;
@@ -41,8 +42,9 @@ export function ProductDetail() {
   const [sort, setSort] = useState('newest');
 
   const product = useAsync(() => api<Product>(`/products/${id}`), [id]);
-  const offers = useAsync(() => api<Offer[]>(`/products/${id}/offers`).catch((): Offer[] => []), [id]);
+  const offers = useAsync(() => api<Offer[]>(`/products/${id}/offers`).catch((): Offer[] => []), [id, user?.id]);
   const [busyOffer, setBusyOffer] = useState<number | null>(null);
+  const [clipping, setClipping] = useState(false);
   const reviews = useAsync(() => api<ProductReviews>(`/products/${id}/reviews`, { query: { sort } }), [id, sort, user?.id]);
   const loadedId = product.data?.id;
   useEffect(() => {
@@ -90,6 +92,20 @@ export function ProductDetail() {
       toast.show(e instanceof Error ? e.message : 'Could not add to cart.', 'error');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function clipCoupon(couponId: number) {
+    if (!signedInCustomer()) return;
+    setClipping(true);
+    try {
+      await api(`/coupons/${couponId}/clip`, { method: 'POST' });
+      offers.reload();
+      toast.show('Coupon applied: you\'ll see the saving in your cart');
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : 'Could not apply the coupon.', 'error');
+    } finally {
+      setClipping(false);
     }
   }
 
@@ -156,7 +172,14 @@ export function ProductDetail() {
         </div>
 
         <aside className="buy-box" aria-label="Buy box">
+          {best?.deal && <DealBadge deal={best.deal} />}
           <Price price={box.price} listPrice={null} discountPercent={0} large />
+          {best?.coupon && (
+            <label className="bb-coupon">
+              <input type="checkbox" checked={best.coupon.clipped} disabled={best.coupon.clipped || clipping} onChange={() => void clipCoupon(best.coupon!.id)} />
+              <span>{best.coupon.clipped ? <>✓ {best.coupon.percentOff}% coupon applied at checkout</> : <>Apply <b>{best.coupon.percentOff}% coupon</b> — save {money(box.price * best.coupon.percentOff / 100)}</>}</span>
+            </label>
+          )}
           {box.condition !== 'NEW' && <div className="bb-condition">Condition: <b>{box.conditionLabel}</b></div>}
           {best ? (
             <div className="bb-delivery">

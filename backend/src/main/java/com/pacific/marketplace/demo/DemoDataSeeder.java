@@ -16,6 +16,7 @@ import com.pacific.marketplace.repo.SellerProfileRepository;
 import com.pacific.marketplace.repo.SettingRepository;
 import com.pacific.marketplace.repo.UserRepository;
 import com.pacific.marketplace.service.BuyBox;
+import com.pacific.marketplace.service.Promotions;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -61,6 +62,8 @@ public class DemoDataSeeder implements ApplicationRunner {
     static final String MARKER = "demo_data";
     /** Added separately, so demo databases made before multi-seller offers get some too. */
     static final String OFFERS_MARKER = "demo_offers";
+    /** Demo coupons and the WELCOME10 code, added once. */
+    static final String PROMOTIONS_MARKER = "demo_promotions";
     /** The one demo account you can sign in with. */
     public static final String SHOPPER_EMAIL = "demo.shopper@example.com";
     public static final String SHOPPER_PASSWORD = "Demo-Pacific-123";
@@ -76,10 +79,12 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final PasswordEncoder encoder;
     private final TransactionTemplate tx;
     private final BuyBox buyBox;
+    private final Promotions promotions;
 
     public DemoDataSeeder(CategoryRepository categories, ProductRepository products, UserRepository users,
                           SellerProfileRepository sellers, ReviewRepository reviews, SettingRepository settings,
-                          PasswordEncoder encoder, PlatformTransactionManager txManager, BuyBox buyBox) {
+                          PasswordEncoder encoder, PlatformTransactionManager txManager, BuyBox buyBox,
+                          Promotions promotions) {
         this.categories = categories;
         this.products = products;
         this.users = users;
@@ -89,6 +94,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         this.encoder = encoder;
         this.tx = new TransactionTemplate(txManager);
         this.buyBox = buyBox;
+        this.promotions = promotions;
     }
 
     @Override
@@ -103,6 +109,59 @@ public class DemoDataSeeder implements ApplicationRunner {
             settings.save(new Setting(OFFERS_MARKER, "v1"));
             log.warn("DEMO DATA: {} offers from other stores added to existing products.", offers);
         }
+        if (!settings.existsById(PROMOTIONS_MARKER)) {
+            Integer coupons = tx.execute(status -> seedCoupons());
+            settings.save(new Setting(PROMOTIONS_MARKER, "v1"));
+            log.warn("DEMO DATA: {} coupons and the promo code WELCOME10 (10% off Pacific's own products) added.", coupons);
+        }
+        // Lightning Deals last hours, so a demo shop starts a fresh batch whenever none is running.
+        Integer deals = tx.execute(status -> seedDeals());
+        if (deals != null && deals > 0) log.warn("DEMO DATA: {} Lightning Deals started for the next 12 hours.", deals);
+    }
+
+    /** Demo listings: products from the demo stores and Pacific, on sale, with a drawing (so not your own). */
+    private List<Product> demoListings() {
+        Set<Long> demoStores = DemoCatalog.STORES.stream().map(st -> sellers.findBySlug(slugify(st.name())).orElse(null))
+                .filter(st -> st != null).map(SellerProfile::getId).collect(Collectors.toSet());
+        return products.findAll(Sort.by("id")).stream()
+                .filter(p -> p.isActive() && p.getStock() > 5 && p.getImageUrl() != null && p.getImageUrl().startsWith("demo:")
+                        && (p.getSeller() == null || demoStores.contains(p.getSeller().getId())))
+                .toList();
+    }
+
+    private int seedCoupons() {
+        List<Product> listings = demoListings();
+        int added = 0;
+        for (int i = 3; i < listings.size() && added < 12; i += 11) {
+            Product p = listings.get(i);
+            promotions.createCoupon(p.getSeller() == null ? null : p.getSeller().getId(), p.getId(), 5 + (i % 4) * 5, 200, 90);
+            added++;
+        }
+        promotions.createCode(null, "WELCOME10", 10, BigDecimal.ZERO, null, 90);
+        return added;
+    }
+
+    /** Starts 8 Lightning Deals if none is running on a demo listing. */
+    private int seedDeals() {
+        List<Product> listings = demoListings();
+        if (listings.isEmpty() || promotions.anyLiveDeal(listings.stream().map(Product::getId).toList())) return 0;
+        Random rnd = new Random();
+        List<Product> shuffled = new ArrayList<>(listings);
+        Collections.shuffle(shuffled, rnd);
+        int started = 0;
+        for (Product p : shuffled) {
+            if (started == 8) break;
+            int percent = 15 + rnd.nextInt(26);
+            BigDecimal price = p.getPrice().multiply(BigDecimal.valueOf(100 - percent)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            try {
+                promotions.createDeal(p.getSeller() == null ? null : p.getSeller().getId(), p.getId(), price,
+                        Math.min(p.getStock(), 5 + rnd.nextInt(20)), null, 12);
+                started++;
+            } catch (RuntimeException e) {
+                // e.g. a deal scheduled there already: try the next listing
+            }
+        }
+        return started;
     }
 
     private void seedShop() {

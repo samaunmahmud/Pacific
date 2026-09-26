@@ -1,13 +1,15 @@
 package com.pacific.marketplace.web;
 
-import com.pacific.marketplace.service.ProductService;
 import com.pacific.marketplace.service.OfferService;
+import com.pacific.marketplace.service.ProductService;
 import com.pacific.marketplace.web.dto.PageResponse;
 import com.pacific.marketplace.web.dto.ProductDtos.CategoryDto;
-import com.pacific.marketplace.web.dto.ProductDtos.ProductDto;
 import com.pacific.marketplace.web.dto.ProductDtos.OfferDto;
+import com.pacific.marketplace.web.dto.ProductDtos.ProductDto;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,8 +56,8 @@ public class CatalogController {
 
     /** Every seller's offer for this product, the buy box first. */
     @GetMapping("/products/{id}/offers")
-    public List<OfferDto> offers(@PathVariable Long id) {
-        return offers.offers(id);
+    public List<OfferDto> offers(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return offers.offers(id, CurrentUser.customerIdOrNull(jwt));
     }
 
     @GetMapping("/categories")

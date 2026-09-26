@@ -2,7 +2,9 @@ package com.pacific.marketplace.service;
 
 import com.pacific.marketplace.domain.CartItem;
 import com.pacific.marketplace.domain.DeliveryOption;
+import com.pacific.marketplace.domain.OrderItem;
 import com.pacific.marketplace.domain.Product;
+import com.pacific.marketplace.domain.PromoCode;
 import com.pacific.marketplace.domain.SellerProfile;
 import com.pacific.marketplace.repo.CartItemRepository;
 import com.pacific.marketplace.repo.ProductRepository;
@@ -12,6 +14,7 @@ import com.pacific.marketplace.web.dto.CartDtos.CartDto;
 import com.pacific.marketplace.web.dto.CartDtos.CartItemDto;
 import com.pacific.marketplace.web.dto.CartDtos.DeliveryChoiceDto;
 import com.pacific.marketplace.web.dto.CartDtos.ShipmentDto;
+import com.pacific.marketplace.web.dto.CartDtos;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,14 +30,16 @@ public class CartService {
     private final UserRepository users;
     private final ShopPricing pricing;
     private final Delivery delivery;
+    private final Promotions promotions;
 
     public CartService(CartItemRepository cart, ProductRepository products, UserRepository users,
-                       ShopPricing pricing, Delivery delivery) {
+                       ShopPricing pricing, Delivery delivery, Promotions promotions) {
         this.cart = cart;
         this.products = products;
         this.users = users;
         this.pricing = pricing;
         this.delivery = delivery;
+        this.promotions = promotions;
     }
 
     /** The checkout key for a seller's shipment. */
@@ -44,7 +49,13 @@ public class CartService {
 
     @Transactional(readOnly = true)
     public CartDto get(Long userId) {
-        return toDto(cart.findAllForUser(userId));
+        return get(userId, null);
+    }
+
+    /** The cart with a promo code applied, as a preview (checkout applies it for real). */
+    @Transactional(readOnly = true)
+    public CartDto get(Long userId, String promoCode) {
+        return toDto(cart.findAllForUser(userId), userId, promoCode);
     }
 
     @Transactional
@@ -143,19 +154,60 @@ public class CartService {
         }
     }
 
-    private static CartItemDto line(CartItem i) {
+    private static CartItemDto line(CartItem i, OrderItem.Pricing price) {
         Product p = i.getProduct();
         var seller = p.getSeller();
+        boolean discounted = price.unitPrice().compareTo(p.getPrice()) != 0;
         return new CartItemDto(p.getId(), p.getName(), p.getImageUrl(),
-                p.getCategory() == null ? null : p.getCategory().getName(), p.getPrice(), i.getQuantity(),
-                p.getPrice().multiply(BigDecimal.valueOf(i.getQuantity())), p.getStock(),
-                seller == null ? "Pacific" : seller.getStoreName(), seller == null ? null : seller.getSlug());
+                p.getCategory() == null ? null : p.getCategory().getName(), price.unitPrice(), i.getQuantity(),
+                price.unitPrice().multiply(BigDecimal.valueOf(i.getQuantity())), p.getStock(),
+                seller == null ? "Pacific" : seller.getStoreName(), seller == null ? null : seller.getSlug(),
+                discounted ? p.getPrice() : null, price.label());
     }
 
-    private CartDto toDto(List<CartItem> all) {
+    /**
+     * Prices the lines being bought: each gets its Lightning Deal or clipped coupon, then a promo code takes its
+     * percentage off its store's lines. Checkout prices the same way (see OrderService). {@code promoError} explains a
+     * code that can't be used.
+     */
+    public record Priced(Map<CartItem, OrderItem.Pricing> prices, PromoCode code, BigDecimal promoDiscount, String promoError) {
+    }
+
+    public Priced price(List<CartItem> items, Long userId, String promoCode) {
+        Promotions.Live live = promotions.live(items.stream().map(i -> i.getProduct().getId()).toList(), userId);
+        Map<CartItem, OrderItem.Pricing> prices = new LinkedHashMap<>();
+        Map<String, BigDecimal> storeSubtotals = new LinkedHashMap<>();
+        for (CartItem i : items) {
+            OrderItem.Pricing p = Promotions.price(i.getProduct(), i.getQuantity(), live);
+            prices.put(i, p);
+            storeSubtotals.merge(shipmentKey(i.getProduct().getSeller()), p.unitPrice().multiply(BigDecimal.valueOf(i.getQuantity())), BigDecimal::add);
+        }
+        String raw = Text.clean(promoCode);
+        if (raw == null) return new Priced(prices, null, BigDecimal.ZERO, null);
+        PromoCode code;
+        try {
+            code = promotions.checkCode(raw, userId, storeSubtotals);
+        } catch (ApiException e) {
+            return new Priced(prices, null, BigDecimal.ZERO, e.getMessage());
+        }
+        String store = shipmentKey(code.getSeller());
+        BigDecimal saved = BigDecimal.ZERO;
+        for (Map.Entry<CartItem, OrderItem.Pricing> e : prices.entrySet()) {
+            if (!shipmentKey(e.getKey().getProduct().getSeller()).equals(store)) continue;
+            OrderItem.Pricing withCode = Promotions.withCode(e.getValue(), code);
+            saved = saved.add(e.getValue().unitPrice().subtract(withCode.unitPrice()).multiply(BigDecimal.valueOf(e.getKey().getQuantity())));
+            e.setValue(withCode);
+        }
+        return new Priced(prices, code, saved.setScale(2), null);
+    }
+
+    private CartDto toDto(List<CartItem> all, Long userId, String promoCode) {
         List<CartItem> items = all.stream().filter(i -> !i.isSavedForLater()).toList();
-        List<CartItemDto> lines = items.stream().map(CartService::line).toList();
-        List<CartItemDto> saved = all.stream().filter(CartItem::isSavedForLater).map(CartService::line).toList();
+        Priced priced = price(items, userId, promoCode);
+        List<CartItemDto> lines = items.stream().map(i -> line(i, priced.prices().get(i))).toList();
+        Promotions.Live savedLive = promotions.live(all.stream().filter(CartItem::isSavedForLater).map(i -> i.getProduct().getId()).toList(), userId);
+        List<CartItemDto> saved = all.stream().filter(CartItem::isSavedForLater)
+                .map(i -> line(i, Promotions.price(i.getProduct(), i.getQuantity(), savedLive))).toList();
 
         // Each seller ships separately, so delivery (and its free threshold) applies per seller.
         Map<String, BigDecimal> subtotalByKey = new LinkedHashMap<>();
@@ -163,7 +215,7 @@ public class CartService {
         for (CartItem i : items) {
             SellerProfile seller = i.getProduct().getSeller();
             String key = shipmentKey(seller);
-            subtotalByKey.merge(key, i.getProduct().getPrice().multiply(BigDecimal.valueOf(i.getQuantity())), BigDecimal::add);
+            subtotalByKey.merge(key, priced.prices().get(i).unitPrice().multiply(BigDecimal.valueOf(i.getQuantity())), BigDecimal::add);
             sellerByKey.putIfAbsent(key, seller);
         }
         List<ShipmentDto> shipments = subtotalByKey.entrySet().stream().map(e -> {
@@ -183,7 +235,11 @@ public class CartService {
                 .setScale(2);
         BigDecimal shipping = shipments.stream().map(ShipmentDto::shipping).reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2);
+        PromoCode code = priced.code();
+        CartDtos.PromoDto promo = code == null ? null : new CartDtos.PromoDto(code.getCode(), code.getPercentOff(),
+                code.getSeller() == null ? "Pacific" : code.getSeller().getStoreName(), priced.promoDiscount());
         return new CartDto(lines, shipments, lines.stream().mapToInt(CartItemDto::quantity).sum(), subtotal,
-                shipping, subtotal.add(shipping), pricing.freeShippingThreshold(), saved, delivery.orderWithin());
+                shipping, subtotal.add(shipping), pricing.freeShippingThreshold(), saved, delivery.orderWithin(),
+                promo, priced.promoError());
     }
 }

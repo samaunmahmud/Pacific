@@ -145,8 +145,11 @@ pay-on-delivery only.
 
 ## Demo data (development only)
 
-An empty shop looks empty. Start the API with `DEMO_DATA=true` to fill it with **154 invented products** in 13
-categories from 8 stores, 41 shoppers and about 2,500 reviews (with deals, low stock and back-dated timestamps).
+An empty shop looks empty. Start the API with `DEMO_DATA=true` to fill it with **about 2,150 invented products** in 13
+categories from 20 stores, 41 shoppers and about 21,000 reviews, with deals, coupons, other sellers' offers, colours
+and sizes, low stock and back-dated timestamps. The first 154 products come first; the larger catalogue (2,000 more,
+`DEMO_EXTRA_PRODUCTS` to change or `0` for none) is added on top once, including to demo databases made before it,
+and takes about 15 seconds on MySQL.
 Product pictures are drawn in the browser, so nothing is downloaded. It only *adds* data, runs once per database, and
 leaves your own products, users and orders alone. All brands and people are made up. It creates one account you can
 sign in with, `demo.shopper@example.com` / `Demo-Pacific-123`, so **never enable it against a real shop**.

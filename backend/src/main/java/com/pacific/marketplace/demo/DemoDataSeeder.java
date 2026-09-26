@@ -68,6 +68,8 @@ public class DemoDataSeeder implements ApplicationRunner {
     static final String PROMOTIONS_MARKER = "demo_promotions";
     /** Colours and sizes of some demo products, added once. */
     static final String VARIATIONS_MARKER = "demo_variations";
+    /** The larger catalogue (app.demo-data.extra-products more products), added once. */
+    static final String MORE_PRODUCTS_MARKER = "demo_more_products";
     /** The one demo account you can sign in with. */
     public static final String SHOPPER_EMAIL = "demo.shopper@example.com";
     public static final String SHOPPER_PASSWORD = "Demo-Pacific-123";
@@ -85,11 +87,13 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final BuyBox buyBox;
     private final Promotions promotions;
     private final ProductFamilyRepository families;
+    private final int extraProducts;
 
     public DemoDataSeeder(CategoryRepository categories, ProductRepository products, UserRepository users,
                           SellerProfileRepository sellers, ReviewRepository reviews, SettingRepository settings,
                           PasswordEncoder encoder, PlatformTransactionManager txManager, BuyBox buyBox,
-                          Promotions promotions, ProductFamilyRepository families) {
+                          Promotions promotions, ProductFamilyRepository families,
+                          @org.springframework.beans.factory.annotation.Value("${app.demo-data.extra-products:2000}") int extraProducts) {
         this.categories = categories;
         this.products = products;
         this.users = users;
@@ -101,6 +105,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         this.buyBox = buyBox;
         this.promotions = promotions;
         this.families = families;
+        this.extraProducts = extraProducts;
     }
 
     @Override
@@ -125,6 +130,13 @@ public class DemoDataSeeder implements ApplicationRunner {
             settings.save(new Setting(VARIATIONS_MARKER, "v1"));
             log.warn("DEMO DATA: {} colour and size variations added to demo products.", added);
         }
+        if (extraProducts > 0 && !settings.existsById(MORE_PRODUCTS_MARKER)) {
+            long start = System.currentTimeMillis();
+            int[] added = seedMoreProducts(extraProducts);
+            settings.save(new Setting(MORE_PRODUCTS_MARKER, "v1"));
+            log.warn("DEMO DATA: {} more products ({} reviews, {} offers, {} variations) and {} more stores added in {} ms.",
+                    added[0], added[1], added[2], added[3], added[4], System.currentTimeMillis() - start);
+        }
         // Lightning Deals last hours, so a demo shop starts a fresh batch whenever none is running.
         Integer deals = tx.execute(status -> seedDeals());
         if (deals != null && deals > 0) log.warn("DEMO DATA: {} Lightning Deals started for the next 12 hours.", deals);
@@ -132,7 +144,9 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     /** Demo listings: products from the demo stores and Pacific, on sale, with a drawing (so not your own). */
     private List<Product> demoListings() {
-        Set<Long> demoStores = DemoCatalog.STORES.stream().map(st -> sellers.findBySlug(slugify(st.name())).orElse(null))
+        Set<Long> demoStores = java.util.stream.Stream.concat(DemoCatalog.STORES.stream().map(DemoCatalog.Store::name),
+                        DemoCatalog.EXTRA_STORES.stream().map(DemoCatalog.ExtraStore::name))
+                .map(n -> sellers.findBySlug(slugify(n)).orElse(null))
                 .filter(st -> st != null).map(SellerProfile::getId).collect(Collectors.toSet());
         return products.findAll(Sort.by("id")).stream()
                 .filter(p -> p.isActive() && p.getStock() > 5 && p.getImageUrl() != null && p.getImageUrl().startsWith("demo:")
@@ -198,8 +212,13 @@ public class DemoDataSeeder implements ApplicationRunner {
                 .filter(p -> !p.isOffer() && p.isActive() && p.getImageUrl() != null && p.getImageUrl().startsWith("demo:")
                         && (p.getSeller() == null || demoStoreIds.contains(p.getSeller().getId())))
                 .toList();
+        return addOffers(pages, stores, rnd, 5);
+    }
+
+    /** Offers from other stores on every {@code every}-th of these pages. Returns how many were added. */
+    private int addOffers(List<Product> pages, List<SellerProfile> stores, Random rnd, int every) {
         int added = 0;
-        for (int i = 0; i < pages.size(); i += 5) {
+        for (int i = 0; i < pages.size(); i += every) {
             Product page = pages.get(i);
             List<SellerProfile> others = new ArrayList<>(stores.stream()
                     .filter(st -> page.getSeller() == null || !st.getId().equals(page.getSeller().getId())).toList());
@@ -235,11 +254,18 @@ public class DemoDataSeeder implements ApplicationRunner {
      * the drawing in its own colour. Returns how many variations were added.
      */
     private int seedVariations() {
-        Random rnd = new Random(20260927L);
         List<Product> pages = products.findAll(Sort.by("id")).stream()
                 .filter(p -> !p.isOffer() && p.isActive() && p.getFamilyId() == null && p.getImageUrl() != null
                         && p.getImageUrl().matches("demo:[a-z-]+:\\d+") && p.getCategory() != null)
                 .toList();
+        return addVariations(pages, new Random(20260927L), 3, 2);
+    }
+
+    /**
+     * Colours (and for clothes, sizes) for up to {@code sizedLimit} clothes and {@code otherLimit} other products of
+     * each kind among these pages. Returns how many variations were added.
+     */
+    private int addVariations(List<Product> pages, Random rnd, int sizedLimit, int otherLimit) {
         int added = 0;
         Map<String, Integer> perArt = new HashMap<>();
         for (Product page : pages) {
@@ -248,7 +274,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             boolean sized = art.equals("shirt") || art.equals("trousers");
             boolean coloured = sized || art.equals("shoe") || art.equals("beanie") || art.equals("scarf")
                     || art.equals("headphones") || art.equals("earbuds") || art.equals("speaker");
-            if (!coloured || perArt.merge(art, 1, Integer::sum) > (sized ? 3 : 2)) continue;
+            if (!coloured || page.getFamilyId() != null || perArt.merge(art, 1, Integer::sum) > (sized ? sizedLimit : otherLimit)) continue;
 
             int hue = Integer.parseInt(image[2]);
             Map.Entry<String, Integer> own = COLOURS.stream()
@@ -348,9 +374,14 @@ public class DemoDataSeeder implements ApplicationRunner {
     }
 
     private int addReviews(Product p, DemoCatalog.Type type, List<User> shoppers, Random rnd, Instant now, long daysAgo) {
-        double quality = 3.4 + rnd.nextDouble() * 1.4;            // how good this product really is
         double popularity = rnd.nextDouble();
-        int count = 3 + (int) (popularity * popularity * 36);      // most products have a few, some have many
+        return addReviews(p, type, shoppers, rnd, now, daysAgo, 3 + (int) (popularity * popularity * 36)); // most have a few
+    }
+
+    private int addReviews(Product p, DemoCatalog.Type type, List<User> shoppers, Random rnd, Instant now, long daysAgo,
+                           int count) {
+        if (count <= 0) return 0;
+        double quality = 3.4 + rnd.nextDouble() * 1.4;            // how good this product really is
         List<User> pool = new ArrayList<>(shoppers);
         Collections.shuffle(pool, rnd);
         String[] features = type.features().split("\\|");
@@ -368,6 +399,114 @@ public class DemoDataSeeder implements ApplicationRunner {
         reviews.saveAll(made);
         p.setRating(BigDecimal.valueOf(sum).divide(BigDecimal.valueOf(made.size()), 2, RoundingMode.HALF_UP), made.size());
         return made.size();
+    }
+
+    // ---------- the larger catalogue ----------
+
+    /**
+     * Adds {@code count} more products spread over the demo categories, sold by Pacific, the category's store and a
+     * dozen more stores; with reviews (a few have none yet), some "was" prices, other stores' offers, coupons and
+     * colours and sizes. Each category is its own transaction. Returns {products, reviews, offers, variations, stores}.
+     */
+    private int[] seedMoreProducts(int count) {
+        Random rnd = new Random(20261001L);
+        Instant now = Instant.now();
+        String unusable = encoder.encode(UUID.randomUUID().toString());
+        int[] totals = new int[5];
+
+        // The stores: the first demo ones, plus more (added now if missing).
+        Map<String, SellerProfile> byName = new HashMap<>();
+        for (DemoCatalog.Store st : DemoCatalog.STORES) sellers.findBySlug(slugify(st.name())).ifPresent(sp -> byName.put(st.name(), sp));
+        if (byName.isEmpty()) return totals; // not a demo shop
+        for (DemoCatalog.ExtraStore st : DemoCatalog.EXTRA_STORES) {
+            SellerProfile existing = sellers.findBySlug(slugify(st.name())).orElse(null);
+            if (existing == null) {
+                existing = tx.execute(status -> {
+                    User owner = users.save(confirmed(new User(st.name(), "seller." + slugify(st.name()) + "@example.com", null,
+                            unusable, Role.CUSTOMER)));
+                    SellerProfile profile = new SellerProfile(owner, st.name(), slugify(st.name()), st.description());
+                    profile.setStatus(SellerStatus.APPROVED, null);
+                    profile.setRating(BigDecimal.valueOf(3.9 + rnd.nextInt(10) / 10.0).setScale(2), 10 + rnd.nextInt(400));
+                    return sellers.save(profile);
+                });
+                totals[4]++;
+            }
+            byName.put(st.name(), existing);
+        }
+        List<User> shoppers = users.findAll().stream().filter(u -> u.getEmail() != null && u.getEmail().startsWith("demo.")).toList();
+        if (shoppers.isEmpty()) return totals;
+        Set<String> names = products.findAll().stream().map(p -> p.getName().toLowerCase(Locale.ROOT)).collect(Collectors.toCollection(java.util.HashSet::new));
+
+        List<DemoCatalog.Category> defs = DemoCatalog.CATEGORIES;
+        for (int c = 0; c < defs.size(); c++) {
+            DemoCatalog.Category def = defs.get(c);
+            int share = count / defs.size() + (c < count % defs.size() ? 1 : 0);
+            List<SellerProfile> extra = DemoCatalog.EXTRA_STORES.stream()
+                    .filter(st -> st.categories().isEmpty() || st.categories().contains(def.name()))
+                    .map(st -> byName.get(st.name())).toList();
+            int[] made = tx.execute(status -> {
+                Category category = categories.findAll().stream().filter(x -> x.getName().equalsIgnoreCase(def.name())).findFirst()
+                        .orElseGet(() -> categories.save(new Category(def.name(), slugify(def.name()))));
+                List<Product> added = new ArrayList<>();
+                int reviewCount = 0;
+                for (int i = 0; added.size() < share && i < share * 20; i++) {
+                    DemoCatalog.Type type = def.types().get(rnd.nextInt(def.types().size()));
+                    String brand = def.brands().get(rnd.nextInt(def.brands().size()));
+                    boolean isBook = "Books".equals(def.name());
+                    String name = isBook ? bookTitle(type, rnd) : productName(def, brand, type, rnd);
+                    if (!names.add(name.toLowerCase(Locale.ROOT))) continue;
+
+                    BigDecimal price = price(type, rnd);
+                    BigDecimal listPrice = rnd.nextInt(100) < 22 ? listPriceFor(price, rnd) : null;
+                    Product p = new Product(name, description(brand, type, isBook), price, stock(rnd),
+                            "demo:" + type.art() + ":" + hue(name), category);
+                    p.update(p.getName(), p.getDescription(), price, listPrice, p.getStock(), p.getImageUrl(), category, true);
+                    int roll = rnd.nextInt(100);
+                    p.setSeller(roll < 18 ? null : roll < 50 ? byName.get(def.store()) : extra.get(rnd.nextInt(extra.size())));
+                    long daysAgo = 1 + rnd.nextInt(365);
+                    p.setCreatedAt(now.minus(Duration.ofDays(daysAgo)));
+                    p = products.save(p);
+                    double popularity = rnd.nextDouble();
+                    int reviewsWanted = rnd.nextInt(100) < 8 ? 0 : 1 + (int) (popularity * popularity * popularity * 38);
+                    reviewCount += addReviews(p, type, shoppers, rnd, now, daysAgo, reviewsWanted);
+                    added.add(p);
+                }
+                List<SellerProfile> nearby = new ArrayList<>(extra);
+                nearby.add(byName.get(def.store()));
+                int offers = addOffers(added, nearby, rnd, 9);
+                int variations = addVariations(added, rnd, 6, 4);
+                for (int i = 7; i < added.size(); i += 40) {
+                    Product p = added.get(i);
+                    promotions.createCoupon(p.getSeller() == null ? null : p.getSeller().getId(), p.getId(), 5 + rnd.nextInt(4) * 5, 200, 90);
+                }
+                return new int[] {added.size(), reviewCount, offers, variations};
+            });
+            for (int k = 0; k < 4; k++) totals[k] += made[k];
+        }
+        return totals;
+    }
+
+    /** "Resonic Pulse 482 Plus Wireless Over-Ear Headphones". */
+    private static String productName(DemoCatalog.Category def, String brand, DemoCatalog.Type type, Random rnd) {
+        String series = def.series().get(rnd.nextInt(def.series().size()));
+        String edition = DemoCatalog.EDITIONS.get(rnd.nextInt(DemoCatalog.EDITIONS.size()));
+        return (brand + " " + series + " " + (100 + rnd.nextInt(900)) + " " + edition).replaceAll("\\s+", " ").trim()
+                + " " + type.label();
+    }
+
+    /** "The Quiet Harbour (Paperback)": an invented title in the format of one of the category's books. */
+    private static String bookTitle(DemoCatalog.Type type, Random rnd) {
+        String adjective = DemoCatalog.TITLE_ADJECTIVES.get(rnd.nextInt(DemoCatalog.TITLE_ADJECTIVES.size()));
+        String noun = DemoCatalog.TITLE_NOUNS.get(rnd.nextInt(DemoCatalog.TITLE_NOUNS.size()));
+        String other = DemoCatalog.TITLE_NOUNS.get(rnd.nextInt(DemoCatalog.TITLE_NOUNS.size()));
+        String title = switch (rnd.nextInt(4)) {
+            case 0 -> "The " + adjective + " " + noun;
+            case 1 -> "The " + noun + " of the " + adjective + " " + other;
+            case 2 -> "A " + adjective + " " + noun;
+            default -> noun + " and " + other;
+        };
+        java.util.regex.Matcher format = java.util.regex.Pattern.compile("\\(([^)]*)\\)$").matcher(type.label());
+        return format.find() ? title + " (" + format.group(1) + ")" : title;
     }
 
     // ---------- generated text and numbers ----------

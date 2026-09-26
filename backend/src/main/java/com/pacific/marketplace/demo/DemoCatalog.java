@@ -37,6 +37,36 @@ final class DemoCatalog {
             new Store("Brightside Toys", "Games and toys for all ages."),
             new Store("Glow Lab", "Beauty and personal care that keeps it simple."));
 
+    /** More stores for the larger catalogue, each selling in the categories listed (all of them when empty). */
+    record ExtraStore(String name, String description, List<String> categories) {
+    }
+
+    static final List<ExtraStore> EXTRA_STORES = List.of(
+            new ExtraStore("Northwind Sound", "Headphones, speakers and turntables, chosen by ear.", List.of("Audio")),
+            new ExtraStore("Circuit Yard", "Parts, cables and accessories for people who build their own.",
+                    List.of("Computer Accessories", "PC Components", "Cables & Power")),
+            new ExtraStore("Deskcraft", "Everything for a desk you enjoy sitting at.", List.of("Home Office", "Computer Accessories")),
+            new ExtraStore("Lensmith", "Cameras, lenses and lights for makers of all kinds.", List.of("Photo & Video", "Audio")),
+            new ExtraStore("Kettle & Crumb", "Kitchen kit for everyday cooks.", List.of("Home & Kitchen")),
+            new ExtraStore("Wildfern Outdoors", "Gear for long walks, early swims and everything outside.",
+                    List.of("Sports & Outdoors", "Lifestyle")),
+            new ExtraStore("Chapter & Verse", "An independent bookshop with a long reading list.", List.of("Books")),
+            new ExtraStore("Thread Theory", "Wardrobe basics that last.", List.of("Fashion")),
+            new ExtraStore("Playhouse Corner", "Toys, puzzles and games for rainy days.", List.of("Toys & Games")),
+            new ExtraStore("Pure Botanica", "Gentle skincare and grooming.", List.of("Beauty & Health")),
+            new ExtraStore("Everyday Essentials Co.", "A bit of everything, sensibly priced.", List.of()),
+            new ExtraStore("Harbour Street Market", "Useful things from small makers.", List.of()));
+
+    /** Editions that make otherwise similar product names distinct ("Plus", "Mini"...); blank means none. */
+    static final List<String> EDITIONS = List.of("", "", "", "Plus", "Mini", "Max", "Air", "Edge", "Neo", "Pro", "Go", "Lite");
+
+    static final List<String> TITLE_ADJECTIVES = List.of("Quiet", "Hidden", "Last", "Silver", "Winter", "Distant", "Broken",
+            "Golden", "Secret", "Wild", "Northern", "Paper", "Midnight", "Little", "Lost", "Salt", "Glass", "Summer",
+            "Forgotten", "Restless", "Crooked", "Bright", "Hollow", "Sleeping");
+    static final List<String> TITLE_NOUNS = List.of("Harbour", "Orchard", "Lighthouse", "Garden", "River", "Letters",
+            "Kingdom", "Hours", "Island", "Map", "Station", "Year", "Tide", "Mountain", "House", "Fox", "Library",
+            "Promise", "Road", "Season", "Choir", "Bridge", "Keeper", "Sky");
+
     static final List<String> FIRST_NAMES = List.of("Amelia", "Oliver", "Isla", "Noah", "Ava", "Arthur", "Freya", "Leo",
             "Mia", "Harry", "Grace", "Jack", "Ivy", "Oscar", "Ruby", "Theo", "Ella", "Finn", "Lily", "George", "Sofia",
             "Charlie", "Poppy", "Henry", "Evie", "Jacob", "Daisy", "Alfie", "Rosie", "Freddie");

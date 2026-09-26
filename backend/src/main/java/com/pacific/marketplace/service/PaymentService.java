@@ -214,8 +214,10 @@ public class PaymentService {
             }
             if (paidMinor != null && (paidMinor != minor(p.getAmount())
                     || paidCurrency == null || !p.getCurrency().equalsIgnoreCase(paidCurrency))) {
+                // The currency comes from the provider's event: only letters reach the log, so it can't forge log lines.
                 log.error("Payment for checkout {} doesn't match: provider reports {} {} but we asked for {} {}",
-                        checkoutRef, paidMinor, paidCurrency, minor(p.getAmount()), p.getCurrency());
+                        p.getCheckoutRef(), paidMinor, paidCurrency == null ? null : paidCurrency.replaceAll("[^A-Za-z]", ""),
+                        minor(p.getAmount()), p.getCurrency());
                 refundMismatch(p, providerPaymentRef, paidMinor, paidCurrency);
                 return p.getStatus() == PaymentStatus.PENDING;
             }

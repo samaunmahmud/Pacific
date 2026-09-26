@@ -1,13 +1,83 @@
-# Pacific — multi-seller marketplace
+<h1 align="center">Pacific<sup>★</sup></h1>
 
-Spring Boot API + React storefront, with the original Pacific look (maroon `#860752`, blush `#f9dcd1`, Georgia logo,
-pill search bar, rounded cards). It grew out of the JavaFX "Pacific Reviews" app: reviews, ratings, votes and
-moderation are all still here, now inside a marketplace where independent sellers list and ship their own products.
+<p align="center"><b>A multi-seller marketplace where every product has one page, however many stores sell it.</b></p>
+
+<p align="center">
+  <img src="docs/screenshots/hero.png" alt="Pacific on desktop and phone: a product page with colour and size options, and Today's Deals" width="100%" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Java_21-ED8B00?style=flat-square&logo=openjdk&logoColor=white" alt="Java 21" />
+  <img src="https://img.shields.io/badge/Spring_Boot_3.5-6DB33F?style=flat-square&logo=springboot&logoColor=white" alt="Spring Boot 3.5" />
+  <img src="https://img.shields.io/badge/React_19-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/MySQL_8-00758F?style=flat-square&logo=mysql&logoColor=white" alt="MySQL 8" />
+  <img src="https://img.shields.io/badge/Stripe-635BFF?style=flat-square&logo=stripe&logoColor=white" alt="Stripe" />
+  <img src="https://img.shields.io/badge/Flyway-CC0200?style=flat-square&logo=flyway&logoColor=white" alt="Flyway" />
+  <img src="https://img.shields.io/badge/tests-181_passing-2EA043?style=flat-square" alt="181 tests passing" />
+</p>
+
+## What is Pacific for?
+
+Pacific brings **independent shops together in one store**, the way Amazon's marketplace does. Shoppers search one
+catalogue, fill one basket and check out once, even when their items come from five different sellers. Small stores get
+a shop window, orders, payments and a dashboard without building any of it themselves. Pacific takes a small commission
+on each sale.
+
+The idea that holds it together: **a product has one page, not one per seller**. When a second store starts selling the
+same kettle, it adds an *offer* to the existing page instead of a duplicate listing. The best offer wins the **buy box**
+(in stock, then new over used, then the lowest price), and the rest appear under "Other sellers on Pacific".
+
+It started life as *Pacific Reviews*, a JavaFX app for rating products. Reviews, ratings, votes and moderation are all
+still here, now inside a full marketplace.
+
+## Highlights
+
+| For shoppers | For sellers | For the people running it |
+| :--- | :--- | :--- |
+| 🔎 Search ranked by best match, suggestions as you type, filters by price and rating | 🏪 **Seller Central**: list products with up to 8 photos, in colours and sizes | 📊 Dashboard: sales, commission, sellers, review stats, low stock |
+| 🛒 One basket across many sellers, **save for later**, wish list, recently viewed | 🤝 Sell an existing product by adding an offer (new or used), and compete for the buy box | ✅ Approve, suspend and reinstate stores; set commission per seller |
+| 💳 Pay by card with **Stripe**, or pay on delivery | 📦 Ship with tracking, handle returns and refunds, see earnings after commission | 🚩 Moderate reported reviews, answer Q&A, manage Pacific's own products |
+| 🚚 Delivery dates everywhere, standard or express per seller, and **"Deliver to"** with live UK postcode lookup | ⚡ Run Lightning Deals, coupons and promo codes, paid for by your store | 📧 Every email the shop sent, readable in one place |
+| ⭐ Reviews with helpful votes, product Q&A, seller ratings, private messages to sellers | 💬 Messages with buyers, and questions about your products | 🔐 Email confirmation, password reset, rate-limited sign-in |
+| 🔁 "Frequently bought together", related products, **Buy it again** | 🧾 Orders split per seller, each with its own status and delivery | 🧪 181 backend tests and 17 end-to-end browser checks |
+
+## A look around
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/home.jpg" alt="Home page with Today's Deals and a row per department" /><br><b>Home:</b> Today's Deals, then a row per department</td>
+    <td width="50%"><img src="docs/screenshots/search.jpg" alt="Search results for wireless headphones with filters" /><br><b>Search:</b> best match first, with department, rating and price filters</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/product.jpg" alt="Product page with the buy box" /><br><b>Product page:</b> the buy box, with delivery dates and where it's going</td>
+    <td><img src="docs/screenshots/other-sellers.jpg" alt="Other sellers on the same product page" /><br><b>Several sellers, one page:</b> other offers, new and used, and related products</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/variations.jpg" alt="A T-shirt with colour and size options" /><br><b>Variations:</b> pick a colour and size, each with its own price and stock</td>
+    <td><img src="docs/screenshots/checkout.jpg" alt="Checkout split by seller with delivery options" /><br><b>Checkout:</b> one payment, split into an order per seller</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/seller-central.jpg" alt="Seller Central dashboard" /><br><b>Seller Central:</b> balance, sales, orders and products at a glance</td>
+    <td><img src="docs/screenshots/admin.jpg" alt="Admin store overview" /><br><b>Admin:</b> the whole marketplace, from sales to review moderation</td>
+  </tr>
+</table>
+
+<sub>Screenshots use the built-in demo data: about 2,150 invented products from 20 made-up stores, with pictures drawn in
+the browser. No real brands.</sub>
+
+## Tech at a glance
 
 ```
-backend/    Spring Boot 3.5 · Java 21 · JPA · Flyway · MySQL · JWT (BCrypt passwords)
-frontend/   React 19 · TypeScript · Vite   (dev server proxies /api to :8080)
+backend/    Spring Boot 3.5 · Java 21 · JPA · Flyway · MySQL 8 · JWT (BCrypt passwords) · Stripe
+frontend/   React 19 · TypeScript · Vite   (the dev server proxies /api to the backend)
+qa/         End-to-end browser checks (Puppeteer) and stand-ins for Stripe and postcodes.io
 ```
+
+Quick start: see [Run it locally](#run-it-locally). With `DEMO_DATA=true` the shop fills itself with demo products,
+stores and reviews, and you can sign in as `demo.shopper@example.com` / `Demo-Pacific-123`.
+
+---
 
 ## How the marketplace works
 
@@ -187,9 +257,12 @@ Sign-in pages: customers at `/login`, admins at `/admin/login` (an account only 
 ## Tests
 
 ```bash
-cd backend && mvn test        # 74 integration tests (H2 in MySQL mode): auth, stock/checkout, reviews, import, marketplace, card payments
+cd backend && mvn test        # 181 tests (H2 in MySQL mode): accounts, checkout and stock, payments, sellers, offers, promotions, search…
 cd frontend && npm run typecheck && npm run build
 ```
+
+The browser checks in [`qa/`](qa/README.md) drive the real app end to end (17 scripts, from a first order to returns,
+messages and variations).
 
 ## What changed from the JavaFX app
 

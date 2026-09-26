@@ -680,3 +680,16 @@ body { background: var(--page-bg); }
   .offer-row { grid-template-columns: minmax(0, 1fr) auto; }
   .offer-seller { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* ---------- delivery ---------- */
+.bb-delivery div { margin-top: 4px; }
+.bb-cutoff { color: #007600; font-weight: 600; }
+.order-note.arriving { color: #007600; }
+.saved-box { margin-top: 20px; }
+.saved-h { font-size: 20px; margin: 0 0 12px; }
+.saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.saved-item { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.saved-item.busy { opacity: 0.5; }
+.saved-thumb { display: block; aspect-ratio: 1; background: #f7f7f7; border-radius: 8px; overflow: hidden; }
+.saved-thumb img, .saved-thumb svg { width: 100%; height: 100%; object-fit: contain; display: block; }
+.saved-item .cart-actions { gap: 0; }

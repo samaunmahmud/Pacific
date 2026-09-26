@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CartItem } from '../api/types';
 import { useCart } from '../cart/CartContext';
-import { useWishlist } from '../cart/WishlistContext';
 import { MoneyBig } from '../components/Price';
 import { ProductImage } from '../components/ProductImage';
 import { RecentlyViewed } from '../components/RecentlyViewed';
-import { money } from '../ui/format';
+import { deliveryRange, money } from '../ui/format';
 import { useToast } from '../ui/Toast';
 
 const MAX_PER_ITEM = 10; // matches the server's per-item limit
@@ -19,8 +18,7 @@ function quantityOptions(item: CartItem): number[] {
 }
 
 export function CartPage() {
-  const { cart, setQuantity, remove } = useCart();
-  const wishlist = useWishlist();
+  const { cart, setQuantity, remove, saveForLater } = useCart();
   const navigate = useNavigate();
   const toast = useToast();
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -37,12 +35,32 @@ export function CartPage() {
     }
   }
 
-  async function saveForLater(item: CartItem) {
-    if (!wishlist.has(item.productId)) await wishlist.toggle(item.productId);
-    await remove(item.productId);
-  }
-
   if (!cart) return <div className="loading">Loading…</div>;
+
+  const savedList = cart.saved.length > 0 && (
+    <section className="cart-box saved-box" aria-labelledby="saved-h">
+      <h2 id="saved-h" className="saved-h">Saved for later ({cart.saved.length} item{cart.saved.length === 1 ? '' : 's'})</h2>
+      <div className="saved-grid">
+        {cart.saved.map((i) => {
+          const busy = busyId === i.productId;
+          return (
+            <div key={i.productId} className={`saved-item ${busy ? 'busy' : ''}`}>
+              <Link to={`/products/${i.productId}`} className="saved-thumb" aria-label={i.name}>
+                <ProductImage imageUrl={i.imageUrl} categoryName={i.categoryName} alt={i.name} />
+              </Link>
+              <Link to={`/products/${i.productId}`} className="cart-item-title">{i.name}</Link>
+              <b>{money(i.unitPrice)}</b>
+              {i.stock === 0 ? <span className="bb-stock out">Currently unavailable</span> : <span className="bb-stock in">In stock</span>}
+              <div className="cart-actions">
+                <button className="cart-link-btn" disabled={busy || i.stock === 0} onClick={() => run(i.productId, () => saveForLater(i.productId, false), 'Moved to your cart')}>Move to cart</button>
+                <button className="cart-link-btn" disabled={busy} onClick={() => run(i.productId, () => remove(i.productId))}>Delete</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 
   if (cart.items.length === 0) {
     return (
@@ -58,6 +76,7 @@ export function CartPage() {
             </div>
           </div>
         </div>
+        {savedList}
         <RecentlyViewed />
       </div>
     );
@@ -78,14 +97,18 @@ export function CartPage() {
           {cart.shipments.map((ship) => {
             const lines = cart.items.filter((i) => i.sellerName === ship.sellerName);
             const units = lines.reduce((n, i) => n + i.quantity, 0);
-            const toFree = Math.max(0, cart.freeShippingThreshold - ship.subtotal);
+            const toFree = ship.toFreeDelivery;
+            const standard = ship.choices[0];
             return (
-              <div key={ship.sellerName} className="cart-box">
+              <div key={ship.key} className="cart-box">
                 <div className="cart-seller">
                   <span>Sold and shipped by{' '}
                     {ship.sellerSlug ? <Link to={`/sellers/${ship.sellerSlug}`}>{ship.sellerName}</Link> : <b>{ship.sellerName}</b>}
                   </span>
-                  <span className="cart-delivery">{ship.shipping === 0 ? <b className="free-delivery">FREE delivery</b> : <>Delivery {money(ship.shipping)}</>}</span>
+                  <span className="cart-delivery">
+                    {ship.shipping === 0 ? <b className="free-delivery">FREE delivery</b> : <>Delivery {money(ship.shipping)}</>}
+                    {standard && <> · <b>{deliveryRange(standard.from, standard.to)}</b></>}
+                  </span>
                 </div>
 
                 {lines.map((i) => {
@@ -111,7 +134,7 @@ export function CartPage() {
                             </select>
                           </label>
                           <button className="cart-link-btn" disabled={busy} onClick={() => run(i.productId, () => remove(i.productId))}>Delete</button>
-                          <button className="cart-link-btn" disabled={busy} onClick={() => run(i.productId, () => saveForLater(i), 'Saved to your wish list')}>Save for later</button>
+                          <button className="cart-link-btn" disabled={busy} onClick={() => run(i.productId, () => saveForLater(i.productId, true), 'Saved for later')}>Save for later</button>
                         </div>
                       </div>
                       <div className="cart-item-price"><MoneyBig amount={i.lineTotal} /></div>
@@ -143,6 +166,7 @@ export function CartPage() {
           <Link to="/products" className="link-plain center">Continue shopping</Link>
         </aside>
       </div>
+      {savedList}
       <RecentlyViewed />
     </div>
   );

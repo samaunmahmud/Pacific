@@ -38,6 +38,7 @@ public class SellerService {
     private final UserRepository users;
     private final ProductRepository products;
     private final BuyBox buyBox;
+    private final Delivery delivery;
     private final OrderRepository orders;
     private final OrderItemRepository orderItems;
     private final QuestionRepository questions;
@@ -47,8 +48,10 @@ public class SellerService {
 
     public SellerService(SellerProfileRepository sellers, UserRepository users, ProductRepository products,
                          OrderRepository orders, OrderItemRepository orderItems, QuestionRepository questions,
-                         LedgerService ledger, SettingsService settings, ReturnRequestRepository returns, BuyBox buyBox) {
+                         LedgerService ledger, SettingsService settings, ReturnRequestRepository returns, BuyBox buyBox,
+                         Delivery delivery) {
         this.buyBox = buyBox;
+        this.delivery = delivery;
         this.sellers = sellers;
         this.users = users;
         this.products = products;
@@ -100,6 +103,14 @@ public class SellerService {
         checkNameFree(name, seller);
         seller.updateStore(name, Text.clean(req.description())); // the URL slug stays stable
         sellers.flush();
+        return dto(seller);
+    }
+
+    /** How the seller delivers: their free-delivery amount (null = the shop's) and dispatch time. */
+    @Transactional
+    public SellerDto updateDelivery(Long userId, java.math.BigDecimal freeDeliveryThreshold, int dispatchDays) {
+        SellerProfile seller = approved(userId);
+        seller.setDelivery(freeDeliveryThreshold, dispatchDays);
         return dto(seller);
     }
 
@@ -176,7 +187,7 @@ public class SellerService {
     // ---------- helpers ----------
 
     private SellerDto dto(SellerProfile s) {
-        return SellerDto.from(s, settings.effectiveCommission(s));
+        return SellerDto.from(s, settings.effectiveCommission(s), delivery.freeThreshold(null));
     }
 
     private AdminSellerDto adminDto(SellerProfile s) {

@@ -13,10 +13,13 @@ import { CustomerReviewCard } from '../components/ReviewCard';
 import { Stars } from '../components/Stars';
 import { WishlistButton } from '../components/WishlistButton';
 import { useSeller } from '../seller/SellerContext';
-import { money } from '../ui/format';
+import { deliveryRange, money, timeLeft } from '../ui/format';
 import { recordView } from '../ui/recent';
 import { useToast } from '../ui/Toast';
 import { useAsync } from '../ui/useAsync';
+
+/** What the buy box sells: the winning offer, or the page's own listing while offers load. */
+type BuyTarget = Pick<Offer, 'productId' | 'sellerName' | 'sellerSlug' | 'price' | 'listPrice' | 'discountPercent' | 'stock' | 'condition' | 'conditionLabel'>;
 
 const SORTS: [string, string][] = [
   ['newest', 'Newest'],
@@ -58,9 +61,11 @@ export function ProductDetail() {
   if (!p) return <div className="loading">Loading…</div>;
 
   // The buy box: the best offer on sale (another seller's, perhaps). Until offers load, the page's own listing.
-  const ownOffer: Offer = { productId: p.id, sellerName: p.sellerName, sellerSlug: p.sellerSlug, sellerRating: 0, sellerRatingCount: 0,
-    price: p.price, listPrice: p.listPrice, discountPercent: p.discountPercent, stock: p.stock, condition: p.condition, conditionLabel: 'New', buyBox: p.stock > 0 };
-  const box = offers.data?.[0] ?? ownOffer;
+  const ownOffer: BuyTarget = { productId: p.id, sellerName: p.sellerName, sellerSlug: p.sellerSlug, price: p.price,
+    listPrice: p.listPrice, discountPercent: p.discountPercent, stock: p.stock, condition: p.condition, conditionLabel: 'New' };
+  const best = offers.data?.[0];
+  const box: BuyTarget = best ?? ownOffer;
+  const cutoff = timeLeft(best?.orderWithin ?? null);
   const others = offers.data?.slice(1) ?? [];
   const quantityInCart = (productId: number) => cart?.items.find((i) => i.productId === productId)?.quantity ?? 0;
   const inCart = quantityInCart(box.productId);
@@ -153,9 +158,14 @@ export function ProductDetail() {
         <aside className="buy-box" aria-label="Buy box">
           <Price price={box.price} listPrice={null} discountPercent={0} large />
           {box.condition !== 'NEW' && <div className="bb-condition">Condition: <b>{box.conditionLabel}</b></div>}
-          <div className="bb-delivery">
-            {box.price >= 50 ? <><b className="free-delivery">FREE delivery</b> on this item.</> : <>Delivery costs are shown at checkout.</>}
-          </div>
+          {best ? (
+            <div className="bb-delivery">
+              {best.standardFee === 0
+                ? <><b className="free-delivery">FREE delivery</b> <b>{deliveryRange(best.standardFrom, best.standardTo)}</b>.</>
+                : <>{money(best.standardFee)} delivery <b>{deliveryRange(best.standardFrom, best.standardTo)}</b>. FREE on {best.sellerName} orders over {money(best.freeDeliveryFrom)}.</>}
+              <div>Or fastest delivery <b>{deliveryRange(best.expressDate, null)}</b> ({money(best.expressFee)}).{cutoff && <> Order within <span className="bb-cutoff">{cutoff}</span>.</>}</div>
+            </div>
+          ) : <div className="bb-delivery">Delivery costs are shown at checkout.</div>}
           {box.stock === 0 ? <div className="bb-stock out">Currently unavailable.</div>
             : box.stock <= 5 ? <div className="bb-stock low">Only {box.stock} left in stock.</div>
             : <div className="bb-stock in">In stock</div>}

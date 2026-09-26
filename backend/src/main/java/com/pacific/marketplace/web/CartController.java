@@ -42,6 +42,17 @@ public class CartController {
         return cart.setQuantity(CurrentUser.id(jwt), productId, req.quantity());
     }
 
+    /** Keeps the item in the cart but out of the totals and checkout. */
+    @PostMapping("/items/{productId}/save-for-later")
+    public CartDto saveForLater(@PathVariable Long productId, @AuthenticationPrincipal Jwt jwt) {
+        return cart.saveForLater(CurrentUser.id(jwt), productId, true);
+    }
+
+    @PostMapping("/items/{productId}/move-to-cart")
+    public CartDto moveToCart(@PathVariable Long productId, @AuthenticationPrincipal Jwt jwt) {
+        return cart.saveForLater(CurrentUser.id(jwt), productId, false);
+    }
+
     @DeleteMapping("/items/{productId}")
     public CartDto remove(@PathVariable Long productId, @AuthenticationPrincipal Jwt jwt) {
         return cart.remove(CurrentUser.id(jwt), productId);

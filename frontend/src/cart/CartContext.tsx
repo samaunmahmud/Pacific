@@ -9,6 +9,8 @@ interface CartState {
   add: (productId: number, quantity?: number) => Promise<void>;
   setQuantity: (productId: number, quantity: number) => Promise<void>;
   remove: (productId: number) => Promise<void>;
+  /** "Save for later" (true) or "Move to cart" (false). */
+  saveForLater: (productId: number, saved: boolean) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -44,13 +46,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(await api<Cart>(`/cart/items/${productId}`, { method: 'PATCH', body: { quantity } }));
   }, []);
 
+  const saveForLater = useCallback(async (productId: number, saved: boolean) => {
+    setCart(await api<Cart>(`/cart/items/${productId}/${saved ? 'save-for-later' : 'move-to-cart'}`, { method: 'POST' }));
+  }, []);
+
   const remove = useCallback(async (productId: number) => {
     setCart(await api<Cart>(`/cart/items/${productId}`, { method: 'DELETE' }));
   }, []);
 
   const value = useMemo(
-    () => ({ cart, count: cart?.itemCount ?? 0, add, setQuantity, remove, refresh }),
-    [cart, add, setQuantity, remove, refresh],
+    () => ({ cart, count: cart?.itemCount ?? 0, add, setQuantity, remove, saveForLater, refresh }),
+    [cart, add, setQuantity, remove, saveForLater, refresh],
   );
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

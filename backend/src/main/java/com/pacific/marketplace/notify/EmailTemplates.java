@@ -37,6 +37,15 @@ public class EmailTemplates {
     // ---------- customer ----------
 
     /** One email for a whole checkout, even when it became several orders (one per seller). */
+    private static final DateTimeFormatter WEEKDAY = DateTimeFormatter.ofPattern("EEEE d MMMM", java.util.Locale.UK);
+
+    /** "Tuesday 30 September", or a range when standard delivery may take a day longer. */
+    static String arriving(Order o) {
+        String from = WEEKDAY.format(o.getDeliveryFrom());
+        return o.getDeliveryTo() == null || o.getDeliveryTo().equals(o.getDeliveryFrom()) ? from
+                : from + " – " + WEEKDAY.format(o.getDeliveryTo());
+    }
+
     public Email orderConfirmation(List<Order> orders) {
         Order first = orders.get(0);
         boolean card = PaymentMethod.CARD.name().equals(first.getPaymentMethod());
@@ -51,6 +60,7 @@ public class EmailTemplates {
         for (Order o : orders) {
             d.subheading("Order #" + o.getId() + " · sold by " + seller(o));
             items(d, o);
+            if (o.getDeliveryFrom() != null) d.para(o.getDeliveryOption().label() + ": arriving " + arriving(o));
             grand = grand.add(o.getTotal());
         }
         if (orders.size() > 1) d.total("Total", money(grand));

@@ -1,13 +1,16 @@
 package com.pacific.marketplace.service;
 
 import com.pacific.marketplace.domain.CartItem;
+import com.pacific.marketplace.domain.DeliveryOption;
 import com.pacific.marketplace.domain.Product;
+import com.pacific.marketplace.domain.SellerProfile;
 import com.pacific.marketplace.repo.CartItemRepository;
 import com.pacific.marketplace.repo.ProductRepository;
 import com.pacific.marketplace.repo.UserRepository;
 import com.pacific.marketplace.web.ApiException;
 import com.pacific.marketplace.web.dto.CartDtos.CartDto;
 import com.pacific.marketplace.web.dto.CartDtos.CartItemDto;
+import com.pacific.marketplace.web.dto.CartDtos.DeliveryChoiceDto;
 import com.pacific.marketplace.web.dto.CartDtos.ShipmentDto;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -23,13 +26,20 @@ public class CartService {
     private final ProductRepository products;
     private final UserRepository users;
     private final ShopPricing pricing;
+    private final Delivery delivery;
 
     public CartService(CartItemRepository cart, ProductRepository products, UserRepository users,
-                       ShopPricing pricing) {
+                       ShopPricing pricing, Delivery delivery) {
         this.cart = cart;
         this.products = products;
         this.users = users;
         this.pricing = pricing;
+        this.delivery = delivery;
+    }
+
+    /** The checkout key for a seller's shipment. */
+    public static String shipmentKey(SellerProfile seller) {
+        return seller == null ? "pacific" : seller.getSlug();
     }
 
     @Transactional(readOnly = true)
@@ -50,6 +60,7 @@ public class CartService {
             cart.save(new CartItem(users.getReferenceById(userId), product, wanted));
         } else {
             item.setQuantity(wanted);
+            item.setSavedForLater(false); // adding it again means they want it now
         }
         cart.flush();
         return get(userId);
@@ -66,6 +77,17 @@ public class CartService {
             checkAvailable(activeProduct(productId), quantity);
             item.setQuantity(quantity);
         }
+        cart.flush();
+        return get(userId);
+    }
+
+    /** "Save for later" (or, with false, "Move to cart"). */
+    @Transactional
+    public CartDto saveForLater(Long userId, Long productId, boolean saved) {
+        CartItem item = cart.findByUserIdAndProductId(userId, productId)
+                .orElseThrow(() -> ApiException.notFound("That item isn't in your cart."));
+        if (!saved) checkAvailable(activeProduct(productId), item.getQuantity());
+        item.setSavedForLater(saved);
         cart.flush();
         return get(userId);
     }
@@ -93,6 +115,7 @@ public class CartService {
             CartItem existing = cart.findByUserIdAndProductId(userId, productId).orElse(null);
             int have = existing == null ? 0 : existing.getQuantity();
             int target = Math.min(Math.max(have, quantity), Math.min(max, available));
+            if (existing != null) existing.setSavedForLater(false); // back in the cart they were paying for
             if (target <= have) return;
             if (existing == null) {
                 cart.save(new CartItem(users.getReferenceById(userId), products.getReferenceById(productId), target));
@@ -120,26 +143,40 @@ public class CartService {
         }
     }
 
-    private CartDto toDto(List<CartItem> items) {
-        List<CartItemDto> lines = items.stream().map(i -> {
-            Product p = i.getProduct();
-            var seller = p.getSeller();
-            return new CartItemDto(p.getId(), p.getName(), p.getImageUrl(),
-                    p.getCategory() == null ? null : p.getCategory().getName(), p.getPrice(), i.getQuantity(),
-                    p.getPrice().multiply(BigDecimal.valueOf(i.getQuantity())), p.getStock(),
-                    seller == null ? "Pacific" : seller.getStoreName(), seller == null ? null : seller.getSlug());
-        }).toList();
+    private static CartItemDto line(CartItem i) {
+        Product p = i.getProduct();
+        var seller = p.getSeller();
+        return new CartItemDto(p.getId(), p.getName(), p.getImageUrl(),
+                p.getCategory() == null ? null : p.getCategory().getName(), p.getPrice(), i.getQuantity(),
+                p.getPrice().multiply(BigDecimal.valueOf(i.getQuantity())), p.getStock(),
+                seller == null ? "Pacific" : seller.getStoreName(), seller == null ? null : seller.getSlug());
+    }
 
-        // Each seller ships separately, so shipping (and the free-shipping threshold) applies per seller.
-        Map<String, BigDecimal> subtotalBySeller = new LinkedHashMap<>();
-        Map<String, String> slugBySeller = new LinkedHashMap<>();
-        for (CartItemDto l : lines) {
-            subtotalBySeller.merge(l.sellerName(), l.lineTotal(), BigDecimal::add);
-            slugBySeller.putIfAbsent(l.sellerName(), l.sellerSlug());
+    private CartDto toDto(List<CartItem> all) {
+        List<CartItem> items = all.stream().filter(i -> !i.isSavedForLater()).toList();
+        List<CartItemDto> lines = items.stream().map(CartService::line).toList();
+        List<CartItemDto> saved = all.stream().filter(CartItem::isSavedForLater).map(CartService::line).toList();
+
+        // Each seller ships separately, so delivery (and its free threshold) applies per seller.
+        Map<String, BigDecimal> subtotalByKey = new LinkedHashMap<>();
+        Map<String, SellerProfile> sellerByKey = new LinkedHashMap<>();
+        for (CartItem i : items) {
+            SellerProfile seller = i.getProduct().getSeller();
+            String key = shipmentKey(seller);
+            subtotalByKey.merge(key, i.getProduct().getPrice().multiply(BigDecimal.valueOf(i.getQuantity())), BigDecimal::add);
+            sellerByKey.putIfAbsent(key, seller);
         }
-        List<ShipmentDto> shipments = subtotalBySeller.entrySet().stream().map(e -> {
+        List<ShipmentDto> shipments = subtotalByKey.entrySet().stream().map(e -> {
             BigDecimal sub = e.getValue().setScale(2);
-            return new ShipmentDto(e.getKey(), slugBySeller.get(e.getKey()), sub, pricing.shippingFor(sub));
+            SellerProfile seller = sellerByKey.get(e.getKey());
+            BigDecimal threshold = delivery.freeThreshold(seller);
+            List<DeliveryChoiceDto> choices = java.util.Arrays.stream(DeliveryOption.values()).map(o -> {
+                Delivery.Window w = delivery.window(o, seller);
+                return new DeliveryChoiceDto(o, o.label(), delivery.fee(o, sub, seller), w.from(), w.to());
+            }).toList();
+            return new ShipmentDto(e.getKey(), seller == null ? "Pacific" : seller.getStoreName(),
+                    seller == null ? null : seller.getSlug(), sub, choices.get(0).fee(), threshold,
+                    threshold.subtract(sub).max(BigDecimal.ZERO).setScale(2), choices);
         }).toList();
 
         BigDecimal subtotal = shipments.stream().map(ShipmentDto::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add)
@@ -147,6 +184,6 @@ public class CartService {
         BigDecimal shipping = shipments.stream().map(ShipmentDto::shipping).reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2);
         return new CartDto(lines, shipments, lines.stream().mapToInt(CartItemDto::quantity).sum(), subtotal,
-                shipping, subtotal.add(shipping), pricing.freeShippingThreshold());
+                shipping, subtotal.add(shipping), pricing.freeShippingThreshold(), saved, delivery.orderWithin());
     }
 }

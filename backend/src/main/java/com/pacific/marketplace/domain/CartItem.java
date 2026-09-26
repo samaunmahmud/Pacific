@@ -22,6 +22,10 @@ public class CartItem {
     @Column(nullable = false)
     private int quantity;
 
+    /** Kept for later: left out of the cart's totals and of checkout until moved back. */
+    @Column(name = "saved_for_later", nullable = false)
+    private boolean savedForLater;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -52,4 +56,6 @@ public class CartItem {
     public Product getProduct() { return product; }
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
+    public boolean isSavedForLater() { return savedForLater; }
+    public void setSavedForLater(boolean savedForLater) { this.savedForLater = savedForLater; }
 }

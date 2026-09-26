@@ -34,16 +34,20 @@ let now = await serverCart();
 check('quantity dropdown updates the server', now.items.find((i) => i.productId === first.productId).quantity === first.quantity + 1);
 check('summary shows the new item count', (await page.$eval('.cart-sub-line', (e) => e.textContent)).includes(`(${now.itemCount} item`));
 
-// Save for later: leaves the cart, lands in the wish list
+// Save for later: leaves the cart's total, waits under "Saved for later", and can be moved back
 // (the page groups items by seller, so read the product id from the row we click rather than guessing the order)
 const idOfRow = async (n) => Number((await page.$$eval('.cart-item .cart-item-title', (els) => els.map((e) => e.getAttribute('href'))))[n].split('/').pop());
 const second = { productId: await idOfRow(1) };
 await (await (await page.$$('.cart-item'))[1].$$('.cart-link-btn'))[1].click();
 await new Promise((r) => setTimeout(r, 1200));
 now = await serverCart();
-const wish = await call('GET', '/wishlist/ids', token);
-check('Save for later removes it from the cart', !now.items.some((i) => i.productId === second.productId));
-check('...and adds it to the wish list', wish.includes(second.productId), JSON.stringify(wish));
+check('Save for later takes it out of the cart', !now.items.some((i) => i.productId === second.productId));
+check('...and keeps it under "Saved for later"', now.saved.some((i) => i.productId === second.productId)
+  && (await page.$eval('.saved-box', (e) => e.textContent).catch(() => '')).includes('Saved for later'), JSON.stringify(now.saved));
+await (await page.$$('.saved-box .cart-link-btn'))[0].click(); // Move to cart
+await new Promise((r) => setTimeout(r, 1200));
+now = await serverCart();
+check('"Move to cart" puts it back', now.items.some((i) => i.productId === second.productId) && now.saved.length === 0, JSON.stringify(now));
 
 // Delete
 const third = { productId: await idOfRow(1) };

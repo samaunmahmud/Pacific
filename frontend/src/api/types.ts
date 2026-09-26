@@ -100,11 +100,29 @@ export interface CartItem {
   sellerSlug: string | null;
 }
 
+export type DeliveryOption = 'STANDARD' | 'EXPRESS';
+
+/** One way to deliver a shipment: its price and the dates it would arrive if ordered now (YYYY-MM-DD). */
+export interface DeliveryChoice {
+  option: DeliveryOption;
+  label: string;
+  fee: number;
+  from: string;
+  to: string;
+}
+
+/** A seller's part of the cart. key identifies it when choosing delivery at checkout. */
 export interface Shipment {
+  key: string;
   sellerName: string;
   sellerSlug: string | null;
   subtotal: number;
+  /** Standard delivery's price. */
   shipping: number;
+  freeThreshold: number;
+  /** How much more would make standard delivery free (0 once it is). */
+  toFreeDelivery: number;
+  choices: DeliveryChoice[];
 }
 
 export interface Cart {
@@ -115,6 +133,10 @@ export interface Cart {
   shipping: number;
   total: number;
   freeShippingThreshold: number;
+  /** "Saved for later": kept, but not in the totals or checkout. */
+  saved: CartItem[];
+  /** Today's order cut-off, while orders still count from today. */
+  orderWithin: string | null;
 }
 
 export interface Address {
@@ -165,6 +187,11 @@ export interface Order {
   canReturn: boolean;
   returnDeadline: string | null;
   returns: ReturnRequest[];
+  deliveryOption: DeliveryOption;
+  deliveryLabel: string;
+  /** Delivery dates promised at checkout (YYYY-MM-DD); null on older orders. */
+  deliveryFrom: string | null;
+  deliveryTo: string | null;
 }
 
 export type ReturnStatus = 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'REFUNDED' | 'CANCELLED';
@@ -322,6 +349,11 @@ export interface Seller {
   ratingCount: number;
   createdAt: string;
   approvedAt: string | null;
+  /** Standard delivery is free on this store's orders from this amount; null = the shop's default. */
+  freeDeliveryThreshold: number | null;
+  defaultFreeDelivery: number;
+  /** Business days to dispatch an order. */
+  dispatchDays: number;
 }
 
 export interface PublicSeller {
@@ -482,4 +514,12 @@ export interface Offer {
   conditionLabel: string;
   /** True for the offer shoppers buy by default: the best one in stock. */
   buyBox: boolean;
+  /** Delivery for one unit ordered now. */
+  standardFee: number;
+  freeDeliveryFrom: number;
+  standardFrom: string;
+  standardTo: string;
+  expressFee: number;
+  expressDate: string;
+  orderWithin: string | null;
 }

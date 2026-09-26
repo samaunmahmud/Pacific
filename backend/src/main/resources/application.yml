@@ -55,6 +55,14 @@ app:
     max-quantity-per-item: 10
     # Customers can ask to return delivered items for this many days after delivery.
     return-window-days: 30
+    # Delivery dates: business days after the seller dispatches (sellers choose how long that takes). Orders placed
+    # before the cut-off hour on a business day count from that day.
+    express-rate: 5.99
+    standard-days-min: 2
+    standard-days-max: 3
+    express-days: 1
+    dispatch-cutoff-hour: 14
+    time-zone: Europe/London
   # Where the storefront is served from; used to build links in payment redirects and emails.
   public-url: ${PUBLIC_URL:http://localhost:5173}
   payments:

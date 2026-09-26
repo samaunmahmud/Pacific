@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import type { CheckoutResponse, PaymentConfig, PaymentMethod, SavedAddress } from '../api/types';
+import type { CheckoutResponse, DeliveryOption, PaymentConfig, PaymentMethod, SavedAddress, Shipment } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
 import { ConfirmEmailNotice, needsConfirmation } from '../components/ConfirmEmailNotice';
-import { money } from '../ui/format';
+import { deliveryRange, money, timeLeft } from '../ui/format';
 import { useAsync } from '../ui/useAsync';
 
 export function Checkout() {
@@ -14,6 +14,8 @@ export function Checkout() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: user?.name ?? '', line1: '', line2: '', city: '', postcode: '', country: 'United Kingdom' });
   const [method, setMethod] = useState<PaymentMethod>('PAY_ON_DELIVERY');
+  // Delivery per seller's shipment (by shipment key); standard unless changed.
+  const [delivery, setDelivery] = useState<Record<string, DeliveryOption>>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   // If this can't be loaded we simply don't offer card payment; pay on delivery always works.
@@ -30,6 +32,10 @@ export function Checkout() {
   if (!cart) return <div className="loading">Loading…</div>;
   if (cart.items.length === 0 && !busy) return <Navigate to="/cart" replace />;
 
+  const chosen = (ship: Shipment) => ship.choices.find((c) => c.option === (delivery[ship.key] ?? 'STANDARD')) ?? ship.choices[0];
+  const shippingTotal = cart.shipments.reduce((sum, ship) => sum + (chosen(ship)?.fee ?? ship.shipping), 0);
+  const orderTotal = cart.subtotal + shippingTotal;
+
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
 
   async function submit(e: FormEvent) {
@@ -43,7 +49,7 @@ export function Checkout() {
         : { ...form, line2: form.line2 || null };
       const result = await api<CheckoutResponse>('/orders', {
         method: 'POST',
-        body: { ...address, paymentMethod: paying ? 'CARD' : 'PAY_ON_DELIVERY' },
+        body: { ...address, paymentMethod: paying ? 'CARD' : 'PAY_ON_DELIVERY', delivery },
       });
       // Remember a new address for next time. Best effort: the order is already placed, so this must never get in the way.
       const norm = (v: string | null | undefined) => (v ?? '').trim().toLowerCase();
@@ -117,6 +123,24 @@ export function Checkout() {
             </>
           )}
 
+          <h2 style={{ margin: '8px 0 0' }}>Delivery</h2>
+          {cart.shipments.map((ship) => (
+            <div key={ship.key} className="pay-options" role="radiogroup" aria-label={`Delivery for items from ${ship.sellerName}`}>
+              {cart.shipments.length > 1 && <div className="muted" style={{ fontSize: 13 }}>Items from <b>{ship.sellerName}</b></div>}
+              {ship.choices.map((c) => (
+                <label key={c.option} className={`pay-option ${chosen(ship)?.option === c.option ? 'selected' : ''}`}>
+                  <input type="radio" name={`delivery-${ship.key}`} checked={chosen(ship)?.option === c.option}
+                    onChange={() => setDelivery({ ...delivery, [ship.key]: c.option })} />
+                  <span>
+                    <b>{deliveryRange(c.from, c.to)}</b> · {c.fee === 0 ? <b className="free-delivery">FREE</b> : money(c.fee)}
+                    <br /><span className="muted">{c.label}{c.option === 'STANDARD' && c.fee > 0 ? ` — free from ${money(ship.freeThreshold)} with ${ship.sellerName}` : ''}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          ))}
+          {cart.orderWithin && timeLeft(cart.orderWithin) && <div className="muted" style={{ fontSize: 13 }}>Order within <b>{timeLeft(cart.orderWithin)}</b> for these dates.</div>}
+
           <h2 style={{ margin: '8px 0 0' }}>Payment</h2>
           {cardEnabled ? (
             <div className="pay-options" role="radiogroup" aria-label="Payment method">
@@ -139,8 +163,8 @@ export function Checkout() {
         <aside className="square-review-box static totals" aria-label="Order summary">
           <h2 style={{ margin: 0 }}>Order summary</h2>
           {cart.shipments.map((ship) => (
-            <div key={ship.sellerName} className="stack" style={{ gap: 6 }}>
-              <div className="muted" style={{ fontSize: 12 }}>Sold by {ship.sellerName}{cart.shipments.length > 1 ? ` · shipping ${ship.shipping === 0 ? 'FREE' : money(ship.shipping)}` : ''}</div>
+            <div key={ship.key} className="stack" style={{ gap: 6 }}>
+              <div className="muted" style={{ fontSize: 12 }}>Sold by {ship.sellerName}{cart.shipments.length > 1 ? ` · delivery ${chosen(ship).fee === 0 ? 'FREE' : money(chosen(ship).fee)}` : ''}</div>
               {cart.items.filter((i) => i.sellerName === ship.sellerName).map((i) => (
                 <div key={i.productId} className="line"><span>{i.quantity} × {i.name}</span><span>{money(i.lineTotal)}</span></div>
               ))}
@@ -148,8 +172,8 @@ export function Checkout() {
           ))}
           <hr />
           <div className="line"><span>Subtotal</span><span>{money(cart.subtotal)}</span></div>
-          <div className="line"><span>Shipping</span><span>{cart.shipping === 0 ? 'FREE' : money(cart.shipping)}</span></div>
-          <div className="line grand"><span>Total</span><span>{money(cart.total)}</span></div>
+          <div className="line"><span>Delivery</span><span>{shippingTotal === 0 ? 'FREE' : money(shippingTotal)}</span></div>
+          <div className="line grand"><span>Total</span><span>{money(orderTotal)}</span></div>
           <ConfirmEmailNotice what="place your order" />
           {error && <div className="notice error" role="alert">{error}</div>}
           <button className="submit-btn block" disabled={busy || needsConfirmation(user)}>{busy ? (paying ? 'Taking you to payment…' : 'Placing order…') : paying ? 'Continue to payment' : 'Place order'}</button>

@@ -1,31 +1,32 @@
 package com.pacific.marketplace.web;
 
 import com.pacific.marketplace.domain.OrderStatus;
+import com.pacific.marketplace.domain.ReturnStatus;
 import com.pacific.marketplace.domain.SellerProfile;
+import com.pacific.marketplace.service.EmailVerificationService;
 import com.pacific.marketplace.service.LedgerService;
+import com.pacific.marketplace.service.OfferService;
 import com.pacific.marketplace.service.OrderService;
 import com.pacific.marketplace.service.ProductService;
-import com.pacific.marketplace.domain.ReturnStatus;
 import com.pacific.marketplace.service.QaService;
 import com.pacific.marketplace.service.ReturnService;
-import com.pacific.marketplace.web.dto.ReturnDtos.DecisionRequest;
-import com.pacific.marketplace.web.dto.ReturnDtos.RefundRequest;
-import com.pacific.marketplace.web.dto.ReturnDtos.ReturnDto;
 import com.pacific.marketplace.service.SellerService;
-import com.pacific.marketplace.service.EmailVerificationService;
-import com.pacific.marketplace.service.OfferService;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
 import com.pacific.marketplace.web.dto.OrderDtos.StatusRequest;
 import com.pacific.marketplace.web.dto.PageResponse;
+import com.pacific.marketplace.web.dto.ProductDtos.OfferRequest;
 import com.pacific.marketplace.web.dto.ProductDtos.ProductDto;
 import com.pacific.marketplace.web.dto.ProductDtos.ProductRequest;
 import com.pacific.marketplace.web.dto.ProductDtos.StockRequest;
 import com.pacific.marketplace.web.dto.QaDtos.SellerQuestionDto;
+import com.pacific.marketplace.web.dto.ReturnDtos.DecisionRequest;
+import com.pacific.marketplace.web.dto.ReturnDtos.RefundRequest;
+import com.pacific.marketplace.web.dto.ReturnDtos.ReturnDto;
 import com.pacific.marketplace.web.dto.SellerDtos.ApplyRequest;
+import com.pacific.marketplace.web.dto.SellerDtos.DeliverySettingsRequest;
 import com.pacific.marketplace.web.dto.SellerDtos.EarningsDto;
 import com.pacific.marketplace.web.dto.SellerDtos.SellerDto;
 import com.pacific.marketplace.web.dto.SellerDtos.SellerStats;
-import com.pacific.marketplace.web.dto.ProductDtos.OfferRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -92,6 +93,11 @@ public class SellerController {
     @PutMapping("/me")
     public SellerDto updateStore(@Valid @RequestBody ApplyRequest req, @AuthenticationPrincipal Jwt jwt) {
         return sellers.updateStore(CurrentUser.id(jwt), req);
+    }
+
+    @PutMapping("/me/delivery")
+    public SellerDto updateDelivery(@Valid @RequestBody DeliverySettingsRequest req, @AuthenticationPrincipal Jwt jwt) {
+        return sellers.updateDelivery(CurrentUser.id(jwt), req.freeDeliveryThreshold(), req.dispatchDays());
     }
 
     @GetMapping("/stats")

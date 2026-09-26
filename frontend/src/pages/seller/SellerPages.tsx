@@ -266,6 +266,50 @@ export function SellerSettings() {
         {error && <div className="notice error" role="alert">{error}</div>}
         <div><button className="submit-btn" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button></div>
       </div>
+      <DeliverySettings />
     </form>
+  );
+}
+
+/** How the store delivers: its own free-delivery amount and how long it takes to dispatch. */
+function DeliverySettings() {
+  const { seller, refresh } = useSeller();
+  const toast = useToast();
+  const [threshold, setThreshold] = useState(seller?.freeDeliveryThreshold != null ? seller.freeDeliveryThreshold.toFixed(2) : '');
+  const [days, setDays] = useState(seller?.dispatchDays ?? 1);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!seller) return null;
+
+  async function save() {
+    const t = threshold.trim();
+    if (t && !/^\d{1,6}(\.\d{1,2})?$/.test(t)) return setError('Enter an amount like 25.00, or leave it empty for the shop default.');
+    setBusy(true);
+    setError('');
+    try {
+      await api<Seller>('/seller/me/delivery', { method: 'PUT', body: { freeDeliveryThreshold: t ? Number(t) : null, dispatchDays: days } });
+      await refresh();
+      toast.show('Delivery settings saved');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="square-review-box static stack">
+      <h2 style={{ margin: 0 }}>Delivery</h2>
+      <p className="muted" style={{ margin: 0 }}>Shoppers see delivery dates worked out from your dispatch time, and standard delivery is free on your orders from the amount below. Express delivery is always available.</p>
+      <label className="field-label small" htmlFor="ss-free">Free standard delivery on orders over (£)</label>
+      <input id="ss-free" className="rounded-input" inputMode="decimal" value={threshold} onChange={(e) => setThreshold(e.target.value)} placeholder={`Shop default: ${seller.defaultFreeDelivery.toFixed(2)}`} />
+      <label className="field-label small" htmlFor="ss-days">Dispatch time</label>
+      <select id="ss-days" className="rounded-input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+        <option value={0}>Same business day (orders before 2pm)</option>
+        {[1, 2, 3, 4, 5].map((d) => <option key={d} value={d}>{d} business day{d === 1 ? '' : 's'}</option>)}
+      </select>
+      {error && <div className="notice error" role="alert">{error}</div>}
+      <div><button type="button" className="submit-btn" disabled={busy} onClick={() => void save()}>{busy ? 'Saving…' : 'Save delivery settings'}</button></div>
+    </div>
   );
 }

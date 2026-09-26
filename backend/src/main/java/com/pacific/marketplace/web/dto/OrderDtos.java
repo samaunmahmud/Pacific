@@ -1,6 +1,7 @@
 package com.pacific.marketplace.web.dto;
 
 import com.pacific.marketplace.domain.Carriers;
+import com.pacific.marketplace.domain.DeliveryOption;
 import com.pacific.marketplace.domain.Order;
 import com.pacific.marketplace.domain.OrderEvent;
 import com.pacific.marketplace.domain.OrderEventType;
@@ -14,6 +15,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public final class OrderDtos {
@@ -29,7 +31,9 @@ public final class OrderDtos {
             @NotBlank(message = "Please enter the postcode.") @Size(max = 20) String postcode,
             @NotBlank(message = "Please enter the country.") @Size(max = 80) String country,
             /** Pay on delivery when omitted. */
-            PaymentMethod paymentMethod) {
+            PaymentMethod paymentMethod,
+            /** The delivery chosen per shipment, by the cart's shipment key; standard when omitted. */
+            Map<String, DeliveryOption> delivery) {
     }
 
     /** carrier and trackingNumber are only used when the order is being marked as shipped, and are optional. */
@@ -69,7 +73,8 @@ public final class OrderDtos {
                            String checkoutRef, Set<OrderStatus> nextStatuses, boolean cancellableByCustomer,
                            Instant createdAt, String trackingCarrier, String trackingNumber, String trackingUrl,
                            Instant shippedAt, Instant deliveredAt, List<EventDto> timeline, boolean canReturn,
-                           Instant returnDeadline, List<ReturnDtos.ReturnDto> returns) {
+                           Instant returnDeadline, List<ReturnDtos.ReturnDto> returns, DeliveryOption deliveryOption,
+                           String deliveryLabel, java.time.LocalDate deliveryFrom, java.time.LocalDate deliveryTo) {
         public static OrderDto from(Order o) {
             List<OrderItemDto> items = o.getItems().stream().map(OrderItemDto::from).toList();
             var seller = o.getSeller();
@@ -83,7 +88,8 @@ public final class OrderDtos {
                     Carriers.trackingUrl(o.getTrackingCarrier(), o.getTrackingNumber()), o.getShippedAt(),
                     o.getDeliveredAt(), o.getEvents().stream().map(EventDto::from).toList(), o.canReturn(),
                     o.getReturnDeadline(),
-                    o.getReturns().stream().map(r -> ReturnDtos.ReturnDto.from(r, null)).toList());
+                    o.getReturns().stream().map(r -> ReturnDtos.ReturnDto.from(r, null)).toList(),
+                    o.getDeliveryOption(), o.getDeliveryOption().label(), o.getDeliveryFrom(), o.getDeliveryTo());
         }
     }
 

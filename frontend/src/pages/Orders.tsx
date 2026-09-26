@@ -6,7 +6,7 @@ import { useCart } from '../cart/CartContext';
 import { OrderActivity, TrackingInfo } from '../components/OrderActivity';
 import { ProductImage } from '../components/ProductImage';
 import { ReturnsPanel } from '../components/ReturnsPanel';
-import { dateOnly, dateTime, money, statusLabel } from '../ui/format';
+import { dateOnly, dateTime, deliveryRange, money, statusLabel } from '../ui/format';
 import { useToast } from '../ui/Toast';
 import { useAsync } from '../ui/useAsync';
 
@@ -51,6 +51,12 @@ function groupByCheckout(orders: Order[]): Order[][] {
   return [...groups.values()];
 }
 
+/** "Arriving Thu 1 Oct – Fri 2 Oct" while an order is on its way (dates promised at checkout). */
+function Arriving({ o }: { o: Order }) {
+  if (!o.deliveryFrom || !['PLACED', 'PROCESSING', 'SHIPPED'].includes(o.status)) return null;
+  return <p className="order-note arriving">Arriving <b>{deliveryRange(o.deliveryFrom, o.deliveryTo)}</b>{o.deliveryOption === 'EXPRESS' ? ' · Express' : ''}</p>;
+}
+
 function OrderCard({ o }: { o: Order }) {
   return (
     <article className="order-card">
@@ -66,6 +72,7 @@ function OrderCard({ o }: { o: Order }) {
           {o.status === 'AWAITING_PAYMENT' && <p className="order-note">Your items are reserved for a short time while you pay.</p>}
           {o.status === 'SHIPPED' && o.trackingNumber && <p className="order-note">{o.trackingCarrier ?? 'Tracking'}: <b>{o.trackingNumber}</b></p>}
           {o.status === 'DELIVERED' && o.deliveredAt && <p className="order-note">Delivered on {dateOnly(o.deliveredAt)}</p>}
+          <Arriving o={o} />
           {o.returns.some((r) => r.status === 'REQUESTED' || r.status === 'APPROVED') && <p className="order-note">A return is in progress. <Link to={`/orders/${o.id}`}>See details</Link></p>}
           {o.items.map((i) => (
             <div key={i.productId} className="order-item">
@@ -175,6 +182,8 @@ export function OrderDetail() {
           <section>
             <h3>Delivering to</h3>
             <address>{a.name}<br />{a.line1}<br />{a.line2 && <>{a.line2}<br /></>}{a.city} {a.postcode}<br />{a.country}</address>
+            <p className="muted" style={{ margin: '8px 0 0' }}>{o.deliveryLabel}</p>
+            <Arriving o={o} />
           </section>
           <section>
             <h3>Payment</h3>

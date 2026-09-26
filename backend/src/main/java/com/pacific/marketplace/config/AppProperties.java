@@ -33,8 +33,14 @@ public record AppProperties(
     public record Reviews(long editWindowMinutes) {
     }
 
+    /**
+     * Delivery: standard delivery costs shippingFlatRate (free from freeShippingThreshold, which sellers can change for
+     * their own orders); express costs expressRate. Orders placed before dispatchCutoffHour (in timeZone) on a
+     * business day count from that day; transit times are in business days after dispatch.
+     */
     public record Shop(String currency, BigDecimal shippingFlatRate, BigDecimal freeShippingThreshold,
-                       int maxQuantityPerItem, int returnWindowDays) {
+                       int maxQuantityPerItem, int returnWindowDays, BigDecimal expressRate, int standardDaysMin,
+                       int standardDaysMax, int expressDays, int dispatchCutoffHour, String timeZone) {
     }
 
     public record Payments(int pendingExpiryMinutes, boolean expiryJob, Stripe stripe, boolean simulatorEnabled) {

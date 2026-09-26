@@ -102,10 +102,16 @@ public final class ProductDtos {
             @NotNull(message = "Choose the condition.") ItemCondition condition) {
     }
 
-    /** One seller's listing on a product page, as the buy box and "Other sellers" show it. */
+    /**
+     * One seller's listing on a product page, as the buy box and "Other sellers" show it, with its delivery for one
+     * unit ordered now: standard (free from freeDeliveryFrom) and express. orderWithin is today's order cut-off.
+     */
     public record OfferDto(Long productId, String sellerName, String sellerSlug, double sellerRating,
                            int sellerRatingCount, BigDecimal price, BigDecimal listPrice, int discountPercent, int stock,
-                           ItemCondition condition, String conditionLabel, boolean buyBox) {
+                           ItemCondition condition, String conditionLabel, boolean buyBox,
+                           BigDecimal standardFee, BigDecimal freeDeliveryFrom, java.time.LocalDate standardFrom,
+                           java.time.LocalDate standardTo, BigDecimal expressFee, java.time.LocalDate expressDate,
+                           java.time.Instant orderWithin) {
     }
 
     public record StockRequest(@NotNull @Min(0) @Max(1_000_000) Integer stock) {

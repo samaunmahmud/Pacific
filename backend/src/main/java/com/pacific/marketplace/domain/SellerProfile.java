@@ -38,6 +38,14 @@ public class SellerProfile {
     @Column(name = "commission_override", precision = 5, scale = 2)
     private BigDecimal commissionOverride;
 
+    /** Standard delivery is free on this seller's orders from this amount; null = the shop's default. */
+    @Column(name = "free_delivery_threshold", precision = 10, scale = 2)
+    private BigDecimal freeDeliveryThreshold;
+
+    /** Business days this seller takes to dispatch an order. */
+    @Column(name = "dispatch_days", nullable = false)
+    private int dispatchDays = 1;
+
     @Column(name = "rating_avg", nullable = false, precision = 3, scale = 2)
     private BigDecimal ratingAvg = BigDecimal.ZERO;
 
@@ -102,6 +110,12 @@ public class SellerProfile {
     public String getStatusNote() { return statusNote; }
     public BigDecimal getCommissionOverride() { return commissionOverride; }
     public void setCommissionOverride(BigDecimal commissionOverride) { this.commissionOverride = commissionOverride; }
+    public BigDecimal getFreeDeliveryThreshold() { return freeDeliveryThreshold; }
+    public int getDispatchDays() { return dispatchDays; }
+    public void setDelivery(BigDecimal freeDeliveryThreshold, int dispatchDays) {
+        this.freeDeliveryThreshold = freeDeliveryThreshold;
+        this.dispatchDays = dispatchDays;
+    }
     public BigDecimal getRatingAvg() { return ratingAvg; }
     public int getRatingCount() { return ratingCount; }
     public Instant getCreatedAt() { return createdAt; }

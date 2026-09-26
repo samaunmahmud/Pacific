@@ -5,7 +5,7 @@ import type { Order, OrderStatus, Page } from '../../api/types';
 import { OrderActivity, TrackingInfo } from '../../components/OrderActivity';
 import { Pagination } from '../../components/Pagination';
 import { CARRIERS } from '../../ui/carriers';
-import { dateTime, money, statusLabel } from '../../ui/format';
+import { dateTime, deliveryRange, money, statusLabel } from '../../ui/format';
 import { useToast } from '../../ui/Toast';
 import { useAsync } from '../../ui/useAsync';
 import { StatusPill } from '../Orders';
@@ -56,6 +56,9 @@ function OrderRow({ order, onChanged, base }: { order: Order; onChanged: (o: Ord
         <div className="muted">
           Ship to: {order.address.name}, {order.address.line1}{order.address.line2 ? `, ${order.address.line2}` : ''}, {order.address.city} {order.address.postcode}, {order.address.country}
         </div>
+        {order.deliveryFrom && (
+          <div className="muted">{order.deliveryLabel}{order.deliveryOption === 'EXPRESS' ? ' (dispatch promptly)' : ''} · promised {deliveryRange(order.deliveryFrom, order.deliveryTo)}</div>
+        )}
         <TrackingInfo order={order} />
         {base === 'seller' && <div><Link to={`/seller/messages/new?order=${order.id}`} className="message-seller">Message {order.customerName}</Link></div>}
         <details className="activity-toggle">

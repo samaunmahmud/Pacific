@@ -11,6 +11,7 @@ import { QandA } from '../components/QandA';
 import { RecentlyViewed } from '../components/RecentlyViewed';
 import { CustomerReviewCard } from '../components/ReviewCard';
 import { Stars } from '../components/Stars';
+import { VariationPicker } from '../components/VariationPicker';
 import { WishlistButton } from '../components/WishlistButton';
 import { useSeller } from '../seller/SellerContext';
 import { deliveryRange, money, timeLeft } from '../ui/format';
@@ -172,6 +173,7 @@ export function ProductDetail() {
           <hr />
           <Price price={box.price} listPrice={box.listPrice} discountPercent={box.discountPercent} large />
           <div className="muted" style={{ fontSize: 12 }}>Prices include VAT where applicable.</div>
+          {p.variations && p.variations.options.length > 1 && <VariationPicker variations={p.variations} categoryName={p.category?.name} />}
           {others.length > 0 && <a href="#other-sellers-h" className="see-reviews">{others.length} other seller{others.length === 1 ? '' : 's'} from {money(Math.min(...others.map((o) => o.price)))}</a>}
           {p.description && (
             <>

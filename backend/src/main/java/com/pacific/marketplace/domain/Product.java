@@ -46,6 +46,20 @@ public class Product {
     @Column(name = "group_id")
     private Long groupId;
 
+    /** The variation family this catalog page belongs to (null for a product without variations, and for offers). */
+    @Column(name = "family_id")
+    private Long familyId;
+
+    @Column(length = 40)
+    private String option1;
+
+    @Column(length = 40)
+    private String option2;
+
+    /** "Colour: Red, Size: M": on a variation and on other sellers' offers for it. */
+    @Column(length = 100)
+    private String variation;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "item_condition", nullable = false, length = 20)
     private ItemCondition condition = ItemCondition.NEW;
@@ -158,7 +172,21 @@ public class Product {
         this.imageUrl = page.imageUrl;
         this.moreImages = page.moreImages;
         this.category = page.category;
+        this.variation = page.variation;
     }
+
+    /** Makes this catalog page a variation in {@code family}, or (with a null family) a product on its own again. */
+    public void setVariation(ProductFamily family, String option1, String option2) {
+        this.familyId = family == null ? null : family.getId();
+        this.option1 = family == null ? null : option1;
+        this.option2 = family == null || family.getDim2() == null ? null : option2;
+        this.variation = family == null ? null : family.label(this.option1, this.option2);
+    }
+
+    public Long getFamilyId() { return familyId; }
+    public String getOption1() { return option1; }
+    public String getOption2() { return option2; }
+    public String getVariation() { return variation; }
 
     public Long getId() { return id; }
     public String getName() { return name; }

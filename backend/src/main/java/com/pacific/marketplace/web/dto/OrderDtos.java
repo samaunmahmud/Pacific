@@ -61,13 +61,14 @@ public final class OrderDtos {
     /** listUnitPrice and promotion are set when a deal, coupon or promo code lowered the price. */
     public record OrderItemDto(Long id, Long productId, String productName, BigDecimal unitPrice, int quantity,
                                BigDecimal lineTotal, String imageUrl, String categoryName, int returnableQuantity,
-                               BigDecimal listUnitPrice, String promotion) {
+                               BigDecimal listUnitPrice, String promotion, String variation) {
         static OrderItemDto from(OrderItem i) {
             var product = i.getProduct();
             return new OrderItemDto(i.getId(), product.getId(), i.getProductName(), i.getUnitPrice(), i.getQuantity(),
                     i.lineTotal(), product.getImageUrl(),
                     product.getCategory() == null ? null : product.getCategory().getName(),
-                    i.getOrder().canReturn() ? i.getOrder().returnableUnits(i) : 0, i.getListUnitPrice(), i.getPromotion());
+                    i.getOrder().canReturn() ? i.getOrder().returnableUnits(i) : 0, i.getListUnitPrice(), i.getPromotion(),
+                    i.getVariation());
         }
     }
 

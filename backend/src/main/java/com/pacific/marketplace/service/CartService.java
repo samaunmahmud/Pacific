@@ -162,7 +162,7 @@ public class CartService {
                 p.getCategory() == null ? null : p.getCategory().getName(), price.unitPrice(), i.getQuantity(),
                 price.unitPrice().multiply(BigDecimal.valueOf(i.getQuantity())), p.getStock(),
                 seller == null ? "Pacific" : seller.getStoreName(), seller == null ? null : seller.getSlug(),
-                discounted ? p.getPrice() : null, price.label());
+                discounted ? p.getPrice() : null, price.label(), p.getVariation());
     }
 
     /**

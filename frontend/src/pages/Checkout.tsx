@@ -194,7 +194,7 @@ export function Checkout() {
               <div className="muted" style={{ fontSize: 12 }}>Sold by {ship.sellerName}{cart.shipments.length > 1 ? ` · delivery ${chosen(ship).fee === 0 ? 'FREE' : money(chosen(ship).fee)}` : ''}</div>
               {priced.items.filter((i) => i.sellerName === ship.sellerName).map((i) => (
                 <div key={i.productId} className="line">
-                  <span>{i.quantity} × {i.name}{i.promotion && <><br /><span className="promo-label">{i.promotion}</span></>}</span>
+                  <span>{i.quantity} × {i.name}{i.variation && <span className="variation-label">{i.variation}</span>}{i.promotion && <><br /><span className="promo-label">{i.promotion}</span></>}</span>
                   <span>{money(i.lineTotal)}</span>
                 </div>
               ))}

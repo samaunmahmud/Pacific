@@ -81,6 +81,7 @@ function OrderCard({ o }: { o: Order }) {
               </Link>
               <div>
                 <Link to={`/products/${i.productId}`} className="order-item-name">{i.productName}</Link>
+                {i.variation && <span className="variation-label">{i.variation}</span>}
                 <div className="order-item-sub">Sold by {o.sellerName} · Qty {i.quantity} · {money(i.unitPrice)} each{i.promotion && <> · <span className="promo-label">{i.promotion}</span></>}</div>
               </div>
             </div>
@@ -220,6 +221,7 @@ export function OrderDetail() {
                 </Link>
                 <div>
                   <Link to={`/products/${i.productId}`} className="order-item-name">{i.productName}</Link>
+                {i.variation && <span className="variation-label">{i.variation}</span>}
                   <div className="order-item-sub">
                     Qty {i.quantity} · {money(i.unitPrice)} each
                     {i.listUnitPrice != null && <> <s className="was">{money(i.listUnitPrice)}</s> <span className="promo-label">{i.promotion}</span></>}

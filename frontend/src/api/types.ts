@@ -100,6 +100,34 @@ export interface Product {
   ratingAvg: number;
   ratingCount: number;
   createdAt: string;
+  /** "Colour: Red, Size: M" when this is one of a product's variations (also on other sellers' offers for it). */
+  variation: string | null;
+  /** On a card: how many variations it stands for (0 for a product without any). */
+  variationCount: number;
+  /** On a product page (storefront or Seller Central): its variations, for the picker. */
+  variations: Variations | null;
+}
+
+/** A product's variations; option1/option2 are the one being shown. dim2 is null with one dimension. */
+export interface Variations {
+  familyId: number;
+  dim1: string;
+  dim2: string | null;
+  option1: string;
+  option2: string | null;
+  options: VariationOption[];
+}
+
+export interface VariationOption {
+  productId: number;
+  option1: string;
+  option2: string | null;
+  /** What its buy box charges (Seller Central: its own price). */
+  price: number;
+  inStock: boolean;
+  imageUrl: string | null;
+  /** Seller Central only: false when hidden. */
+  active: boolean;
 }
 
 export interface Page<T> {
@@ -124,6 +152,7 @@ export interface CartItem {
   /** The regular price, when a deal, coupon or promo code lowered unitPrice. */
   listUnitPrice: number | null;
   promotion: string | null;
+  variation: string | null;
 }
 
 export type DeliveryOption = 'STANDARD' | 'EXPRESS';
@@ -190,6 +219,8 @@ export interface OrderItem {
   /** The regular price and what lowered it (a deal, coupon or promo code). */
   listUnitPrice: number | null;
   promotion: string | null;
+  /** Which variation was bought, as it was called then. */
+  variation: string | null;
 }
 
 export interface Order {

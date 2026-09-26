@@ -35,21 +35,29 @@ public class ProductService {
     private final CategoryRepository categories;
     private final BuyBox buyBox;
     private final Promotions promotions;
+    private final VariationService variations;
 
-    public ProductService(ProductRepository products, CategoryRepository categories, BuyBox buyBox, Promotions promotions) {
+    public ProductService(ProductRepository products, CategoryRepository categories, BuyBox buyBox, Promotions promotions,
+                          VariationService variations) {
         this.products = products;
         this.categories = categories;
         this.buyBox = buyBox;
         this.promotions = promotions;
+        this.variations = variations;
     }
 
-    /** Adds the Lightning Deal and coupon running on the listing each card would buy. */
+    /**
+     * Adds the Lightning Deal and coupon running on the listing each card would buy, and how many variations a card
+     * stands for.
+     */
     public List<ProductDto> decorate(List<ProductDto> cards) {
         if (cards.isEmpty()) return cards;
         java.util.function.Function<ProductDto, Long> buys = d -> d.catalogId().equals(d.id()) ? d.boxProductId() : d.id();
         Promotions.Live live = promotions.live(cards.stream().map(buys).toList(), null);
+        Map<Long, Integer> counts = variations.countsOnSale(cards.stream()
+                .filter(d -> d.variation() != null && d.catalogId().equals(d.id())).map(ProductDto::id).toList());
         return cards.stream().map(d -> d.withPromotions(Promotions.dealDto(live, buys.apply(d)),
-                Promotions.couponDto(live, buys.apply(d)))).toList();
+                Promotions.couponDto(live, buys.apply(d))).withVariationCount(counts.getOrDefault(d.id(), 0))).toList();
     }
 
     /**
@@ -100,14 +108,23 @@ public class ProductService {
 
     /**
      * Catalog pages shoppers can see: one per product however many sellers offer it, shown while any of its listings
-     * is on sale (so a product stays in search when its first seller runs out but another still has it).
+     * is on sale (so a product stays in search when its first seller runs out but another still has it). A product
+     * with variations shows once too, as its first variation shoppers can see.
      */
     private static Specification<Product> catalog() {
         return (root, cq, cb) -> {
             var others = cq.subquery(Long.class);
             var o = others.from(Product.class);
             others.select(o.get("id")).where(cb.equal(o.get("groupId"), root.get("id")), onSale(o, cb));
-            return cb.and(cb.isNull(root.get("groupId")), cb.or(onSale(root, cb), cb.exists(others)));
+            var earlier = cq.subquery(Long.class);
+            var e = earlier.from(Product.class);
+            var earlierOffers = earlier.subquery(Long.class);
+            var eo = earlierOffers.from(Product.class);
+            earlierOffers.select(eo.get("id")).where(cb.equal(eo.get("groupId"), e.get("id")), onSale(eo, cb));
+            earlier.select(e.get("id")).where(cb.equal(e.get("familyId"), root.get("familyId")),
+                    cb.lessThan(e.get("id"), root.get("id")), cb.or(onSale(e, cb), cb.exists(earlierOffers)));
+            return cb.and(cb.isNull(root.get("groupId")), cb.or(onSale(root, cb), cb.exists(others)),
+                    cb.or(cb.isNull(root.get("familyId")), cb.not(cb.exists(earlier))));
         };
     }
 
@@ -158,7 +175,7 @@ public class ProductService {
         }
         if (seller != null) spec = spec.and((root, cq, cb) -> cb.equal(root.get("seller").get("slug"), seller));
         if (dealsOnly) spec = spec.and(onDeal(catalog));
-        PageResponse<ProductDto> found = page(spec, q, categorySlug, sort, priceField, page, size, this::card);
+        PageResponse<ProductDto> found = page(spec, q, categorySlug, sort, priceField, page, size, this::card, catalog);
         return new PageResponse<>(decorate(found.items()), found.page(), found.size(), found.totalItems(), found.totalPages());
     }
 
@@ -167,7 +184,8 @@ public class ProductService {
         // An offer's id opens the product's catalog page, which is what shoppers see.
         Long catalogId = products.findById(id).map(Product::catalogId).orElse(id);
         if (!buyBox.catalogVisible(catalogId)) throw ApiException.notFound("Product not found.");
-        return products.findWithCategoryById(catalogId).map(p -> decorate(List.of(card(p))).get(0))
+        return products.findWithCategoryById(catalogId)
+                .map(p -> decorate(List.of(card(p))).get(0).withVariations(variations.forShoppers(p)))
                 .orElseThrow(() -> ApiException.notFound("Product not found."));
     }
 
@@ -190,12 +208,13 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> adminSearch(String q, String categorySlug, String sort, int page, int size) {
-        return page((root, cq, cb) -> cb.conjunction(), q, categorySlug, sort, "price", page, size, ProductDto::from);
+        return page((root, cq, cb) -> cb.conjunction(), q, categorySlug, sort, "price", page, size, ProductDto::from, false);
     }
 
     @Transactional(readOnly = true)
     public ProductDto adminGet(Long id) {
-        return ProductDto.from(find(id, null));
+        Product p = find(id, null);
+        return ProductDto.from(p).withVariations(variations.forOwner(p));
     }
 
     @Transactional
@@ -224,12 +243,13 @@ public class ProductService {
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> sellerSearch(Long sellerId, String q, int page, int size) {
         return page((root, cq, cb) -> cb.equal(root.get("seller").get("id"), sellerId), q, null, "newest", "price", page, size,
-                ProductDto::from);
+                ProductDto::from, false);
     }
 
     @Transactional(readOnly = true)
     public ProductDto sellerGet(Long sellerId, Long id) {
-        return ProductDto.from(find(id, sellerId));
+        Product p = find(id, sellerId);
+        return ProductDto.from(p).withVariations(variations.forOwner(p));
     }
 
     @Transactional
@@ -359,11 +379,11 @@ public class ProductService {
 
     private PageResponse<ProductDto> page(Specification<Product> base, String q, String categorySlug, String sort,
                                           String priceField, int page, int size,
-                                          java.util.function.Function<Product, ProductDto> toDto) {
+                                          java.util.function.Function<Product, ProductDto> toDto, boolean families) {
         Specification<Product> spec = base;
         String query = Text.clean(q);
         boolean relevance = query != null && (sort == null || "relevance".equalsIgnoreCase(sort));
-        if (query != null) spec = spec.and(matching(query, relevance));
+        if (query != null) spec = spec.and(matching(query, relevance, families));
         String slug = Text.clean(categorySlug);
         if (slug != null) {
             spec = spec.and((root, cq, cb) -> cb.equal(root.get("category").get("slug"), slug));
@@ -382,9 +402,10 @@ public class ProductService {
     /**
      * Every word of the search appears in the name, description or category (so "wireless headphones" finds
      * "Headphones, wireless"). With {@code rank}, best matches come first: the whole phrase in the name, then every
-     * word in the name, then the rest, most-reviewed first within each.
+     * word in the name, then the rest, most-reviewed first within each. A variation's options count too ("red"), and
+     * with {@code families} (where search shows one card per family) so do its sibling variations' names and options.
      */
-    private static Specification<Product> matching(String query, boolean rank) {
+    private static Specification<Product> matching(String query, boolean rank, boolean families) {
         List<String> words = words(query);
         String phrase = Text.contains(query);
         return (root, cq, cb) -> {
@@ -396,7 +417,17 @@ public class ProductService {
             List<jakarta.persistence.criteria.Predicate> inName = new ArrayList<>();
             for (String w : words) {
                 String p = Text.contains(w);
-                all.add(cb.or(cb.like(name, p), cb.like(text, p), cb.like(categoryName, p)));
+                var variation = cb.lower(cb.coalesce(root.<String>get("variation"), ""));
+                var either = cb.or(cb.like(name, p), cb.like(text, p), cb.like(categoryName, p), cb.like(variation, p));
+                if (families) {
+                    var sibling = cq.subquery(Long.class);
+                    var m = sibling.from(Product.class);
+                    sibling.select(m.get("id")).where(cb.equal(m.get("familyId"), root.get("familyId")),
+                            cb.or(cb.like(cb.lower(m.get("name")), p),
+                                    cb.like(cb.lower(cb.coalesce(m.<String>get("variation"), "")), p)));
+                    either = cb.or(either, cb.exists(sibling));
+                }
+                all.add(either);
                 inName.add(cb.like(name, p));
             }
             if (words.isEmpty()) all.add(cb.or(cb.like(name, phrase), cb.like(text, phrase)));

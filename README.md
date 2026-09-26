@@ -82,6 +82,16 @@ anyone sells it). Reviews and questions live on the product page, so a buyer fro
 name, photos and description follow the product page; its seller sets only their price, stock, condition and
 visibility. Each offer is still its own listing, so the cart, orders, stock and seller earnings work as before.
 
+**Variations** — a product can come in other colours, sizes and so on (one or two things it varies by, e.g. Colour
+and Size). On a product's edit page (Seller Central, or Admin for Pacific's own) the store says what the variations
+differ by and adds them, each with its own price, stock and optionally its own photo. Search shows the family as one
+card ("4 options available", "See options"), standing in for the first variation on sale; words naming any variation
+("blue") find it. The product page has a picker: choosing a colour keeps the chosen size when that combination exists,
+sold-out options are dashed and missing combinations crossed out. Each variation is its own product page, so other
+sellers can offer it, and it has its own reviews, stock and buy box; the cart and orders say which one was bought
+("Colour: Blue, Size: L", kept on the order even if the store renames it later). Demo shops get some clothes in three
+colours and three sizes, and some shoes, hats and headphones in three colours.
+
 **Messages** — buyers can write privately to a store from a product page or one of their orders ("Message the
 seller"), and sellers can write to the buyer of one of their orders; each side has an inbox (Your Messages, and
 Messages in Seller Central) with unread badges. There's one conversation per buyer and store, each message can say

@@ -6,6 +6,7 @@ import { Pagination } from '../../components/Pagination';
 import { ProductImage } from '../../components/ProductImage';
 import { MorePhotosField } from '../../components/MorePhotosField';
 import { PhotoField } from '../../components/PhotoField';
+import { VariationsPanel } from '../../components/VariationsPanel';
 import { money } from '../../ui/format';
 import { useToast } from '../../ui/Toast';
 import { useAsync } from '../../ui/useAsync';
@@ -111,7 +112,7 @@ export function AdminProducts() {
           <tbody>
             {products.data?.items.map((p) => (
               <tr key={p.id} style={{ opacity: p.active ? 1 : 0.6 }}>
-                <td><span className="row"><span className="thumb"><ProductImage imageUrl={p.imageUrl} categoryName={p.category?.name} alt="" /></span><b>{p.name}</b>{p.catalogId !== p.id && <span className="chip small">Offer</span>}</span></td>
+                <td><span className="row"><span className="thumb"><ProductImage imageUrl={p.imageUrl} categoryName={p.category?.name} alt="" /></span><span><b>{p.name}</b>{p.variation && <span className="variation-label">{p.variation}</span>}</span>{p.catalogId !== p.id && <span className="chip small">Offer</span>}</span></td>
                 <td>{p.sellerName}</td>
                 <td>{p.category?.name ?? <span className="muted">—</span>}</td>
                 <td>{money(p.price)}{p.discountPercent > 0 && <span className="deal-badge" style={{ marginLeft: 6 }}>-{p.discountPercent}%</span>}</td>
@@ -142,6 +143,12 @@ export function toInput(p: Product, override: Partial<ProductInput> = {}): Produ
  * listings at /seller/products. Same form, different API prefix.
  */
 export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
+  // A fresh form per product: the variations panel links from one product's form to another's.
+  const { id } = useParams();
+  return <ProductForm key={id ?? 'new'} scope={scope} />;
+}
+
+function ProductForm({ scope }: { scope: 'admin' | 'seller' }) {
   const base = scope === 'admin' ? '/admin/products' : '/seller/products';
   const { id } = useParams();
   const editing = id !== undefined;
@@ -164,7 +171,7 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
     setPriceText(existing.data.price.toFixed(2));
     setListText(existing.data.listPrice ? existing.data.listPrice.toFixed(2) : '');
   }
-  if (existing.error) return <div className="page page-narrow"><div className="notice error">{existing.error}</div></div>;
+  if (existing.error && !existing.data) return <div className="page page-narrow"><div className="notice error">{existing.error}</div></div>;
   if (!form) return <div className="loading">Loading…</div>;
 
   // From the latest state: uploads finish after later edits and must not undo them.
@@ -204,7 +211,8 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
   }
 
   return (
-    <form className="page page-narrow" onSubmit={submit}>
+    <div className="page page-narrow">
+    <form style={{ display: 'contents' }} onSubmit={submit}>
       <div className="row" style={{ gap: 20 }}>
         <Link to={base} className="back-btn" aria-label="Back to products">←</Link>
         <h1 className="page-title">{isOffer ? 'Edit your offer' : editing ? 'Edit product' : 'Add product'}</h1>
@@ -258,6 +266,10 @@ export function ProductFormPage({ scope }: { scope: 'admin' | 'seller' }) {
         </div>
       </div>
     </form>
+      {existing.data && !isOffer && (
+        <VariationsPanel key={`${existing.data.variations?.familyId ?? 'none'}-${existing.data.variation ?? ''}`} base={base} product={existing.data} onChanged={existing.reload} />
+      )}
+    </div>
   );
 }
 

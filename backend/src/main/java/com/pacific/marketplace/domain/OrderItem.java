@@ -23,6 +23,9 @@ public class OrderItem {
     @Column(name = "product_name", nullable = false, length = 160)
     private String productName;
 
+    @Column(length = 100)
+    private String variation;
+
     @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal unitPrice;
 
@@ -58,6 +61,7 @@ public class OrderItem {
         this.order = order;
         this.product = product;
         this.productName = product.getName();
+        this.variation = product.getVariation();
         this.unitPrice = price.unitPrice();
         this.quantity = quantity;
         if (price.unitPrice().compareTo(product.getPrice()) != 0) this.listUnitPrice = product.getPrice();
@@ -82,6 +86,7 @@ public class OrderItem {
     public Order getOrder() { return order; }
     public Product getProduct() { return product; }
     public String getProductName() { return productName; }
+    public String getVariation() { return variation; }
     public BigDecimal getUnitPrice() { return unitPrice; }
     public int getQuantity() { return quantity; }
     public BigDecimal getListUnitPrice() { return listUnitPrice; }

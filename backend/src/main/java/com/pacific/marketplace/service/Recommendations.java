@@ -79,7 +79,10 @@ public class Recommendations {
                         + " group by coalesce(p2.groupId, p2.id) order by count(distinct o.checkoutRef) desc, coalesce(p2.groupId, p2.id)",
                         Long.class)
                 .setParameter("c", catalogId).setMaxResults(10).getResultList();
-        List<ProductDto> boughtTogether = cards(together, 3);
+        // Other variations of this product are on the page's picker already, and a family shows once.
+        Set<Long> families = new java.util.HashSet<>();
+        if (page.getFamilyId() != null) families.add(page.getFamilyId());
+        List<ProductDto> boughtTogether = cards(together, 3, families);
 
         Set<Long> skip = new LinkedHashSet<>(together);
         skip.add(catalogId);
@@ -87,7 +90,7 @@ public class Recommendations {
                         "select p.id from Product p where p.groupId is null and p.category.id = :cat and p.id not in :skip "
                                 + "order by p.ratingCount desc, p.ratingAvg desc, p.id", Long.class)
                 .setParameter("cat", page.getCategory().getId()).setParameter("skip", skip).setMaxResults(24).getResultList();
-        return new ForProduct(boughtTogether, cards(sameCategory, 8));
+        return new ForProduct(boughtTogether, cards(sameCategory, 8, families));
     }
 
     /** Products the customer has had delivered, most recent first, that are still on sale. */
@@ -97,11 +100,14 @@ public class Recommendations {
                         + "where o.user.id = :u and o.status = com.pacific.marketplace.domain.OrderStatus.DELIVERED "
                         + "group by coalesce(p.groupId, p.id) order by max(o.createdAt) desc", Long.class)
                 .setParameter("u", userId).setMaxResults(30).getResultList();
-        return cards(ids, 12);
+        return cards(ids, 12, null); // the very variation bought (the red one, say), so no grouping
     }
 
-    /** Cards for these product pages, in this order, keeping only those on sale, at most {@code limit}. */
-    private List<ProductDto> cards(List<Long> catalogIds, int limit) {
+    /**
+     * Cards for these product pages, in this order, keeping only those on sale, at most {@code limit}. With
+     * {@code families}, at most one per variation family and none from the families already in it (it's added to).
+     */
+    private List<ProductDto> cards(List<Long> catalogIds, int limit, Set<Long> families) {
         if (catalogIds.isEmpty()) return List.of();
         Map<Long, Product> byId = new HashMap<>();
         products.findWithCategoryByIdIn(catalogIds).forEach(p -> byId.put(p.getId(), p));
@@ -109,6 +115,7 @@ public class Recommendations {
         for (Long id : catalogIds) {
             Product p = byId.get(id);
             if (p == null || !buyBox.catalogVisible(id)) continue;
+            if (families != null && p.getFamilyId() != null && !families.add(p.getFamilyId())) continue;
             out.add(catalog.card(p));
             if (out.size() == limit) break;
         }

@@ -88,26 +88,28 @@ function Header() {
           <>
             {user ? (
               <>
-                <Link to="/account" className="action-item" title="Your account">
+                <Link to="/account" className="action-item account-link" title="Your account">
                   <span className="action-small">Hello, {user.name.split(' ')[0]}</span>
                   <span className="action-label">Your account</span>
+                  <span className="action-phone" aria-hidden="true">{user.name.split(' ')[0]} ›</span>
                 </Link>
-                <Link to="/messages" className="action-item" aria-label={unread.asBuyer ? `Messages, ${unread.asBuyer} unread` : 'Messages'}>
+                <Link to="/messages" className="action-item phone-hide" aria-label={unread.asBuyer ? `Messages, ${unread.asBuyer} unread` : 'Messages'}>
                   <span className="action-small">Your</span>
                   <span className="action-label">Messages{unread.asBuyer > 0 && <span className="count-badge">{unread.asBuyer}</span>}</span>
                 </Link>
-                <button className="action-item" onClick={signOut} title="Sign out">
+                <button className="action-item phone-hide tablet-hide" onClick={signOut} title="Sign out">
                   <span className="action-small">Not you?</span>
                   <span className="action-label">Sign out</span>
                 </button>
               </>
             ) : (
-              <Link to="/login" className="action-item">
+              <Link to="/login" className="action-item account-link">
                 <span className="action-small">Hello, sign in</span>
                 <span className="action-label">Account and Lists</span>
+                <span className="action-phone" aria-hidden="true">Sign in ›</span>
               </Link>
             )}
-            <Link to="/orders" className="action-item">
+            <Link to="/orders" className="action-item phone-hide">
               <span className="action-small">Returns</span>
               <span className="action-label">and Orders</span>
             </Link>
@@ -116,7 +118,7 @@ function Header() {
                 <img className="cart-icon" src={cartIcon} alt="" />
                 <span className="cart-badge">{count}</span>
               </span>
-              <span className="action-label">Cart</span>
+              <span className="action-label cart-word">Cart</span>
             </Link>
           </>
         )}

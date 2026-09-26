@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { AuthResponse, SavedAddress, User } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
@@ -11,7 +11,8 @@ const message = (e: unknown, fallback: string) => (e instanceof ApiError ? e.mes
 
 /** "Your account": who you are, your password, and where to find everything else. */
 export function AccountHome() {
-  const { user, adopt, setName } = useAuth();
+  const { user, adopt, setName, logout } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
   const [name, setNameField] = useState(user?.name ?? '');
   const [profileBusy, setProfileBusy] = useState(false);
@@ -77,6 +78,7 @@ export function AccountHome() {
         <Link to="/account/addresses" className="account-tile"><b>Your addresses</b><span>Save where you want things delivered</span></Link>
         <Link to="/account/reviews" className="account-tile"><b>Your reviews</b><span>What you've reviewed and what's waiting</span></Link>
         <Link to="/wishlist" className="account-tile"><b>Your wish list</b><span>Things you've saved for later</span></Link>
+        <Link to="/messages" className="account-tile"><b>Your messages</b><span>Conversations with sellers</span></Link>
       </div>
 
       <form className="square-review-box static stack" onSubmit={saveName}>
@@ -124,6 +126,8 @@ export function AccountHome() {
           {signOutBusy ? 'Signing out…' : 'Sign out of all other devices'}
         </button></div>
       </section>
+
+      <div><button type="button" className="submit-btn secondary" onClick={() => { logout(); navigate('/'); }}>Sign out</button></div>
     </div>
   );
 }

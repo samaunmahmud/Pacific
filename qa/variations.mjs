@@ -48,7 +48,7 @@ async function signIn(token) {
   await tab.evaluate((t) => localStorage.setItem('pacific.token', t), token);
 }
 async function fill(sel, value) {
-  await tab.click(sel, { clickCount: 3 });
+  await tab.click(sel, { count: 3 });
   await tab.keyboard.press('Backspace');
   await tab.type(sel, value);
 }

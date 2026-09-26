@@ -88,12 +88,12 @@ check('approving moves it to the refund step for a card order', (await body(s)).
 check('the refund amount is prefilled with the goods only (12.00)', (await s.$eval(`#amt-${ret.id}`, (e) => e.value)) === '12.00');
 
 // ---- 3. seller refunds; a bigger amount is refused ----
-await s.click(`#amt-${ret.id}`, { clickCount: 3 });
+await s.click(`#amt-${ret.id}`, { count: 3 });
 await s.type(`#amt-${ret.id}`, '50');
 await clickButton(s, 'Items received: refund');
 await sleep(800);
 check('an amount above the maximum is refused before anything is sent', (await body(s)).includes('Enter an amount up to'));
-await s.click(`#amt-${ret.id}`, { clickCount: 3 });
+await s.click(`#amt-${ret.id}`, { count: 3 });
 await s.type(`#amt-${ret.id}`, '12');
 await clickButton(s, 'Items received: refund');
 await s.waitForFunction(() => document.body.innerText.includes('refunded to the card'), { timeout: 8000 });

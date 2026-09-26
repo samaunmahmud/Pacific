@@ -213,6 +213,30 @@ pay-on-delivery only.
 - No Stripe account yet? Set `PAYMENTS_SIMULATOR_ENABLED=true` for a fake "payment page" with Pay and Cancel buttons.
   It moves no money and is refused alongside a live Stripe key.
 
+## Emails
+
+Customers are emailed at every step of an order: **confirmed** (one email for the whole checkout), **being prepared**,
+**shipped** (with the tracking link), **delivered** (with a nudge to review) and **cancelled** (with any refund), plus
+returns, refunded card payments, new messages, sign-up confirmation and password changes. Sellers get an email for each
+new order. Every email has a branded HTML version and a plain-text one, goes out in the background after the change is
+saved, and is kept in Admin → Emails.
+
+Without `MAIL_HOST` nothing is delivered: emails are only recorded. To **see them for real on your own machine**, run
+[Mailpit](https://mailpit.axllent.org), a local test inbox, and point the shop at it:
+
+```bash
+docker run -d --name pacific-mailpit -p 127.0.0.1:1025:1025 -p 127.0.0.1:8025:8025 axllent/mailpit
+# in .env
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+MAIL_AUTH=false
+MAIL_STARTTLS=false
+```
+
+Every email then appears at http://localhost:8025 (nothing leaves your computer). To **email real customers**, use any
+SMTP service instead: set `MAIL_HOST`, `MAIL_PORT` (587), `MAIL_USERNAME`, `MAIL_PASSWORD` and `MAIL_FROM` (an address on
+a domain the service lets you send from).
+
 ## Demo data (development only)
 
 An empty shop looks empty. Start the API with `DEMO_DATA=true` to fill it with **about 2,150 invented products** in 13

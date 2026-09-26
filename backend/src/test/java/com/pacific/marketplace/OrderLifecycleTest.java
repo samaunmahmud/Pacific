@@ -150,6 +150,10 @@ class OrderLifecycleTest extends CommittedFlowTestBase {
         long orderId = id(checkout(buyer, null, 201).get("orders").get(0));
 
         setStatus(seller, orderId, "PROCESSING", null, null);
+        SentEmail preparing = emailsTo(buyer.email()).stream().filter(e -> e.getKind().equals("ORDER_PROCESSING"))
+                .findFirst().orElseThrow();
+        assertThat(preparing.getSubject()).isEqualTo("Your Pacific order #" + orderId + " is being prepared");
+        assertThat(preparing.getBody()).contains("Brass Candle Holder").contains("due to arrive");
         JsonNode shipped = setStatus(seller, orderId, "SHIPPED", "Royal Mail", "AB123456789GB");
 
         assertThat(shipped.get("trackingCarrier").asText()).isEqualTo("Royal Mail");

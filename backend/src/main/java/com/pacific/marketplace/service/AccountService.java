@@ -47,10 +47,23 @@ public class AccountService {
         if (encoder.matches(next, user.getPasswordHash())) {
             throw ApiException.badRequest("Please choose a different password from your current one.");
         }
+        PasswordPolicy.check(next, user.getEmail(), user.getName());
         throttles.passwordChange.clear(key);
         user.changePassword(encoder.encode(next));
         users.flush();
         notifications.passwordChanged(user);
+        return auth.issue(user);
+    }
+
+    /**
+     * Signs out every device (a lost phone, a shared computer): tokens carry the account's session version, so
+     * bumping it makes them all invalid. The device asking gets a fresh token and stays signed in.
+     */
+    @Transactional
+    public AuthResponse signOutEverywhereElse(Long userId) {
+        User user = users.findById(userId).orElseThrow(() -> ApiException.unauthorized("Please sign in."));
+        user.endAllSessions();
+        users.flush();
         return auth.issue(user);
     }
 

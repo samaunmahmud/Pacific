@@ -34,6 +34,10 @@ spring:
 
 server:
   port: ${PORT:8080}
+  # Behind a hosting proxy or load balancer, set FORWARD_HEADERS_STRATEGY=framework so sign-in limits see each
+  # visitor's own address (from X-Forwarded-For) instead of the proxy's. Leave it at none when the app faces the
+  # internet directly, or anyone could fake their address in that header.
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
   error:
     include-message: never
     include-stacktrace: never

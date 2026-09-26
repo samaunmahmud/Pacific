@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { AuthResponse, SavedAddress, User } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../ui/Toast';
+import { useDeliverTo } from '../location/DeliverToContext';
 import { useAsync } from '../ui/useAsync';
 
 const message = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
@@ -154,6 +155,8 @@ function AddressForm({ initial, onSaved, onCancel }: { initial: SavedAddress | n
 export function AddressBook() {
   const toast = useToast();
   const { data, error, loading, reload } = useAsync(() => api<SavedAddress[]>('/me/addresses'), []);
+  const { syncAddresses } = useDeliverTo();
+  useEffect(() => { if (data) syncAddresses(data); }, [data, syncAddresses]); // keep "Deliver to" in step
   const [editing, setEditing] = useState<SavedAddress | 'new' | null>(null);
 
   async function run(action: () => Promise<unknown>, ok: string) {

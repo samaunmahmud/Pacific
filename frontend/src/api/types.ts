@@ -38,8 +38,19 @@ export interface Category {
   slug: string;
 }
 
+export type ItemCondition = 'NEW' | 'USED_LIKE_NEW' | 'USED_GOOD' | 'USED_ACCEPTABLE';
+
+export const CONDITION_LABELS: Record<ItemCondition, string> = {
+  NEW: 'New',
+  USED_LIKE_NEW: 'Used – like new',
+  USED_GOOD: 'Used – good',
+  USED_ACCEPTABLE: 'Used – acceptable',
+};
+
 export interface Product {
   id: number;
+  /** The product page this listing belongs to: its own id unless it's another seller's offer. */
+  catalogId: number;
   name: string;
   description: string | null;
   price: number;
@@ -54,6 +65,15 @@ export interface Product {
   moreImages: string[];
   category: Category | null;
   active: boolean;
+  condition: ItemCondition;
+  /** On a product page: what the buy box charges (null on another seller's offer). */
+  boxPrice: number | null;
+  /** How many sellers' listings are on sale for this product. */
+  offerCount: number;
+  /** The listing "Add to cart" buys from a product card (the buy box), its stock and seller. */
+  boxProductId: number;
+  boxStock: number;
+  boxSellerName: string;
   ratingAvg: number;
   ratingCount: number;
   createdAt: string;
@@ -256,6 +276,8 @@ export interface ProductInput {
   imageUrl: string;
   moreImages: string[];
   categoryId: number | null;
+  /** Only used for offers on another seller's product page. */
+  condition?: ItemCondition;
   active: boolean;
 }
 
@@ -443,4 +465,21 @@ export interface Conversation {
 export interface UnreadMessages {
   asBuyer: number;
   asSeller: number;
+}
+
+/** One seller's listing on a product page, as the buy box and "Other sellers" show it. */
+export interface Offer {
+  productId: number;
+  sellerName: string;
+  sellerSlug: string | null;
+  sellerRating: number;
+  sellerRatingCount: number;
+  price: number;
+  listPrice: number | null;
+  discountPercent: number;
+  stock: number;
+  condition: ItemCondition;
+  conditionLabel: string;
+  /** True for the offer shoppers buy by default: the best one in stock. */
+  buyBox: boolean;
 }

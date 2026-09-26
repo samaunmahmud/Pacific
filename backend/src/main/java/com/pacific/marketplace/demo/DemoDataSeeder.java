@@ -1,6 +1,7 @@
 package com.pacific.marketplace.demo;
 
 import com.pacific.marketplace.domain.Category;
+import com.pacific.marketplace.domain.ItemCondition;
 import com.pacific.marketplace.domain.Product;
 import com.pacific.marketplace.domain.Review;
 import com.pacific.marketplace.domain.Role;
@@ -14,6 +15,7 @@ import com.pacific.marketplace.repo.ReviewRepository;
 import com.pacific.marketplace.repo.SellerProfileRepository;
 import com.pacific.marketplace.repo.SettingRepository;
 import com.pacific.marketplace.repo.UserRepository;
+import com.pacific.marketplace.service.BuyBox;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -25,13 +27,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -54,6 +59,8 @@ public class DemoDataSeeder implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
 
     static final String MARKER = "demo_data";
+    /** Added separately, so demo databases made before multi-seller offers get some too. */
+    static final String OFFERS_MARKER = "demo_offers";
     /** The one demo account you can sign in with. */
     public static final String SHOPPER_EMAIL = "demo.shopper@example.com";
     public static final String SHOPPER_PASSWORD = "Demo-Pacific-123";
@@ -68,10 +75,11 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final SettingRepository settings;
     private final PasswordEncoder encoder;
     private final TransactionTemplate tx;
+    private final BuyBox buyBox;
 
     public DemoDataSeeder(CategoryRepository categories, ProductRepository products, UserRepository users,
                           SellerProfileRepository sellers, ReviewRepository reviews, SettingRepository settings,
-                          PasswordEncoder encoder, PlatformTransactionManager txManager) {
+                          PasswordEncoder encoder, PlatformTransactionManager txManager, BuyBox buyBox) {
         this.categories = categories;
         this.products = products;
         this.users = users;
@@ -80,20 +88,71 @@ public class DemoDataSeeder implements ApplicationRunner {
         this.settings = settings;
         this.encoder = encoder;
         this.tx = new TransactionTemplate(txManager);
+        this.buyBox = buyBox;
     }
 
     @Override
     public void run(ApplicationArguments args) {
         if (settings.existsById(MARKER)) {
             log.info("Demo data was already added to this database; leaving it as it is.");
-            return;
+        } else {
+            seedShop();
         }
+        if (!settings.existsById(OFFERS_MARKER)) {
+            Integer offers = tx.execute(status -> seedOffers());
+            settings.save(new Setting(OFFERS_MARKER, "v1"));
+            log.warn("DEMO DATA: {} offers from other stores added to existing products.", offers);
+        }
+    }
+
+    private void seedShop() {
         long start = System.currentTimeMillis();
         int[] counts = tx.execute(status -> seed());
         settings.save(new Setting(MARKER, "v1"));
         log.warn("DEMO DATA added: {} products, {} reviews, {} shoppers, {} stores in {} ms. Sign in as {} / {}. "
                         + "Never enable this against a real shop.", counts[0], counts[1], SHOPPERS + 1, counts[2],
                 System.currentTimeMillis() - start, SHOPPER_EMAIL, SHOPPER_PASSWORD);
+    }
+
+    /**
+     * Other demo stores start selling about one product in five: at a slightly different price, sometimes sold out,
+     * sometimes used, so product pages show buy boxes and "Other sellers". Returns how many offers were added.
+     */
+    private int seedOffers() {
+        Random rnd = new Random(20260926L);
+        List<SellerProfile> stores = DemoCatalog.STORES.stream()
+                .map(st -> sellers.findBySlug(slugify(st.name())).orElse(null)).filter(st -> st != null).toList();
+        if (stores.size() < 2) return 0;
+        Set<Long> demoStoreIds = stores.stream().map(SellerProfile::getId).collect(Collectors.toSet());
+        List<Product> pages = products.findAll(Sort.by("id")).stream()
+                .filter(p -> !p.isOffer() && p.isActive() && p.getImageUrl() != null && p.getImageUrl().startsWith("demo:")
+                        && (p.getSeller() == null || demoStoreIds.contains(p.getSeller().getId())))
+                .toList();
+        int added = 0;
+        for (int i = 0; i < pages.size(); i += 5) {
+            Product page = pages.get(i);
+            List<SellerProfile> others = new ArrayList<>(stores.stream()
+                    .filter(st -> page.getSeller() == null || !st.getId().equals(page.getSeller().getId())).toList());
+            Collections.shuffle(others, rnd);
+            int count = 1 + rnd.nextInt(2);
+            for (int j = 0; j < count && j < others.size(); j++) {
+                boolean used = rnd.nextInt(100) < 20;
+                double factor = used ? 0.62 + rnd.nextDouble() * 0.15 : 0.9 + rnd.nextDouble() * 0.22;
+                BigDecimal price = page.getPrice().multiply(BigDecimal.valueOf(factor)).setScale(2, RoundingMode.HALF_UP)
+                        .max(new BigDecimal("0.99"));
+                int stock = rnd.nextInt(100) < 15 ? 0 : 2 + rnd.nextInt(40);
+                Product offer = new Product(page.getName(), page.getDescription(), price, stock, page.getImageUrl(), page.getCategory());
+                offer.copyCatalogDetails(page);
+                offer.setGroupId(page.getId());
+                offer.setSeller(others.get(j));
+                offer.setCondition(used ? (rnd.nextBoolean() ? ItemCondition.USED_LIKE_NEW : ItemCondition.USED_GOOD) : ItemCondition.NEW);
+                offer.setCreatedAt(page.getCreatedAt().plus(Duration.ofDays(1 + rnd.nextInt(20))));
+                products.save(offer);
+                added++;
+            }
+            buyBox.refresh(page.getId());
+        }
+        return added;
     }
 
     /** Returns {products, reviews, stores}. */

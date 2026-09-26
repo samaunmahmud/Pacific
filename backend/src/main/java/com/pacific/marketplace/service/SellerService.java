@@ -37,6 +37,7 @@ public class SellerService {
     private final SellerProfileRepository sellers;
     private final UserRepository users;
     private final ProductRepository products;
+    private final BuyBox buyBox;
     private final OrderRepository orders;
     private final OrderItemRepository orderItems;
     private final QuestionRepository questions;
@@ -46,7 +47,8 @@ public class SellerService {
 
     public SellerService(SellerProfileRepository sellers, UserRepository users, ProductRepository products,
                          OrderRepository orders, OrderItemRepository orderItems, QuestionRepository questions,
-                         LedgerService ledger, SettingsService settings, ReturnRequestRepository returns) {
+                         LedgerService ledger, SettingsService settings, ReturnRequestRepository returns, BuyBox buyBox) {
+        this.buyBox = buyBox;
         this.sellers = sellers;
         this.users = users;
         this.products = products;
@@ -158,6 +160,7 @@ public class SellerService {
         SellerProfile seller = sellers.findWithUserById(id).orElseThrow(() -> ApiException.notFound("Seller not found."));
         seller.setStatus(status, Text.clean(note));
         sellers.flush();
+        buyBox.refreshForSeller(seller.getId()); // their listings join or leave buy boxes
         return adminDto(seller);
     }
 

@@ -61,5 +61,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     long countBySellerId(Long sellerId);
 
+    /** Other sellers' offers for a catalog page. */
+    List<Product> findByGroupId(Long groupId);
+
+    boolean existsByGroupIdAndSellerId(Long groupId, Long sellerId);
+
     long countByActiveTrue();
 }

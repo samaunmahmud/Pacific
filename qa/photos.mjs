@@ -153,7 +153,7 @@ await page.setViewport({ width: 1440, height: 900 });
 // ---------- admin edits a demo product without touching its drawing ----------
 await page.evaluate((t) => localStorage.setItem('pacific.token', t), adminTok);
 const house = await call('GET', '/admin/products?size=50', adminTok);
-const demo = house?.items?.find((p) => p.imageUrl?.startsWith('demo:'));
+const demo = house?.items?.find((p) => p.imageUrl?.startsWith('demo:') && p.catalogId === p.id); // a product page, not another store's offer
 if (demo) {
   await go(`/admin/products/${demo.id}`, 'edit demo product');
   await page.$eval('#pn', (e) => { e.value = ''; });

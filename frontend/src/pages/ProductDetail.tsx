@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
-import type { Product, ProductReviews, Review } from '../api/types';
+import type { Offer, Product, ProductReviews, Review } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
+import { OtherSellers, SellThisToo } from '../components/Offers';
 import { Price } from '../components/Price';
 import { ProductGallery } from '../components/ProductGallery';
 import { QandA } from '../components/QandA';
@@ -12,6 +13,7 @@ import { CustomerReviewCard } from '../components/ReviewCard';
 import { Stars } from '../components/Stars';
 import { WishlistButton } from '../components/WishlistButton';
 import { useSeller } from '../seller/SellerContext';
+import { money } from '../ui/format';
 import { recordView } from '../ui/recent';
 import { useToast } from '../ui/Toast';
 import { useAsync } from '../ui/useAsync';
@@ -36,6 +38,8 @@ export function ProductDetail() {
   const [sort, setSort] = useState('newest');
 
   const product = useAsync(() => api<Product>(`/products/${id}`), [id]);
+  const offers = useAsync(() => api<Offer[]>(`/products/${id}/offers`).catch((): Offer[] => []), [id]);
+  const [busyOffer, setBusyOffer] = useState<number | null>(null);
   const reviews = useAsync(() => api<ProductReviews>(`/products/${id}/reviews`, { query: { sort } }), [id, sort, user?.id]);
   const loadedId = product.data?.id;
   useEffect(() => {
@@ -53,16 +57,28 @@ export function ProductDetail() {
   const p = product.data;
   if (!p) return <div className="loading">Loading…</div>;
 
-  const inCart = cart?.items.find((i) => i.productId === p.id)?.quantity ?? 0;
-  const canAddMore = Math.max(0, Math.min(p.stock, 10) - inCart);
+  // The buy box: the best offer on sale (another seller's, perhaps). Until offers load, the page's own listing.
+  const ownOffer: Offer = { productId: p.id, sellerName: p.sellerName, sellerSlug: p.sellerSlug, sellerRating: 0, sellerRatingCount: 0,
+    price: p.price, listPrice: p.listPrice, discountPercent: p.discountPercent, stock: p.stock, condition: p.condition, conditionLabel: 'New', buyBox: p.stock > 0 };
+  const box = offers.data?.[0] ?? ownOffer;
+  const others = offers.data?.slice(1) ?? [];
+  const quantityInCart = (productId: number) => cart?.items.find((i) => i.productId === productId)?.quantity ?? 0;
+  const inCart = quantityInCart(box.productId);
+  const canAddMore = Math.max(0, Math.min(box.stock, 10) - inCart);
+  const alreadySelling = !!mySeller && (p.sellerSlug === mySeller.slug || (offers.data ?? []).some((o) => o.sellerSlug === mySeller.slug));
+  const canSellToo = user?.role === 'CUSTOMER' && mySeller?.status === 'APPROVED' && !alreadySelling && offers.data !== undefined;
+
+  function signedInCustomer() {
+    if (!user) { navigate('/login', { state: { next: location.pathname } }); return false; }
+    if (user.role !== 'CUSTOMER') { toast.show('Sign in with a customer account to shop.', 'error'); return false; }
+    return true;
+  }
 
   async function addToCart() {
-    if (!p) return;
-    if (!user) return navigate('/login', { state: { next: location.pathname } });
-    if (user.role !== 'CUSTOMER') return toast.show('Sign in with a customer account to shop.', 'error');
+    if (!p || !signedInCustomer()) return;
     setBusy(true);
     try {
-      await add(p.id, qty);
+      await add(box.productId, qty);
       toast.show(`Added ${qty} × ${p.name} to your cart`);
       setQty(1);
     } catch (e) {
@@ -72,13 +88,24 @@ export function ProductDetail() {
     }
   }
 
+  async function addOffer(o: Offer) {
+    if (!p || !signedInCustomer()) return;
+    setBusyOffer(o.productId);
+    try {
+      await add(o.productId, 1);
+      toast.show(`Added ${p.name} from ${o.sellerName} to your cart`);
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : 'Could not add to cart.', 'error');
+    } finally {
+      setBusyOffer(null);
+    }
+  }
+
   async function buyNow() {
-    if (!p) return;
-    if (!user) return navigate('/login', { state: { next: location.pathname } });
-    if (user.role !== 'CUSTOMER') return toast.show('Sign in with a customer account to shop.', 'error');
+    if (!p || !signedInCustomer()) return;
     setBusy(true);
     try {
-      await add(p.id, qty);
+      await add(box.productId, qty);
       navigate('/checkout');
     } catch (e) {
       toast.show(e instanceof Error ? e.message : 'Could not start checkout.', 'error');
@@ -110,8 +137,9 @@ export function ProductDetail() {
           </div>
           <div className="pdp-rating"><Stars value={p.ratingAvg} count={p.ratingCount} />{p.ratingCount > 0 && <a href="#reviews-h" className="see-reviews">See reviews</a>}</div>
           <hr />
-          <Price price={p.price} listPrice={p.listPrice} discountPercent={p.discountPercent} large />
+          <Price price={box.price} listPrice={box.listPrice} discountPercent={box.discountPercent} large />
           <div className="muted" style={{ fontSize: 12 }}>Prices include VAT where applicable.</div>
+          {others.length > 0 && <a href="#other-sellers-h" className="see-reviews">{others.length} other seller{others.length === 1 ? '' : 's'} from {money(Math.min(...others.map((o) => o.price)))}</a>}
           {p.description && (
             <>
               <h2 className="about-h">About this item</h2>
@@ -123,14 +151,15 @@ export function ProductDetail() {
         </div>
 
         <aside className="buy-box" aria-label="Buy box">
-          <Price price={p.price} listPrice={null} discountPercent={0} large />
+          <Price price={box.price} listPrice={null} discountPercent={0} large />
+          {box.condition !== 'NEW' && <div className="bb-condition">Condition: <b>{box.conditionLabel}</b></div>}
           <div className="bb-delivery">
-            {p.price >= 50 ? <><b className="free-delivery">FREE delivery</b> on this item.</> : <>Delivery costs are shown at checkout.</>}
+            {box.price >= 50 ? <><b className="free-delivery">FREE delivery</b> on this item.</> : <>Delivery costs are shown at checkout.</>}
           </div>
-          {p.stock === 0 ? <div className="bb-stock out">Currently unavailable.</div>
-            : p.stock <= 5 ? <div className="bb-stock low">Only {p.stock} left in stock.</div>
+          {box.stock === 0 ? <div className="bb-stock out">Currently unavailable.</div>
+            : box.stock <= 5 ? <div className="bb-stock low">Only {box.stock} left in stock.</div>
             : <div className="bb-stock in">In stock</div>}
-          {p.stock > 0 && (
+          {box.stock > 0 && (
             <>
               <label className="bb-qty">
                 <span>Quantity:</span>
@@ -147,12 +176,15 @@ export function ProductDetail() {
           )}
           <dl className="bb-facts">
             <dt>Payment</dt><dd>Secure transaction: card or pay on delivery</dd>
-            <dt>Ships from</dt><dd>{p.sellerName}</dd>
-            <dt>Sold by</dt><dd>{p.sellerSlug ? <Link to={`/sellers/${p.sellerSlug}`}>{p.sellerName}</Link> : p.sellerName}</dd>
+            <dt>Ships from</dt><dd>{box.sellerName}</dd>
+            <dt>Sold by</dt><dd>{box.sellerSlug ? <Link to={`/sellers/${box.sellerSlug}`}>{box.sellerName}</Link> : box.sellerName}</dd>
           </dl>
           <WishlistButton productId={p.id} label />
+          {canSellToo && <SellThisToo productId={p.id} onDone={() => { offers.reload(); toast.show('Your offer is live on this page'); }} />}
         </aside>
       </div>
+
+      <OtherSellers offers={others} onAdd={addOffer} busyId={busyOffer} inCart={quantityInCart} />
 
       <hr />
 

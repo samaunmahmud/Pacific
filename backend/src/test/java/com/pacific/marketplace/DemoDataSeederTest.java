@@ -38,7 +38,9 @@ class DemoDataSeederTest extends IntegrationTest {
 
     @Test
     void addsARealisticShop() throws Exception {
-        assertThat(productRepository.count()).isBetween(140L, 200L);
+        // catalog pages (one per product); other stores' offers on them are extra listings
+        var pages = productRepository.findAll().stream().filter(p -> !p.isOffer()).toList();
+        assertThat(pages).hasSizeBetween(140, 200);
         assertThat(reviewRepository.count()).isGreaterThan(1000L);
         JsonNode categories = read(mvc.perform(get("/api/categories")).andReturn());
         assertThat(categories.size()).isGreaterThanOrEqualTo(13);
@@ -47,7 +49,7 @@ class DemoDataSeederTest extends IntegrationTest {
         // ratings on each product agree with the reviews behind them, and the spread looks like a real shop
         long withReviews = 0;
         double lowest = 5, highest = 0;
-        for (var p : productRepository.findAll()) {
+        for (var p : pages) {
             long visible = reviewRepository.visibleStats(p.getId()).count();
             assertThat(p.getRatingCount()).isEqualTo((int) visible);
             if (visible > 0) {
@@ -56,14 +58,22 @@ class DemoDataSeederTest extends IntegrationTest {
                 highest = Math.max(highest, p.getRatingAvg().doubleValue());
             }
         }
-        assertThat(withReviews).isEqualTo(productRepository.count());
+        assertThat(withReviews).isEqualTo(pages.size());
         assertThat(lowest).isLessThan(4.0);
         assertThat(highest).isGreaterThan(4.4);
 
         // some deals, some low stock, some sold by Pacific, most by stores
         assertThat(search("deals=true").get("totalItems").asInt()).isBetween(20, 80);
-        assertThat(productRepository.findAll().stream().filter(p -> p.getSeller() == null).count()).isBetween(20L, 60L);
-        assertThat(productRepository.findAll().stream().filter(p -> p.getSeller() != null).count()).isGreaterThan(100L);
+        assertThat(pages.stream().filter(p -> p.getSeller() == null).count()).isBetween(20L, 60L);
+        assertThat(pages.stream().filter(p -> p.getSeller() != null).count()).isGreaterThan(100L);
+
+        // about one product in five is also sold by other stores, some of them used
+        var offers = productRepository.findAll().stream().filter(p -> p.isOffer()).toList();
+        assertThat(offers).hasSizeBetween(25, 70);
+        assertThat(offers).anyMatch(o -> o.getCondition() != com.pacific.marketplace.domain.ItemCondition.NEW);
+        assertThat(offers).allMatch(o -> !o.getSeller().getId().equals(
+                productRepository.findById(o.getGroupId()).orElseThrow().getSeller() == null ? -1L
+                        : productRepository.findById(o.getGroupId()).orElseThrow().getSeller().getId()));
         assertThat(productRepository.findAll().stream().anyMatch(p -> p.getStock() > 0 && p.getStock() <= 5)).isTrue();
     }
 
@@ -71,11 +81,11 @@ class DemoDataSeederTest extends IntegrationTest {
     void filtersAndSortsWorkOnRealisticData() throws Exception {
         JsonNode cheap = search("maxPrice=20");
         assertThat(cheap.get("items")).isNotEmpty();
-        cheap.get("items").forEach(p -> assertThat(p.get("price").decimalValue()).isLessThanOrEqualTo(new java.math.BigDecimal("20")));
+        cheap.get("items").forEach(p -> assertThat(p.get("boxPrice").decimalValue()).isLessThanOrEqualTo(new java.math.BigDecimal("20")));
 
         JsonNode mid = search("minPrice=50&maxPrice=100");
         assertThat(mid.get("items")).isNotEmpty();
-        mid.get("items").forEach(p -> assertThat(p.get("price").decimalValue()).isBetween(new java.math.BigDecimal("50"), new java.math.BigDecimal("100")));
+        mid.get("items").forEach(p -> assertThat(p.get("boxPrice").decimalValue()).isBetween(new java.math.BigDecimal("50"), new java.math.BigDecimal("100")));
 
         JsonNode good = search("minRating=4.5");
         assertThat(good.get("items")).isNotEmpty();

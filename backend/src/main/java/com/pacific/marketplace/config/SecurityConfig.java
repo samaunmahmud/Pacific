@@ -53,7 +53,7 @@ public class SecurityConfig {
                         // Public storefront reads. A bearer token is still honoured if sent, so
                         // the review list can show the viewer's own vote and their own reviews.
                         .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/*",
-                                "/api/products/*/reviews", "/api/products/*/questions", "/api/categories",
+                                "/api/products/*/reviews", "/api/products/*/questions", "/api/products/*/offers", "/api/categories",
                                 "/api/sellers/*", "/api/images/*").permitAll()
                         // Approved sellers and admins upload product photos; the service checks seller approval.
                         .requestMatchers(HttpMethod.POST, "/api/images").hasAnyRole("CUSTOMER", "ADMIN")

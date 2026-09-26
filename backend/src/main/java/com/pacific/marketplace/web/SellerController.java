@@ -13,6 +13,7 @@ import com.pacific.marketplace.web.dto.ReturnDtos.RefundRequest;
 import com.pacific.marketplace.web.dto.ReturnDtos.ReturnDto;
 import com.pacific.marketplace.service.SellerService;
 import com.pacific.marketplace.service.EmailVerificationService;
+import com.pacific.marketplace.service.OfferService;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
 import com.pacific.marketplace.web.dto.OrderDtos.StatusRequest;
 import com.pacific.marketplace.web.dto.PageResponse;
@@ -24,6 +25,7 @@ import com.pacific.marketplace.web.dto.SellerDtos.ApplyRequest;
 import com.pacific.marketplace.web.dto.SellerDtos.EarningsDto;
 import com.pacific.marketplace.web.dto.SellerDtos.SellerDto;
 import com.pacific.marketplace.web.dto.SellerDtos.SellerStats;
+import com.pacific.marketplace.web.dto.ProductDtos.OfferRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -56,17 +58,20 @@ public class SellerController {
     private final LedgerService ledger;
     private final QaService qa;
     private final ReturnService returns;
+    private final OfferService offers;
     private final EmailVerificationService verification;
 
     public SellerController(SellerService sellers, ProductService products, OrderService orders, LedgerService ledger,
                             QaService qa, ReturnService returns,
-                            EmailVerificationService verification) {
+                            EmailVerificationService verification,
+                            OfferService offers) {
         this.sellers = sellers;
         this.products = products;
         this.orders = orders;
         this.ledger = ledger;
         this.qa = qa;
         this.returns = returns;
+        this.offers = offers;
         this.verification = verification;
     }
 
@@ -107,6 +112,14 @@ public class SellerController {
     @GetMapping("/products/{id}")
     public ProductDto product(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         return products.sellerGet(seller(jwt).getId(), id);
+    }
+
+    /** Start selling a product that's already in the catalog (any of its listings' ids). */
+    @PostMapping("/offers/{productId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProductDto addOffer(@PathVariable Long productId, @Valid @RequestBody OfferRequest req,
+                               @AuthenticationPrincipal Jwt jwt) {
+        return offers.addOffer(CurrentUser.id(jwt), productId, req);
     }
 
     @PostMapping("/products")

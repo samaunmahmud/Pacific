@@ -1,9 +1,11 @@
 package com.pacific.marketplace.web;
 
 import com.pacific.marketplace.service.ProductService;
+import com.pacific.marketplace.service.OfferService;
 import com.pacific.marketplace.web.dto.PageResponse;
 import com.pacific.marketplace.web.dto.ProductDtos.CategoryDto;
 import com.pacific.marketplace.web.dto.ProductDtos.ProductDto;
+import com.pacific.marketplace.web.dto.ProductDtos.OfferDto;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class CatalogController {
 
     private final ProductService products;
+    private final OfferService offers;
 
-    public CatalogController(ProductService products) {
+    public CatalogController(ProductService products, OfferService offers) {
         this.products = products;
+        this.offers = offers;
     }
 
     @GetMapping("/products")
@@ -46,6 +50,12 @@ public class CatalogController {
     @GetMapping("/products/{id}")
     public ProductDto product(@PathVariable Long id) {
         return products.get(id);
+    }
+
+    /** Every seller's offer for this product, the buy box first. */
+    @GetMapping("/products/{id}/offers")
+    public List<OfferDto> offers(@PathVariable Long id) {
+        return offers.offers(id);
     }
 
     @GetMapping("/categories")

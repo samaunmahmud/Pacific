@@ -119,7 +119,7 @@ export function SellerProducts() {
           <tbody>
             {products.data?.items.map((p) => (
               <tr key={p.id} style={{ opacity: p.active ? 1 : 0.6 }}>
-                <td><span className="row"><span className="thumb"><ProductImage imageUrl={p.imageUrl} categoryName={p.category?.name} alt="" /></span><b>{p.name}</b></span></td>
+                <td><span className="row"><span className="thumb"><ProductImage imageUrl={p.imageUrl} categoryName={p.category?.name} alt="" /></span><b>{p.name}</b>{p.catalogId !== p.id && <span className="chip small">Offer</span>}</span></td>
                 <td>{p.category?.name ?? <span className="muted">—</span>}</td>
                 <td>{money(p.price)}{p.discountPercent > 0 && <span className="deal-badge" style={{ marginLeft: 6 }}>-{p.discountPercent}%</span>}</td>
                 <td><StockCell key={`${p.id}-${p.stock}`} product={p} base="/seller/products" onSaved={products.reload} /></td>

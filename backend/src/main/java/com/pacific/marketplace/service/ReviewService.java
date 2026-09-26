@@ -47,12 +47,14 @@ public class ReviewService {
     private final ReviewRepository reviews;
     private final ReviewVoteRepository votes;
     private final ProductRepository products;
+    private final BuyBox buyBox;
     private final OrderItemRepository orderItems;
     private final UserRepository users;
     private final Duration editWindow;
 
     public ReviewService(ReviewRepository reviews, ReviewVoteRepository votes, ProductRepository products,
-                         OrderItemRepository orderItems, UserRepository users, AppProperties props) {
+                         OrderItemRepository orderItems, UserRepository users, AppProperties props, BuyBox buyBox) {
+        this.buyBox = buyBox;
         this.reviews = reviews;
         this.votes = votes;
         this.products = products;
@@ -65,9 +67,9 @@ public class ReviewService {
 
     /** {@code viewerId} is the signed-in customer, or null for anonymous visitors/admins. */
     @Transactional(readOnly = true)
-    public ProductReviewsResponse forProduct(Long productId, String sort, Long viewerId) {
-        products.findById(productId).filter(Product::isVisibleInStore)
-                .orElseThrow(() -> ApiException.notFound("Product not found."));
+    public ProductReviewsResponse forProduct(Long listingId, String sort, Long viewerId) {
+        // Reviews live on the catalog page, shared by every seller's offer for the product.
+        Long productId = catalogPage(listingId).getId();
 
         List<Review> list = reviews.findForProductPage(productId, viewerId == null ? ANONYMOUS : viewerId,
                 sortFor(sort));
@@ -93,9 +95,9 @@ public class ReviewService {
     }
 
     @Transactional
-    public ReviewDto create(Long userId, Long productId, ReviewRequest req) {
-        Product product = products.findById(productId).filter(Product::isVisibleInStore)
-                .orElseThrow(() -> ApiException.notFound("Product not found."));
+    public ReviewDto create(Long userId, Long listingId, ReviewRequest req) {
+        Product product = catalogPage(listingId);
+        Long productId = product.getId();
         if (orderItems.countPurchases(userId, productId) == 0) {
             throw ApiException.forbidden("You can review a product once you've bought it.");
         }
@@ -280,6 +282,13 @@ public class ReviewService {
         return list.stream()
                 .map(r -> ReviewDto.from(r, viewerId, myVotes.get(r.getId()), editWindow, now))
                 .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    /** The catalog page for a listing, if any of its listings is on sale. */
+    private Product catalogPage(Long listingId) {
+        Long catalogId = products.findById(listingId).map(Product::catalogId).orElse(listingId);
+        return products.findById(catalogId).filter(p -> buyBox.catalogVisible(p.getId()))
+                .orElseThrow(() -> ApiException.notFound("Product not found."));
     }
 
     /** Keeps the product's cached average/count in sync (only visible reviews count). */

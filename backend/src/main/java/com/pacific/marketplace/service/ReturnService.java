@@ -49,6 +49,7 @@ public class ReturnService {
     private final OrderRepository orders;
     private final ReturnRequestRepository returns;
     private final ProductRepository products;
+    private final BuyBox buyBox;
     private final LedgerService ledger;
     private final PaymentService payments;
     private final NotificationService notifications;
@@ -56,7 +57,8 @@ public class ReturnService {
 
     public ReturnService(OrderRepository orders, ReturnRequestRepository returns, ProductRepository products,
                          LedgerService ledger, PaymentService payments, NotificationService notifications,
-                         AppProperties props) {
+                         AppProperties props, BuyBox buyBox) {
+        this.buyBox = buyBox;
         this.orders = orders;
         this.returns = returns;
         this.products = products;
@@ -187,6 +189,7 @@ public class ReturnService {
             for (ReturnItem item : r.getItems()) {
                 products.incrementStock(item.getOrderItem().getProduct().getId(), item.getQuantity());
             }
+            buyBox.refreshFor(r.getItems().stream().map(i -> i.getOrderItem().getProduct().getId()).toList());
         }
         ledger.recordRefund(order, amount, amount.min(r.itemsValue()), "Return #" + r.getId() + " · order #" + order.getId());
         r.refunded(amount, putBack, Text.clean(note));

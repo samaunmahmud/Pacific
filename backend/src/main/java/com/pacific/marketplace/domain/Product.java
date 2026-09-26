@@ -39,6 +39,27 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    /**
+     * The catalog page this listing is another seller's offer for; null when this listing is the catalog page itself.
+     * See {@link #catalogId()}.
+     */
+    @Column(name = "group_id")
+    private Long groupId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "item_condition", nullable = false, length = 20)
+    private ItemCondition condition = ItemCondition.NEW;
+
+    /**
+     * On a catalog page: the buy-box price and how many listings are on sale. Written only by BuyBox (never by saving
+     * the entity, so a stale copy in memory can't overwrite a fresher value).
+     */
+    @Column(name = "box_price", precision = 10, scale = 2, updatable = false)
+    private BigDecimal boxPrice;
+
+    @Column(name = "offer_count", nullable = false, updatable = false)
+    private int offerCount = 1;
+
     /** Null = sold by Pacific itself (the house store run by admins). */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id")
@@ -82,6 +103,7 @@ public class Product {
     @PrePersist
     void onCreate() {
         if (createdAt == null) createdAt = Instant.now();
+        if (boxPrice == null) boxPrice = price;
         recomputeDiscount();
     }
 
@@ -117,6 +139,25 @@ public class Product {
     /** Can shoppers see and buy this? Hidden products and products of unapproved sellers can't be. */
     public boolean isVisibleInStore() {
         return active && (seller == null || seller.isApproved());
+    }
+
+    /** The catalog page for this listing: its own id, or the page it's an offer for. */
+    public Long catalogId() { return groupId != null ? groupId : id; }
+    public boolean isOffer() { return groupId != null; }
+    public Long getGroupId() { return groupId; }
+    public void setGroupId(Long groupId) { this.groupId = groupId; }
+    public ItemCondition getCondition() { return condition; }
+    public void setCondition(ItemCondition condition) { this.condition = condition; }
+    public BigDecimal getBoxPrice() { return boxPrice; }
+    public int getOfferCount() { return offerCount; }
+
+    /** Copies the catalog details (not price, stock or condition) from the catalog page onto this offer. */
+    public void copyCatalogDetails(Product page) {
+        this.name = page.name;
+        this.description = page.description;
+        this.imageUrl = page.imageUrl;
+        this.moreImages = page.moreImages;
+        this.category = page.category;
     }
 
     public Long getId() { return id; }

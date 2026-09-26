@@ -420,12 +420,13 @@ public class ProductService {
                 var variation = cb.lower(cb.coalesce(root.<String>get("variation"), ""));
                 var either = cb.or(cb.like(name, p), cb.like(text, p), cb.like(categoryName, p), cb.like(variation, p));
                 if (families) {
-                    var sibling = cq.subquery(Long.class);
-                    var m = sibling.from(Product.class);
-                    sibling.select(m.get("id")).where(cb.equal(m.get("familyId"), root.get("familyId")),
+                    // Families with a matching variation, found once per word (not once per product).
+                    var matchingFamilies = cq.subquery(Long.class);
+                    var m = matchingFamilies.from(Product.class);
+                    matchingFamilies.select(m.get("familyId")).where(cb.isNotNull(m.get("familyId")),
                             cb.or(cb.like(cb.lower(m.get("name")), p),
                                     cb.like(cb.lower(cb.coalesce(m.<String>get("variation"), "")), p)));
-                    either = cb.or(either, cb.exists(sibling));
+                    either = cb.or(either, root.get("familyId").in(matchingFamilies));
                 }
                 all.add(either);
                 inName.add(cb.like(name, p));

@@ -93,16 +93,18 @@ app:
   mail:
     from: ${MAIL_FROM:Pacific <no-reply@pacific.example>}
     async: true
-  # Development only: fills an empty shop with ~150 invented products, stores, shoppers and reviews (DEMO_DATA=true).
+  # Development only: fills a shop with about 2,300 invented products, stores, shoppers and reviews (DEMO_DATA=true).
   # Adds data once, never touches yours, and creates a demo shopper account. NEVER enable against a real shop.
   demo-data:
     enabled: ${DEMO_DATA:false}
-  # Product photos uploaded by sellers and admins. Keep UPLOADS_DIR on a disk that survives redeploys (and back it up).
+    # The larger catalogue added on top of the first ~170 products (0 for none). Added once, like the rest.
+    extra-products: ${DEMO_EXTRA_PRODUCTS:2000}
   # "Deliver to" in the top bar looks postcodes up with postcodes.io (free, no key). Lookups are cached and limited per
   # visitor; if the service can't be reached, a well-formed postcode is still accepted without its place name.
   location:
     api-base: ${LOCATION_API_BASE:https://api.postcodes.io}
     hourly-limit: 120
+  # Product photos uploaded by sellers and admins. Keep UPLOADS_DIR on a disk that survives redeploys (and back it up).
   uploads:
     dir: ${UPLOADS_DIR:./uploads}
     max-bytes: 10485760

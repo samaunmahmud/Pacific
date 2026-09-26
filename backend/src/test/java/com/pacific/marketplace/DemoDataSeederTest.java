@@ -25,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** The opt-in demo data. Uses its own in-memory database so it can't leak into the other tests' shops. */
 @TestPropertySource(properties = {
         "app.demo-data.enabled=true",
+        "app.demo-data.extra-products=700", // the real default is 2000; fewer keeps the test quick
         "spring.datasource.url=jdbc:h2:mem:demoseed;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1"})
 class DemoDataSeederTest extends IntegrationTest {
 
@@ -43,11 +44,14 @@ class DemoDataSeederTest extends IntegrationTest {
         var all = productRepository.findAll();
         var pages = all.stream().filter(p -> !p.isOffer() && (p.getFamilyId() == null || all.stream()
                 .noneMatch(o -> p.getFamilyId().equals(o.getFamilyId()) && o.getId() < p.getId()))).toList();
-        assertThat(pages).hasSizeBetween(140, 200);
+        // ~170 first products plus 700 more (the larger catalogue), all with different names
+        assertThat(pages).hasSizeBetween(840, 900);
+        assertThat(pages.stream().map(p -> p.getName().toLowerCase()).distinct().count()).isEqualTo(pages.size());
+        assertThat(pages).anyMatch(p -> p.getName().matches("The .+ \\((Paperback|Hardcover)\\)"));
         assertThat(reviewRepository.count()).isGreaterThan(1000L);
         JsonNode categories = read(mvc.perform(get("/api/categories")).andReturn());
         assertThat(categories.size()).isGreaterThanOrEqualTo(13);
-        assertThat(search("").get("totalItems").asInt()).isGreaterThan(140);
+        assertThat(search("").get("totalItems").asInt()).isGreaterThan(840);
 
         // ratings on each product agree with the reviews behind them, and the spread looks like a real shop
         long withReviews = 0;
@@ -61,18 +65,23 @@ class DemoDataSeederTest extends IntegrationTest {
                 highest = Math.max(highest, p.getRatingAvg().doubleValue());
             }
         }
-        assertThat(withReviews).isEqualTo(pages.size());
+        assertThat(withReviews).isBetween((long) (pages.size() * 0.85), pages.size() - 1L); // a few new ones have none yet
         assertThat(lowest).isLessThan(4.0);
         assertThat(highest).isGreaterThan(4.4);
 
         // some deals, some low stock, some sold by Pacific, most by stores
-        assertThat(search("deals=true").get("totalItems").asInt()).isBetween(20, 80);
-        assertThat(pages.stream().filter(p -> p.getSeller() == null).count()).isBetween(20L, 60L);
-        assertThat(pages.stream().filter(p -> p.getSeller() != null).count()).isGreaterThan(100L);
+        assertThat(search("deals=true").get("totalItems").asInt()).isBetween(100, 400);
+        assertThat(pages.stream().filter(p -> p.getSeller() == null).count()).isBetween(100L, 230L);
+        assertThat(pages.stream().filter(p -> p.getSeller() != null).count()).isGreaterThan(600L);
+        // twenty stores, the newer ones selling in their own categories
+        var stores = pages.stream().filter(p -> p.getSeller() != null).map(p -> p.getSeller().getStoreName()).distinct().toList();
+        assertThat(stores).hasSize(20).contains("Kettle & Crumb", "Everyday Essentials Co.");
+        assertThat(pages).filteredOn(p -> p.getSeller() != null && p.getSeller().getStoreName().equals("Chapter & Verse"))
+                .allMatch(p -> p.getCategory().getName().equals("Books"));
 
         // about one product in five is also sold by other stores, some of them used
         var offers = productRepository.findAll().stream().filter(p -> p.isOffer()).toList();
-        assertThat(offers).hasSizeBetween(25, 70);
+        assertThat(offers).hasSizeBetween(100, 250);
         assertThat(offers).anyMatch(o -> o.getCondition() != com.pacific.marketplace.domain.ItemCondition.NEW);
         assertThat(offers).allMatch(o -> !o.getSeller().getId().equals(
                 productRepository.findById(o.getGroupId()).orElseThrow().getSeller() == null ? -1L
@@ -81,7 +90,7 @@ class DemoDataSeederTest extends IntegrationTest {
 
         // some clothes and gadgets come in other colours (clothes in sizes too), each family one card in search
         var variations = all.stream().filter(p -> p.getFamilyId() != null).toList();
-        assertThat(variations).hasSizeBetween(30, 80);
+        assertThat(variations).hasSizeBetween(100, 300);
         assertThat(variations).anyMatch(p -> p.getOption2() != null);
         JsonNode fashion = search("category=fashion");
         boolean grouped = false;

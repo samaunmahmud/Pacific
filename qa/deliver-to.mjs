@@ -26,7 +26,7 @@ const casey = await call('POST', '/auth/register', null, { name: 'Casey Jones', 
 await confirmEmail(email);
 await call('POST', '/me/addresses', casey.token, { name: 'Casey Jones', line1: '1 High Street', city: 'Uxbridge', postcode: 'UB8 3PH', country: 'United Kingdom', makeDefault: true });
 const work = await call('POST', '/me/addresses', casey.token, { name: 'Casey at work', line1: '5 Market Street', city: 'Manchester', postcode: 'M1 1AE', country: 'United Kingdom', makeDefault: false });
-const product = (await call('GET', '/products?size=1')).items[0];
+const product = (await call('GET', '/products?sort=popular&size=24')).items.find((p) => p.boxStock > 5 && p.variationCount === 0);
 
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--hide-scrollbars'] });
 await browser.defaultBrowserContext().overridePermissions(BASE, ['geolocation']);

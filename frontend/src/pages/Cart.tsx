@@ -49,6 +49,7 @@ export function CartPage() {
                 <ProductImage imageUrl={i.imageUrl} categoryName={i.categoryName} alt={i.name} />
               </Link>
               <Link to={`/products/${i.productId}`} className="cart-item-title">{i.name}</Link>
+              {i.variation && <span className="variation-label">{i.variation}</span>}
               <b>{money(i.unitPrice)}</b>
               {i.stock === 0 ? <span className="bb-stock out">Currently unavailable</span> : <span className="bb-stock in">In stock</span>}
               <div className="cart-actions">
@@ -120,6 +121,7 @@ export function CartPage() {
                       </Link>
                       <div className="cart-item-info">
                         <Link to={`/products/${i.productId}`} className="cart-item-title">{i.name}</Link>
+                        {i.variation && <span className="variation-label">{i.variation}</span>}
                         {i.stock === 0 ? <div className="bb-stock out">Currently unavailable</div>
                           : i.quantity > i.stock ? <div className="bb-stock out">Only {i.stock} left in stock. Please lower the quantity.</div>
                           : i.stock <= 5 ? <div className="bb-stock low">Only {i.stock} left in stock</div>

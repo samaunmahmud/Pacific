@@ -17,7 +17,7 @@ public final class CartDtos {
     /** unitPrice is after promotions; listUnitPrice (the regular price) and promotion are set when one applies. */
     public record CartItemDto(Long productId, String name, String imageUrl, String categoryName, BigDecimal unitPrice,
                               int quantity, BigDecimal lineTotal, int stock, String sellerName, String sellerSlug,
-                              BigDecimal listUnitPrice, String promotion) {
+                              BigDecimal listUnitPrice, String promotion, String variation) {
     }
 
     /** A promo code applied to the cart: how much it takes off which store's items. */

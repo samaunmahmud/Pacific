@@ -3,6 +3,7 @@ package com.pacific.marketplace.demo;
 import com.pacific.marketplace.domain.Category;
 import com.pacific.marketplace.domain.ItemCondition;
 import com.pacific.marketplace.domain.Product;
+import com.pacific.marketplace.domain.ProductFamily;
 import com.pacific.marketplace.domain.Review;
 import com.pacific.marketplace.domain.Role;
 import com.pacific.marketplace.domain.SellerProfile;
@@ -10,6 +11,7 @@ import com.pacific.marketplace.domain.SellerStatus;
 import com.pacific.marketplace.domain.Setting;
 import com.pacific.marketplace.domain.User;
 import com.pacific.marketplace.repo.CategoryRepository;
+import com.pacific.marketplace.repo.ProductFamilyRepository;
 import com.pacific.marketplace.repo.ProductRepository;
 import com.pacific.marketplace.repo.ReviewRepository;
 import com.pacific.marketplace.repo.SellerProfileRepository;
@@ -64,6 +66,8 @@ public class DemoDataSeeder implements ApplicationRunner {
     static final String OFFERS_MARKER = "demo_offers";
     /** Demo coupons and the WELCOME10 code, added once. */
     static final String PROMOTIONS_MARKER = "demo_promotions";
+    /** Colours and sizes of some demo products, added once. */
+    static final String VARIATIONS_MARKER = "demo_variations";
     /** The one demo account you can sign in with. */
     public static final String SHOPPER_EMAIL = "demo.shopper@example.com";
     public static final String SHOPPER_PASSWORD = "Demo-Pacific-123";
@@ -80,11 +84,12 @@ public class DemoDataSeeder implements ApplicationRunner {
     private final TransactionTemplate tx;
     private final BuyBox buyBox;
     private final Promotions promotions;
+    private final ProductFamilyRepository families;
 
     public DemoDataSeeder(CategoryRepository categories, ProductRepository products, UserRepository users,
                           SellerProfileRepository sellers, ReviewRepository reviews, SettingRepository settings,
                           PasswordEncoder encoder, PlatformTransactionManager txManager, BuyBox buyBox,
-                          Promotions promotions) {
+                          Promotions promotions, ProductFamilyRepository families) {
         this.categories = categories;
         this.products = products;
         this.users = users;
@@ -95,6 +100,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         this.tx = new TransactionTemplate(txManager);
         this.buyBox = buyBox;
         this.promotions = promotions;
+        this.families = families;
     }
 
     @Override
@@ -113,6 +119,11 @@ public class DemoDataSeeder implements ApplicationRunner {
             Integer coupons = tx.execute(status -> seedCoupons());
             settings.save(new Setting(PROMOTIONS_MARKER, "v1"));
             log.warn("DEMO DATA: {} coupons and the promo code WELCOME10 (10% off Pacific's own products) added.", coupons);
+        }
+        if (!settings.existsById(VARIATIONS_MARKER)) {
+            Integer added = tx.execute(status -> seedVariations());
+            settings.save(new Setting(VARIATIONS_MARKER, "v1"));
+            log.warn("DEMO DATA: {} colour and size variations added to demo products.", added);
         }
         // Lightning Deals last hours, so a demo shop starts a fresh batch whenever none is running.
         Integer deals = tx.execute(status -> seedDeals());
@@ -212,6 +223,67 @@ public class DemoDataSeeder implements ApplicationRunner {
             buyBox.refresh(page.getId());
         }
         return added;
+    }
+
+    /** Named colours, as hues of the demo drawings. */
+    private static final List<Map.Entry<String, Integer>> COLOURS = List.of(Map.entry("Red", 0), Map.entry("Orange", 28),
+            Map.entry("Mustard", 48), Map.entry("Green", 130), Map.entry("Teal", 175), Map.entry("Blue", 215),
+            Map.entry("Navy", 235), Map.entry("Purple", 275), Map.entry("Pink", 325));
+
+    /**
+     * Some demo products come in other colours (clothes in sizes too): each variation is its own product page, with
+     * the drawing in its own colour. Returns how many variations were added.
+     */
+    private int seedVariations() {
+        Random rnd = new Random(20260927L);
+        List<Product> pages = products.findAll(Sort.by("id")).stream()
+                .filter(p -> !p.isOffer() && p.isActive() && p.getFamilyId() == null && p.getImageUrl() != null
+                        && p.getImageUrl().matches("demo:[a-z-]+:\\d+") && p.getCategory() != null)
+                .toList();
+        int added = 0;
+        Map<String, Integer> perArt = new HashMap<>();
+        for (Product page : pages) {
+            String[] image = page.getImageUrl().split(":");
+            String art = image[1];
+            boolean sized = art.equals("shirt") || art.equals("trousers");
+            boolean coloured = sized || art.equals("shoe") || art.equals("beanie") || art.equals("scarf")
+                    || art.equals("headphones") || art.equals("earbuds") || art.equals("speaker");
+            if (!coloured || perArt.merge(art, 1, Integer::sum) > (sized ? 3 : 2)) continue;
+
+            int hue = Integer.parseInt(image[2]);
+            Map.Entry<String, Integer> own = COLOURS.stream()
+                    .min(java.util.Comparator.comparingInt(c -> hueDistance(c.getValue(), hue))).orElseThrow();
+            List<Map.Entry<String, Integer>> others = new ArrayList<>(COLOURS.stream().filter(c -> c != own).toList());
+            Collections.shuffle(others, rnd);
+            List<Map.Entry<String, Integer>> colours = new ArrayList<>(List.of(own, others.get(0), others.get(1)));
+            List<String> sizes = sized ? List.of("S", "M", "L") : java.util.Collections.singletonList(null);
+
+            ProductFamily family = families.save(new ProductFamily("Colour", sized ? "Size" : null));
+            page.setVariation(family, own.getKey(), sized ? "M" : null);
+            for (Map.Entry<String, Integer> colour : colours) {
+                for (String size : sizes) {
+                    if (colour == own && (size == null || size.equals("M"))) continue;
+                    BigDecimal price = size != null && size.equals("L")
+                            ? page.getPrice().add(new BigDecimal("2.00")) : page.getPrice();
+                    int stock = rnd.nextInt(100) < 12 ? 0 : 3 + rnd.nextInt(30);
+                    Product v = new Product(page.getName(), page.getDescription(), price, stock,
+                            "demo:" + art + ":" + colour.getValue(), page.getCategory());
+                    v.setSeller(page.getSeller());
+                    v.update(v.getName(), v.getDescription(), price, null, stock, v.getImageUrl(), v.getCategory(), true);
+                    v.setVariation(family, colour.getKey(), size);
+                    v.setCreatedAt(page.getCreatedAt());
+                    products.save(v);
+                    added++;
+                }
+            }
+            products.findByGroupId(page.getId()).forEach(o -> o.copyCatalogDetails(page));
+        }
+        return added;
+    }
+
+    private static int hueDistance(int a, int b) {
+        int d = Math.abs(a - b) % 360;
+        return Math.min(d, 360 - d);
     }
 
     /** Returns {products, reviews, stores}. */

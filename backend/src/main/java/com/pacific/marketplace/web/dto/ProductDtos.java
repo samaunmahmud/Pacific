@@ -46,7 +46,8 @@ public final class ProductDtos {
                              List<String> moreImages, CategoryDto category, boolean active, ItemCondition condition,
                              BigDecimal boxPrice, int offerCount, Long boxProductId, int boxStock, String boxSellerName,
                              double ratingAvg, int ratingCount, String sellerName, String sellerSlug,
-                             Instant createdAt, DealDto deal, CouponDto coupon) {
+                             Instant createdAt, DealDto deal, CouponDto coupon,
+                             String variation, int variationCount, VariationsDto variations) {
         public static final String HOUSE_STORE = "Pacific";
 
         public static ProductDto from(Product p) {
@@ -57,22 +58,73 @@ public final class ProductDtos {
                     p.getId(), p.getStock(), seller == null ? HOUSE_STORE : seller.getStoreName(),
                     p.getRatingAvg().doubleValue(), p.getRatingCount(),
                     seller == null ? HOUSE_STORE : seller.getStoreName(), seller == null ? null : seller.getSlug(),
-                    p.getCreatedAt(), null, null);
+                    p.getCreatedAt(), null, null, p.getVariation(), 0, null);
         }
 
         /** With the Lightning Deal and coupon on the listing "Add to cart" buys (see ProductService.decorate). */
         public ProductDto withPromotions(DealDto deal, CouponDto coupon) {
             return new ProductDto(id, catalogId, name, description, price, listPrice, discountPercent, stock, imageUrl,
                     moreImages, category, active, condition, boxPrice, offerCount, boxProductId, boxStock, boxSellerName,
-                    ratingAvg, ratingCount, sellerName, sellerSlug, createdAt, deal, coupon);
+                    ratingAvg, ratingCount, sellerName, sellerSlug, createdAt, deal, coupon, variation, variationCount,
+                    variations);
         }
 
         /** The same product page with its live buy box (another seller's listing may be the one on sale). */
         public ProductDto withBuyBox(Long productId, BigDecimal price, int stock, String sellerName, int offers) {
             return new ProductDto(id, catalogId, name, description, this.price, listPrice, discountPercent, this.stock,
                     imageUrl, moreImages, category, active, condition, price, offers, productId, stock, sellerName,
-                    ratingAvg, ratingCount, this.sellerName, sellerSlug, createdAt, deal, coupon);
+                    ratingAvg, ratingCount, this.sellerName, sellerSlug, createdAt, deal, coupon, variation, variationCount,
+                    variations);
         }
+
+        /** On a search card: how many variations its family has on sale (the card stands for all of them). */
+        public ProductDto withVariationCount(int count) {
+            return new ProductDto(id, catalogId, name, description, price, listPrice, discountPercent, stock, imageUrl,
+                    moreImages, category, active, condition, boxPrice, offerCount, boxProductId, boxStock, boxSellerName,
+                    ratingAvg, ratingCount, sellerName, sellerSlug, createdAt, deal, coupon, variation, count, variations);
+        }
+
+        /** On a product page: the picker for switching to another variation. */
+        public ProductDto withVariations(VariationsDto v) {
+            return new ProductDto(id, catalogId, name, description, price, listPrice, discountPercent, stock, imageUrl,
+                    moreImages, category, active, condition, boxPrice, offerCount, boxProductId, boxStock, boxSellerName,
+                    ratingAvg, ratingCount, sellerName, sellerSlug, createdAt, deal, coupon, variation,
+                    v == null ? variationCount : v.options().size(), v);
+        }
+    }
+
+    /**
+     * A product's variations. dim2 is null when they differ in one way only; option1/option2 are the page being shown.
+     * On the storefront only variations on sale are listed; Seller Central lists them all.
+     */
+    public record VariationsDto(Long familyId, String dim1, String dim2, String option1, String option2,
+                                List<VariationOption> options) {
+    }
+
+    /** price is what its buy box charges; inStock whether that listing has any left. */
+    public record VariationOption(Long productId, String option1, String option2, BigDecimal price, boolean inStock,
+                                  String imageUrl, boolean active) {
+    }
+
+    /** Turns a product into a variation (first time), or changes its options and the family's dimension names. */
+    public record FamilyRequest(
+            @NotBlank(message = "Say what the variations differ by, e.g. Colour.") @Size(max = 30) String dim1,
+            @Size(max = 30) String dim2,
+            @NotBlank(message = "Give this product's option, e.g. Red.") @Size(max = 40) String option1,
+            @Size(max = 40) String option2) {
+    }
+
+    /** A new variation of a product: its options and its own price and stock; everything else is copied. */
+    public record VariationRequest(
+            @NotBlank(message = "Give the new variation's option, e.g. Blue.") @Size(max = 40) String option1,
+            @Size(max = 40) String option2,
+            @NotNull(message = "Price is required.") @DecimalMin(value = "0.01", message = "Price must be above zero.")
+            @DecimalMax(value = "99999999.99") @Digits(integer = 8, fraction = 2, message = "Price can have at most 2 decimals.")
+            BigDecimal price,
+            @NotNull(message = "Stock is required.") @Min(value = 0, message = "Stock can't be negative.")
+            @Max(1_000_000) Integer stock,
+            @Size(max = 500) @Pattern(regexp = PRODUCT_IMAGE, message = "Image URL must start with http:// or https://")
+            String imageUrl) {
     }
 
     public record ProductRequest(

@@ -24,6 +24,8 @@ export function ProductCard({ product }: { product: Product }) {
   const price = isPage && product.boxPrice != null ? product.boxPrice : product.price;
   const ownPriceShown = price === product.price;
   const soldOut = stock === 0;
+  // A card for a product in several colours or sizes: the shopper picks one on its page.
+  const options = product.variationCount > 1;
 
   async function addToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -60,10 +62,13 @@ export function ProductCard({ product }: { product: Product }) {
             : price >= 50 ? <span className="free-delivery">FREE delivery</span> : null}
           <span className="sold-by">Sold by {isPage ? product.boxSellerName : product.sellerName}</span>
           {isPage && product.offerCount > 1 && <span className="more-offers">+{product.offerCount - 1} other seller{product.offerCount > 2 ? 's' : ''}</span>}
+          {options && <span className="more-options">{product.variationCount} options available</span>}
         </div>
-        <button className="cart-btn" disabled={soldOut || busy} onClick={addToCart}>
-          {soldOut ? 'Out of stock' : busy ? 'Adding…' : 'Add to cart'}
-        </button>
+        {options ? <span className="cart-btn see-options">See options</span> : (
+          <button className="cart-btn" disabled={soldOut || busy} onClick={addToCart}>
+            {soldOut ? 'Out of stock' : busy ? 'Adding…' : 'Add to cart'}
+          </button>
+        )}
       </div>
     </Link>
   );

@@ -39,7 +39,10 @@ class DemoDataSeederTest extends IntegrationTest {
     @Test
     void addsARealisticShop() throws Exception {
         // catalog pages (one per product); other stores' offers on them are extra listings
-        var pages = productRepository.findAll().stream().filter(p -> !p.isOffer()).toList();
+        // (a product's other colours and sizes are pages of their own, added later without reviews: leave them out)
+        var all = productRepository.findAll();
+        var pages = all.stream().filter(p -> !p.isOffer() && (p.getFamilyId() == null || all.stream()
+                .noneMatch(o -> p.getFamilyId().equals(o.getFamilyId()) && o.getId() < p.getId()))).toList();
         assertThat(pages).hasSizeBetween(140, 200);
         assertThat(reviewRepository.count()).isGreaterThan(1000L);
         JsonNode categories = read(mvc.perform(get("/api/categories")).andReturn());
@@ -75,6 +78,15 @@ class DemoDataSeederTest extends IntegrationTest {
                 productRepository.findById(o.getGroupId()).orElseThrow().getSeller() == null ? -1L
                         : productRepository.findById(o.getGroupId()).orElseThrow().getSeller().getId()));
         assertThat(productRepository.findAll().stream().anyMatch(p -> p.getStock() > 0 && p.getStock() <= 5)).isTrue();
+
+        // some clothes and gadgets come in other colours (clothes in sizes too), each family one card in search
+        var variations = all.stream().filter(p -> p.getFamilyId() != null).toList();
+        assertThat(variations).hasSizeBetween(30, 80);
+        assertThat(variations).anyMatch(p -> p.getOption2() != null);
+        JsonNode fashion = search("category=fashion");
+        boolean grouped = false;
+        for (JsonNode card : fashion.get("items")) grouped |= card.get("variationCount").asInt() >= 9;
+        assertThat(grouped).isTrue();
     }
 
     @Test

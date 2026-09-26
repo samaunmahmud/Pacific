@@ -67,4 +67,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     boolean existsByGroupIdAndSellerId(Long groupId, Long sellerId);
 
     long countByActiveTrue();
+
+    /** A variation family's pages, oldest first. */
+    List<Product> findByFamilyIdOrderByIdAsc(Long familyId);
 }

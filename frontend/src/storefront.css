@@ -802,3 +802,38 @@ button.deliver-to .action-label { font-weight: 700; overflow: hidden; text-overf
 }
 .deliver-dialog form input::placeholder { text-transform: none; }
 .cart-link-btn.deliver-device { border-left: 0; padding-left: 0; margin-left: 0; }
+
+/* ---------- phone top bar ---------- */
+/* Row 1: logo, a short account link and the cart; row 2: search; row 3: "Deliver to". Messages, orders and signing out
+   are one tap away on the account page (and orders in the footer). */
+.action-phone { display: none; }
+.cart-wrap { flex-shrink: 0; }
+.cart-icon { flex-shrink: 0; width: auto; max-width: none; }
+@media (max-width: 820px) {
+  .header-box { padding: 8px 12px 6px; gap: 8px 6px; align-items: center; }
+  .logo-text { font-size: 24px; padding: 2px 4px; }
+  .logo-star { font-size: 15px; }
+  .header-actions { gap: 2px; flex-wrap: nowrap; }
+  .header-box .action-item { padding: 4px 6px; }
+  .header-box .phone-hide { display: none; }
+  .header-box .account-link .action-small, .header-box .account-link .action-label { display: none; }
+  .header-box .account-link .action-phone { display: inline; color: #fff; font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .header-box .cart-word { display: none; }
+  .cart-link { align-items: center; }
+  .cart-icon { height: 30px; }
+  .search-cat { display: none; }
+  .search-container { height: 44px; }
+  .deliver-strip { padding: 0 2px; }
+}
+.submit-btn.secondary { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
+.submit-btn.secondary:hover { background: #fbf2f6; }
+/* Tablets: one line of labels, room for the cart; the department picker and "Sign out" (also on the account page)
+   step aside. */
+.header-box .action-small, .header-box .action-label { white-space: nowrap; }
+.search-container { min-width: 0; }
+@media (min-width: 821px) and (max-width: 1180px) {
+  .header-box .tablet-hide { display: none; }
+  .search-cat { display: none; }
+  .deliver-to { max-width: 150px; }
+  .header-box .action-item { padding: 6px 6px; }
+}

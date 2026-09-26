@@ -247,6 +247,7 @@ public class OrderService {
             case PROCESSING -> {
                 order.setStatus(next);
                 order.addEvent(OrderEventType.PROCESSING, null);
+                notifications.orderProcessing(order);
             }
             case SHIPPED -> {
                 String c = Text.clean(carrier);

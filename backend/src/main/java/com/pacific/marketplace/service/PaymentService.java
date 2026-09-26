@@ -202,20 +202,24 @@ public class PaymentService {
      * The provider says this checkout was paid. Idempotent: repeated webhooks change nothing. If the payment had
      * already been expired or cancelled (the customer paid at the last moment, after their stock was released) the
      * money is refunded instead, since the goods are no longer reserved. paidMinor and paidCurrency, when given,
-     * must match what we asked for.
+     * must match what we asked for: if they don't, whatever was taken is refunded and the checkout is cancelled (a
+     * correctly signed event means real money moved, so it must never just be ignored).
      */
     public void markPaid(String checkoutRef, String providerPaymentRef, Long paidMinor, String paidCurrency) {
-        tx.executeWithoutResult(s -> {
+        Boolean mismatch = tx.execute(s -> {
             Payment p = payments.lockByCheckoutRef(checkoutRef).orElse(null);
             if (p == null) {
                 log.warn("Ignoring a payment for unknown checkout {}", checkoutRef);
-                return;
+                return false;
             }
             if (paidMinor != null && (paidMinor != minor(p.getAmount())
                     || paidCurrency == null || !p.getCurrency().equalsIgnoreCase(paidCurrency))) {
-                log.error("Ignoring payment for checkout {}: provider reports {} {} but we asked for {} {}",
-                        checkoutRef, paidMinor, paidCurrency, minor(p.getAmount()), p.getCurrency());
-                return;
+                // The currency comes from the provider's event: only letters reach the log, so it can't forge log lines.
+                log.error("Payment for checkout {} doesn't match: provider reports {} {} but we asked for {} {}",
+                        p.getCheckoutRef(), paidMinor, paidCurrency == null ? null : paidCurrency.replaceAll("[^A-Za-z]", ""),
+                        minor(p.getAmount()), p.getCurrency());
+                refundMismatch(p, providerPaymentRef, paidMinor, paidCurrency);
+                return p.getStatus() == PaymentStatus.PENDING;
             }
             switch (p.getStatus()) {
                 case PAID -> { /* already recorded */ }
@@ -233,7 +237,30 @@ public class PaymentService {
                 }
                 case EXPIRED, CANCELLED -> refundLatePayment(p, providerPaymentRef);
             }
+            return false;
         });
+        // Nothing usable was paid: release the stock and give the items back to the cart, as for a cancelled payment.
+        if (Boolean.TRUE.equals(mismatch)) finish(checkoutRef, PaymentStatus.CANCELLED);
+    }
+
+    /**
+     * Refunds a payment that doesn't match its checkout, exactly as it was paid. Not for one already recorded as
+     * paid correctly: a second, different charge for the same checkout can't happen with a hosted checkout page.
+     */
+    private void refundMismatch(Payment p, String providerPaymentRef, long paidMinor, String paidCurrency) {
+        if (p.getStatus() == PaymentStatus.PAID) return;
+        if (providerPaymentRef == null || paidMinor <= 0 || paidCurrency == null) {
+            throw new IllegalStateException("Mismatched payment for " + p.getCheckoutRef() + " can't be refunded automatically.");
+        }
+        PaymentGateway gateway = gateways.forType(p.getProvider()).orElseThrow(
+                () -> new IllegalStateException("No provider configured to refund " + p.getCheckoutRef()));
+        BigDecimal paid = BigDecimal.valueOf(paidMinor).movePointLeft(2);
+        String currency = paidCurrency.toUpperCase(java.util.Locale.ROOT);
+        // If the refund fails this throws, the transaction rolls back and the provider retries its webhook.
+        gateway.refund(providerPaymentRef, paid, currency,
+                "pacific-refund-mismatch-" + p.getCheckoutRef() + "-" + paidMinor + currency);
+        notifications.paymentRefunded(p.getUser(), paid, currency,
+                "We couldn't match your card payment to your order, so we haven't placed it.");
     }
 
     private void refundLatePayment(Payment p, String providerPaymentRef) {
@@ -247,6 +274,8 @@ public class PaymentService {
         gateway.refund(providerPaymentRef, p.getAmount(), p.getCurrency(), "pacific-refund-late-" + p.getCheckoutRef());
         p.addRefund(p.getAmount());
         log.warn("Payment {} arrived after the checkout was released; refunded in full.", p.getCheckoutRef());
+        notifications.paymentRefunded(p.getUser(), p.getAmount(), p.getCurrency(),
+                "Your payment arrived after the time to pay had run out, so the items were no longer held for you.");
     }
 
     /** The customer gives up on paying. Their unpaid orders are cancelled and the stock goes back on sale. */

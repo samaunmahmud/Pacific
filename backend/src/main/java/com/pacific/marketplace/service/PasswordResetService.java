@@ -74,6 +74,8 @@ public class PasswordResetService {
     public void reset(String rawToken, String newPassword) {
         PasswordResetToken token = tokens.findByTokenHash(hash(rawToken.strip())).orElseThrow(() -> INVALID);
         Long userId = token.getUser().getId();
+        // Checked before the link is used up, so a too-easy password doesn't cost the customer their link.
+        PasswordPolicy.check(newPassword, token.getUser().getEmail(), token.getUser().getName());
         Instant now = Instant.now();
         if (tokens.consume(token.getId(), now) != 1) throw INVALID; // already used, or expired, or someone got there first
         User user = users.findById(userId).orElseThrow(() -> INVALID);

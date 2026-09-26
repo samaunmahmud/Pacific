@@ -20,6 +20,20 @@ export function AccountHome() {
   const [again, setAgain] = useState('');
   const [pwError, setPwError] = useState('');
   const [pwBusy, setPwBusy] = useState(false);
+  const [signOutBusy, setSignOutBusy] = useState(false);
+
+  async function signOutOthers() {
+    if (!window.confirm('Sign out of Pacific on every other phone, tablet and computer? You\'ll stay signed in here.')) return;
+    setSignOutBusy(true);
+    try {
+      adopt(await api<AuthResponse>('/me/sessions/sign-out-others', { method: 'POST' }));
+      toast.show('Signed out everywhere else');
+    } catch (err) {
+      toast.show(message(err, 'Could not sign out your other devices.'), 'error');
+    } finally {
+      setSignOutBusy(false);
+    }
+  }
 
   async function saveName(e: FormEvent) {
     e.preventDefault();
@@ -81,7 +95,8 @@ export function AccountHome() {
 
       <form className="square-review-box static stack" onSubmit={changePassword}>
         <h2 style={{ margin: 0 }}>Change your password</h2>
-        <p className="muted" style={{ margin: 0 }}>You'll stay signed in here and be signed out everywhere else.</p>
+        <p className="muted" style={{ margin: 0 }}>You'll stay signed in here and be signed out everywhere else. Avoid common
+          passwords and ones based on your name or email: a few unrelated words together works well.</p>
         <div className="form-field">
           <label className="field-label small" htmlFor="pw-current">Current password</label>
           <input id="pw-current" className="rounded-input" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} required autoComplete="current-password" maxLength={72} />
@@ -99,6 +114,16 @@ export function AccountHome() {
         {pwError && <div className="notice error" role="alert">{pwError}</div>}
         <div><button className="submit-btn" disabled={pwBusy}>{pwBusy ? 'Changing…' : 'Change password'}</button></div>
       </form>
+
+      <section className="square-review-box static stack" aria-labelledby="devices-h">
+        <h2 id="devices-h" style={{ margin: 0 }}>Signed-in devices</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          Lost a phone, or signed in on a shared computer? Sign out everywhere else. You'll stay signed in here.
+        </p>
+        <div><button type="button" className="submit-btn" onClick={() => void signOutOthers()} disabled={signOutBusy}>
+          {signOutBusy ? 'Signing out…' : 'Sign out of all other devices'}
+        </button></div>
+      </section>
     </div>
   );
 }

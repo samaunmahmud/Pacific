@@ -51,7 +51,7 @@ const go = async (page, path, label = path) => { where = label; await page.goto(
 const body = (page) => page.$eval('body', (e) => e.innerText);
 const shot = (page, n) => page.screenshot({ path: `${OUT}${n}.png`, fullPage: true });
 const clickButton = (page, text, exact = true) => page.evaluate((t, ex) => { const b = [...document.querySelectorAll('button')].find((x) => (ex ? x.textContent.trim() === t : x.textContent.trim().startsWith(t))); if (!b) throw new Error('no button ' + t); b.click(); }, text, exact);
-const clear = async (page, sel) => { await page.click(sel, { clickCount: 3 }); await page.keyboard.press('Backspace'); };
+const clear = async (page, sel) => { await page.click(sel, { count: 3 }); await page.keyboard.press('Backspace'); };
 const status = async (token) => (await fetch(API + '/auth/me', { headers: { Authorization: 'Bearer ' + token } })).status;
 
 // ---- 1. forgot password through the UI ----

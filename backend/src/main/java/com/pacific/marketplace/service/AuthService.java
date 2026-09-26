@@ -53,6 +53,7 @@ public class AuthService {
         if (users.existsByEmailIgnoreCase(email)) {
             throw ApiException.conflict("An account with that email already exists.");
         }
+        PasswordPolicy.check(req.password(), email, req.name());
         User user = new User(req.name().strip(), email, null, encoder.encode(req.password()), Role.CUSTOMER);
         try {
             users.saveAndFlush(user);

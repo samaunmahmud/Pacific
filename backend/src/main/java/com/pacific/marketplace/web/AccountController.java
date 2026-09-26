@@ -48,6 +48,12 @@ public class AccountController {
         return account.changePassword(CurrentUser.id(jwt), req.currentPassword(), req.newPassword());
     }
 
+    /** "Sign out of all other devices": this one gets a new token back. */
+    @PostMapping("/sessions/sign-out-others")
+    public AuthResponse signOutOthers(@AuthenticationPrincipal Jwt jwt) {
+        return account.signOutEverywhereElse(CurrentUser.id(jwt));
+    }
+
     @GetMapping("/addresses")
     public List<AddressDto> addresses(@AuthenticationPrincipal Jwt jwt) {
         return addresses.list(CurrentUser.id(jwt));

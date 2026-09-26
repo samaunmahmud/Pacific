@@ -48,7 +48,7 @@ class CheckoutConcurrencyTest {
     private String customer() throws Exception {
         String email = "c-" + UUID.randomUUID() + "@example.com";
         String res = mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-                .content(json.writeValueAsString(Map.of("name", "C", "email", email, "password", "password-123"))))
+                .content(json.writeValueAsString(Map.of("name", "C", "email", email, "password", "steady-otter-42"))))
                 .andReturn().getResponse().getContentAsString();
         String admin = json.readTree(mvc.perform(post("/api/auth/admin/login").contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("identifier", "testadmin", "password", "testadmin-password"))))

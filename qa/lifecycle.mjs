@@ -97,7 +97,11 @@ await go(a, '/admin/emails');
 txt = await body(a);
 check('admin emails page lists the confirmation, new-order and shipped emails',
   txt.includes(`Your Pacific order #${orderId} is confirmed`) && txt.includes(`New Pacific order #${orderId}`) && txt.includes(`Your Pacific order #${orderId} has shipped`), txt.slice(0, 600));
-check('admin is told no mail server is set up', txt.includes('not delivered'));
+// With no mail server the emails are only recorded, and the page says so; with one (e.g. MAIL_HOST pointing at a
+// Mailpit test inbox) they're sent and there's nothing to warn about.
+const logged = (await call('GET', '/admin/emails?size=5', admin)).items.some((e) => e.status === 'LOGGED');
+check(logged ? 'admin is told no mail server is set up' : 'emails were delivered, so there is no "not delivered" warning',
+  txt.includes('not delivered') === logged);
 await a.evaluate((id) => [...document.querySelectorAll('details summary')].find((x) => x.textContent.includes(`#${id} has shipped`))?.click(), orderId);
 await sleep(300);
 check('opening an email shows its text with the tracking link', (await body(a)).includes('https://www.royalmail.com/'));

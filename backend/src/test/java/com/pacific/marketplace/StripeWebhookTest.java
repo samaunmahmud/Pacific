@@ -91,16 +91,23 @@ class StripeWebhookTest extends PaymentTestBase {
     }
 
     @Test
-    void anEventForADifferentAmountOrCurrencyIsIgnored() throws Exception {
+    void aPaymentForADifferentAmountIsRefundedAndTheCheckoutReleased() throws Exception {
         String token = registerCustomer();
         Product p = product("Shelf", "30.00", 3);
         JsonNode res = pendingCheckout(token, p);
         String ref = res.get("checkoutRef").asText();
         long minor = res.get("total").decimalValue().movePointRight(2).longValueExact();
 
+        // A signed event is real money: it's refunded as paid, and the orders aren't placed (the email is checked in
+        // PaymentRefundEmailTest, which commits).
         deliverSigned(event("checkout.session.completed", ref, "paid", minor - 100, "gbp")).andExpect(status().isOk());
+        assertThat(payment(token, ref, 200).get("status").asText()).isEqualTo("CANCELLED");
+        assertThat(order(token, res.get("orders").get(0).get("id").asLong()).get("status").asText()).isEqualTo("CANCELLED");
+        assertThat(stockOf(p)).isEqualTo(3);
+
+        // A repeat (or the same money reported in another currency) doesn't place the orders either.
         deliverSigned(event("checkout.session.completed", ref, "paid", minor, "usd")).andExpect(status().isOk());
-        assertThat(payment(token, ref, 200).get("status").asText()).isEqualTo("PENDING");
+        assertThat(payment(token, ref, 200).get("status").asText()).isEqualTo("CANCELLED");
     }
 
     @Test
@@ -146,4 +153,5 @@ class StripeWebhookTest extends PaymentTestBase {
         assertThat(after.get("refundedAmount").decimalValue()).isEqualByComparingTo(after.get("amount").decimalValue());
         assertThat(stockOf(p)).isEqualTo(3);
     }
+
 }

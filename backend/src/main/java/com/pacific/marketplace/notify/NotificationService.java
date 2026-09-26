@@ -63,6 +63,16 @@ public class NotificationService {
         emails.forEach(this::afterCommit);
     }
 
+    /** A card payment we couldn't use was refunded in full; reason says why, in a sentence. */
+    public void paymentRefunded(User user, BigDecimal amount, String currency, String reason) {
+        afterCommit(templates.paymentRefunded(user, amount, currency, reason));
+    }
+
+    /** The seller has started preparing the order. */
+    public void orderProcessing(Order order) {
+        afterCommit(templates.orderProcessing(order));
+    }
+
     public void orderShipped(Order order) {
         afterCommit(templates.orderShipped(order));
     }

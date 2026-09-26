@@ -71,6 +71,11 @@ public class User {
         this.passwordVersion++;
     }
 
+    /** Ends every session without changing the password (see JwtDecoder in SecurityConfig). */
+    public void endAllSessions() {
+        this.passwordVersion++;
+    }
+
     public void markEmailVerified() {
         if (emailVerifiedAt == null) emailVerifiedAt = Instant.now();
     }

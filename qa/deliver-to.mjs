@@ -46,7 +46,7 @@ async function openDialog(sel = 'button.deliver-to') {
   await sleep(300);
 }
 async function typePostcode(value) {
-  await tab.click('.deliver-dialog input', { clickCount: 3 });
+  await tab.click('.deliver-dialog input', { count: 3 });
   await tab.keyboard.press('Backspace');
   await tab.type('.deliver-dialog input', value);
   await tab.click('.deliver-dialog form .submit-btn');

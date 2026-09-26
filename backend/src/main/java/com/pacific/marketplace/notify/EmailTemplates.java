@@ -75,6 +75,27 @@ public class EmailTemplates {
         return d.build(first.getUser().getEmail(), subject, "ORDER_CONFIRMATION");
     }
 
+    public Email paymentRefunded(User user, BigDecimal amount, String currency, String reason) {
+        java.text.NumberFormat f = java.text.NumberFormat.getCurrencyInstance(java.util.Locale.UK);
+        f.setCurrency(java.util.Currency.getInstance(currency));
+        Doc d = new Doc().heading("We've refunded your payment");
+        d.para("Hi " + firstName(user.getName()) + ", " + reason);
+        d.para(f.format(amount) + " has been refunded to your card in full. It can take 5 to 10 working days to show on "
+                + "your statement.");
+        d.para("Your items are back in your cart if you'd still like them.");
+        d.button("Go to your cart", baseUrl + "/cart");
+        return d.build(user.getEmail(), "Your Pacific payment has been refunded", "PAYMENT_REFUNDED");
+    }
+
+    public Email orderProcessing(Order o) {
+        Doc d = new Doc().heading("We're getting your order ready");
+        d.para(seller(o) + " has started preparing order #" + o.getId() + ". We'll email you again as soon as it's on its way.");
+        if (o.getDeliveryFrom() != null) d.para("It's due to arrive " + arriving(o) + ".");
+        items(d, o);
+        d.button("View your order", baseUrl + "/orders/" + o.getId());
+        return d.build(o.getUser().getEmail(), "Your Pacific order #" + o.getId() + " is being prepared", "ORDER_PROCESSING");
+    }
+
     public Email orderShipped(Order o) {
         Doc d = new Doc().heading("Your order is on its way");
         d.para("Order #" + o.getId() + " from " + seller(o) + " has been sent.");
@@ -262,7 +283,10 @@ public class EmailTemplates {
     }
 
     private static String firstName(Order o) {
-        String name = o.getUser().getName();
+        return firstName(o.getUser().getName());
+    }
+
+    private static String firstName(String name) {
         return name == null || name.isBlank() ? "there" : name.strip().split("\\s+")[0];
     }
 

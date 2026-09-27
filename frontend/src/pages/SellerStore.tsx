@@ -83,7 +83,7 @@ export function SellerStore() {
           <h1 className="page-title" style={{ fontSize: 32 }}>{seller.storeName}</h1>
           <Stars value={seller.ratingAvg} count={seller.ratingCount} />
           <div className="muted">Selling on Pacific since {dateOnly(seller.since)} · {seller.productCount} product{seller.productCount === 1 ? '' : 's'}</div>
-          {seller.description && <p style={{ margin: '6px 0 0', color: '#555', maxWidth: 720 }}>{seller.description}</p>}
+          {seller.description && <p style={{ margin: '6px 0 0', color: 'var(--text-2)', maxWidth: 720 }}>{seller.description}</p>}
         </div>
       </section>
 

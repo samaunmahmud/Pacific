@@ -3,7 +3,10 @@
 <p align="center"><b>A multi-seller marketplace where every product has one page, however many stores sell it.</b></p>
 
 <p align="center">
-  <img src="docs/screenshots/hero.png" alt="Pacific on desktop and phone: a product page with colour and size options, and Today's Deals" width="100%" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/hero-dark.png" />
+    <img src="docs/screenshots/hero.png" alt="Pacific on desktop and phone: a product page with colour and size options, and Today's Deals" width="100%" />
+  </picture>
 </p>
 
 <p align="center">
@@ -41,27 +44,39 @@ still here, now inside a full marketplace.
 | 🚚 Delivery dates everywhere, standard or express per seller, and **"Deliver to"** with live UK postcode lookup | ⚡ Run Lightning Deals, coupons and promo codes, paid for by your store | 📧 Every email the shop sent, readable in one place |
 | ⭐ Reviews with helpful votes, product Q&A, seller ratings, private messages to sellers | 💬 Messages with buyers, and questions about your products | 🔐 Email confirmation, password reset, rate-limited sign-in |
 | 🔁 "Frequently bought together", related products, **Buy it again** | 🧾 Orders split per seller, each with its own status and delivery | 🧪 181 backend tests and 17 end-to-end browser checks |
+| 🌗 **Light and dark mode**: follows your device, or switch with one tap | 🌙 Seller Central and admin pages come in both themes too | 🎨 One set of colour tokens, so new pages get both themes for free |
 
 ## A look around
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/home.jpg" alt="Home page with Today's Deals and a row per department" /><br><b>Home:</b> Today's Deals, then a row per department</td>
-    <td width="50%"><img src="docs/screenshots/search.jpg" alt="Search results for wireless headphones with filters" /><br><b>Search:</b> best match first, with department, rating and price filters</td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/home.jpg" /><img src="docs/screenshots/home.jpg" alt="Home page with Today's Deals and a row per department" /></picture><br><b>Home:</b> Today's Deals, then a row per department</td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/search.jpg" /><img src="docs/screenshots/search.jpg" alt="Search results for wireless headphones with filters" /></picture><br><b>Search:</b> best match first, with department, rating and price filters</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/product.jpg" alt="Product page with the buy box" /><br><b>Product page:</b> the buy box, with delivery dates and where it's going</td>
-    <td><img src="docs/screenshots/other-sellers.jpg" alt="Other sellers on the same product page" /><br><b>Several sellers, one page:</b> other offers, new and used, and related products</td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/product.jpg" /><img src="docs/screenshots/product.jpg" alt="Product page with the buy box" /></picture><br><b>Product page:</b> the buy box, with delivery dates and where it's going</td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/other-sellers.jpg" /><img src="docs/screenshots/other-sellers.jpg" alt="Other sellers on the same product page" /></picture><br><b>Several sellers, one page:</b> other offers, new and used, and related products</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/variations.jpg" alt="A T-shirt with colour and size options" /><br><b>Variations:</b> pick a colour and size, each with its own price and stock</td>
-    <td><img src="docs/screenshots/checkout.jpg" alt="Checkout split by seller with delivery options" /><br><b>Checkout:</b> one payment, split into an order per seller</td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/variations.jpg" /><img src="docs/screenshots/variations.jpg" alt="A T-shirt with colour and size options" /></picture><br><b>Variations:</b> pick a colour and size, each with its own price and stock</td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/checkout.jpg" /><img src="docs/screenshots/checkout.jpg" alt="Checkout split by seller with delivery options" /></picture><br><b>Checkout:</b> one payment, split into an order per seller</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/seller-central.jpg" alt="Seller Central dashboard" /><br><b>Seller Central:</b> balance, sales, orders and products at a glance</td>
-    <td><img src="docs/screenshots/admin.jpg" alt="Admin store overview" /><br><b>Admin:</b> the whole marketplace, from sales to review moderation</td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/seller-central.jpg" /><img src="docs/screenshots/seller-central.jpg" alt="Seller Central dashboard" /></picture><br><b>Seller Central:</b> balance, sales, orders and products at a glance</td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/admin.jpg" /><img src="docs/screenshots/admin.jpg" alt="Admin store overview" /></picture><br><b>Admin:</b> the whole marketplace, from sales to review moderation</td>
   </tr>
 </table>
+
+### Light and dark
+
+<p align="center">
+  <img src="docs/screenshots/light-dark.jpg" alt="The same product page in light mode on the left and dark mode on the right" width="100%" />
+</p>
+
+Pacific has a **light and a dark theme**. It follows your device's setting until you choose one with the ☾ / ☀ switch
+in the top bar (or in the footer, or on the sign-in pages), and it remembers your choice. The theme is set before the
+page draws, so dark mode never flashes white. Brand-coloured links turn a lighter pink in the dark so they stay readable,
+and the gold buttons stay gold. The screenshots above follow your GitHub theme: switch GitHub to dark to see the dark set.
 
 <sub>Screenshots use the built-in demo data: about 2,150 invented products from 20 made-up stores, with pictures drawn in
 the browser. No real brands.</sub>

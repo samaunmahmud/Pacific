@@ -5,6 +5,7 @@ import customerAvatar from '../assets/avatarCustomerLogin.png';
 import { api, ApiError } from '../api/client';
 import type { User } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
 
 type Portal = 'customer' | 'admin';
 
@@ -32,6 +33,7 @@ function AuthShell({ portal = 'customer', title, subtitle, children, footer }: {
   footer?: ReactNode;
 }) {
   const brand = BRAND[portal];
+  const { theme, toggle: toggleTheme } = useTheme();
   return (
     <div className={`auth-page auth-${portal}`}>
       <aside className="auth-brand">
@@ -51,6 +53,7 @@ function AuthShell({ portal = 'customer', title, subtitle, children, footer }: {
       <main className="auth-main">
         <div className="auth-top">
           {portal === 'admin' ? <span className="auth-badge">Staff only</span> : <Link to="/" className="auth-back">← Back to the shop</Link>}
+          <button type="button" className="auth-theme" onClick={toggleTheme}>{theme === 'dark' ? '☀ Light' : '☾ Dark'}</button>
         </div>
         <div className="auth-panel">
           <h1 className="login-header">{title}</h1>

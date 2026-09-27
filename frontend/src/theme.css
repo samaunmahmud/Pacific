@@ -1,0 +1,137 @@
+/* =========================================================
+   Light and dark themes. styles.css and storefront.css only use these tokens for surfaces, text and lines;
+   this file (loaded last) gives them their values. The theme is chosen by data-theme on <html>, set before
+   the first paint by public/theme-init.js and kept in sync by ThemeContext.
+   ========================================================= */
+
+:root {
+  color-scheme: light;
+  /* surfaces */
+  --surface: #ffffff;       /* cards, panels, inputs */
+  --surface-2: #fafafa;     /* quiet panels: tracking box, mail body, footer */
+  --surface-sunk: #f3f3f3;  /* notes, amounts, active suggestion */
+  --surface-3: #e6e6e6;     /* hover on sunk surfaces */
+  --well: #f7f7f7;          /* behind product pictures */
+  --tint: #fdf8fa;          /* brand-tinted hover */
+  --control: #f0f2f2;       /* neutral buttons and selects */
+  --control-hover: #f7fafa;
+  --control-active: #e3e6e6;
+  /* text */
+  --text-strong: #111111;
+  --text-2: #565959;
+  --brand-ink: var(--brand);            /* links and brand-coloured text */
+  --brand-ink-strong: var(--brand-dark);
+  --on-accent: #111111;                 /* text on the gold buttons, the same in both themes */
+  /* lines */
+  --divider: #e7e7e7;
+  --line-strong: #d5d9d9;
+  --border-hover: #c9c9c9;
+  --input-border: #d4d4d4;
+  /* status */
+  --success: #007600;
+  --success-soft: #e8f5e9;
+  --warn: #b26a00;
+  --warn-soft: #fff4e0;
+  --info: #1565c0;
+  --info-soft: #e3f0fd;
+  --neutral-dot: #767676;
+  --deal-track: #f0d7dd;
+  /* odds and ends */
+  --star-empty: #d5d9d9;
+  --skeleton: #eeeeee;
+  --skeleton-hi: #f8f8f8;
+  --scroll: #dcdde1;
+}
+
+/* Dark: warm near-black surfaces with a hint of Pacific's plum, lighter pink for brand text, the same gold accent. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #121014;
+  --surface: #1c191d;
+  --surface-2: #211d22;
+  --surface-sunk: #262127;
+  --surface-3: #332c33;
+  --well: #252026;
+  --tint: #2c1f29;
+  --control: #2a252b;
+  --control-hover: #342e35;
+  --control-active: #3b343c;
+
+  --text: #e6e1e5;
+  --text-strong: #f4f0f3;
+  --text-2: #b4acb2;
+  --muted: #9a9198;
+  --faint: #857c83;
+  --brand-ink: #ee8fc3;
+  --brand-ink-strong: #f5b3d6;
+
+  --line: #2c272d;
+  --divider: #342e35;
+  --border: #3d363e;
+  --line-strong: #3d363e;
+  --border-hover: #5a525b;
+  --input-border: #4a434b;
+
+  --blush: #3a1f31;       /* chips, notices, selected options */
+  --blush-soft: #45263a;
+  --danger: #ff6b5e;
+  --danger-soft: #3a1c1c;
+  --ok: #6fcf75;
+  --success: #6fcf75;
+  --success-soft: #19301c;
+  --warn: #f0b15b;
+  --warn-soft: #36290f;
+  --info: #7ab8ff;
+  --info-soft: #172a40;
+  --price-red: #ff7a5c;
+  --deal-red: #ff5577;
+  --deal-track: #4a2330;
+  --neutral-dot: #6d656c;
+
+  --top: #1a0f17;
+  --top-2: #150c13;
+  --strip: #3a1530;
+
+  --star-empty: #4a434b;
+  --skeleton: #252026;
+  --skeleton-hi: #2f2930;
+  --scroll: #3d363e;
+  --shadow-sm: 0 5px 10px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+/* a few details that can't be a single token */
+:root[data-theme="dark"] .pill-select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23b4acb2' stroke-width='2'/></svg>");
+}
+:root[data-theme="dark"] .pill-select option { background: var(--surface); color: var(--text); }
+:root[data-theme="dark"] .heart-btn { background: rgba(28, 25, 29, 0.92); }
+:root[data-theme="dark"] .heart-btn:hover { background: var(--surface); }
+:root[data-theme="dark"] .product-card:hover,
+:root[data-theme="dark"] .unrated-card:hover,
+:root[data-theme="dark"] .account-tile:hover { box-shadow: 0 2px 14px rgba(0, 0, 0, 0.6); }
+:root[data-theme="dark"] .hero::after { background: linear-gradient(transparent, var(--page-bg)); }
+:root[data-theme="dark"] .auth-page { background: var(--page-bg); }
+:root[data-theme="dark"] .auth-badge { color: var(--text-2); }
+:root[data-theme="dark"] .auth-admin .login-button { background: #5a4553; }
+/* photos are mostly shot on white: take the glare off in the dark */
+:root[data-theme="dark"] .card-image img,
+:root[data-theme="dark"] .pdp-image img,
+:root[data-theme="dark"] .cart-thumb img,
+:root[data-theme="dark"] .order-thumb img { filter: brightness(0.92); }
+
+/* ---------- the theme switch in the top bar ---------- */
+.theme-toggle { align-items: center; }
+.theme-toggle .theme-icon { font-size: 18px; line-height: 1; color: #fff; }
+.auth-top { align-items: center; gap: 16px; }
+.auth-theme {
+  background: none; border: 1px solid var(--line-strong); border-radius: 999px;
+  color: var(--text-2); font-size: 13px; padding: 4px 12px; cursor: pointer;
+}
+.auth-theme:hover { border-color: var(--brand-ink); color: var(--brand-ink); }
+.footer-theme { background: none; border: 0; padding: 0; color: #cdbcc6; font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
+.footer-theme:hover { color: #fff; }
+
+@media (prefers-reduced-motion: no-preference) {
+  body { transition: background-color 0.2s, color 0.2s; }
+}

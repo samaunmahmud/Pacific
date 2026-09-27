@@ -25,7 +25,7 @@ export function PieChart({ slices, size = 260 }: { slices: Slice[]; size?: numbe
       const x1 = c + r * Math.cos(start), y1 = c + r * Math.sin(start);
       const x2 = c + r * Math.cos(angle), y2 = c + r * Math.sin(angle);
       const large = share > 0.5 ? 1 : 0;
-      return <path key={s.label} d={`M${c} ${c} L${x1} ${y1} A${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`} fill={s.color} stroke="#fff" strokeWidth="2" />;
+      return <path key={s.label} d={`M${c} ${c} L${x1} ${y1} A${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`} fill={s.color} stroke="var(--surface)" strokeWidth="2" />;
     });
 
   return (

@@ -112,7 +112,7 @@ function SellerCard({ row, onChanged }: { row: AdminSeller; onChanged: (r: Admin
         <span className="spacer" />
         <StatusPill status={s.status} />
       </div>
-      {s.description && <p style={{ margin: 0, color: '#555' }}>{s.description}</p>}
+      {s.description && <p style={{ margin: 0, color: 'var(--text-2)' }}>{s.description}</p>}
       {s.statusNote && <div className="muted">Note: {s.statusNote}</div>}
 
       <div className="row-wrap" style={{ gap: 24 }}>

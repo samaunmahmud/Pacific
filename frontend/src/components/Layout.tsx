@@ -9,6 +9,7 @@ import { useCategories } from '../ui/useCategories';
 import { ConfirmEmailNotice } from './ConfirmEmailNotice';
 import { useSearchSuggest } from './SearchSuggest';
 import { useDeliverTo } from '../location/DeliverToContext';
+import { useTheme } from '../theme/ThemeContext';
 
 function Header() {
   const { user, logout } = useAuth();
@@ -23,6 +24,7 @@ function Header() {
   const isAdmin = user?.role === 'ADMIN';
   const suggest = useSearchSuggest(isAdmin ? '' : q);
   const deliver = useDeliverTo();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   // keep the box in sync when the URL changes (e.g. clearing the search)
   useEffect(() => {
@@ -73,6 +75,15 @@ function Header() {
       </form>
 
       <div className="header-actions">
+        <button
+          type="button"
+          className="action-item theme-toggle"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        >
+          <span className="theme-icon" aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span>
+        </button>
         {isAdmin ? (
           <>
             <div className="action-item" style={{ cursor: 'default' }}>
@@ -190,6 +201,7 @@ function Footer() {
   const { user } = useAuth();
   const { seller } = useSeller();
   const categories = useCategories();
+  const { theme, toggle } = useTheme();
   return (
     <footer className="site-footer">
       <button className="back-to-top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Back to top</button>
@@ -224,6 +236,7 @@ function Footer() {
       <div className="footer-bottom">
         <span className="footer-logo">Pacific<span aria-hidden="true">★</span></span>
         <span>© Pacific Marketplace</span>
+        <button type="button" className="footer-theme" onClick={toggle}>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</button>
       </div>
     </footer>
   );

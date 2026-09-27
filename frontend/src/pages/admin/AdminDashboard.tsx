@@ -44,7 +44,7 @@ export function AdminDashboard() {
               ]} />
               <div className="stack" style={{ gap: 15 }}>
                 <div style={{ fontSize: 20, fontWeight: 'bold' }}>Summary</div>
-                <div style={{ fontSize: 16, color: '#666' }}>{s.reviews.flagged} flagged out of {s.reviews.total} total reviews</div>
+                <div style={{ fontSize: 16, color: 'var(--text-2)' }}>{s.reviews.flagged} flagged out of {s.reviews.total} total reviews</div>
                 <hr />
                 <Link to="/admin/flagged" className="submit-btn">See more flagged reviews</Link>
               </div>

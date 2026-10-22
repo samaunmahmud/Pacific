@@ -81,7 +81,8 @@ public final class SellerDtos {
     public record PeriodTotals(BigDecimal sales, long orders, long units, BigDecimal averageOrder) {
     }
 
-    public record TopProduct(Long productId, String name, long units, BigDecimal revenue) {
+    /** A best seller; store is the seller's store name (shown on the admin dashboard, where products come from every store). */
+    public record TopProduct(Long productId, String name, String store, long units, BigDecimal revenue) {
     }
 
     /** Sales over the last {@code days} days, the same span before it for comparison, and the best sellers. */

@@ -465,7 +465,7 @@ export interface SellerInsights {
   daily: DailySales[];
   current: PeriodTotals;
   previous: PeriodTotals;
-  topProducts: { productId: number; name: string; units: number; revenue: number }[];
+  topProducts: { productId: number; name: string; store: string; units: number; revenue: number }[];
 }
 
 export interface SellerStats {

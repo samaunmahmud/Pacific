@@ -26,8 +26,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     long unitsSoldBySeller(@Param("sellerId") Long sellerId);
 
     /** A seller's counted order lines since a moment: [order createdAt, product id, product name, quantity, unit price] rows. */
-    @Query("select o.createdAt, oi.product.id, oi.productName, oi.quantity, oi.unitPrice from OrderItem oi join oi.order o "
-            + "where o.seller.id = :sellerId and o.createdAt >= :since "
+    @Query("select o.createdAt, oi.product.id, oi.productName, oi.quantity, oi.unitPrice, o.seller.storeName from OrderItem oi join oi.order o "
+            + "where (:sellerId is null or o.seller.id = :sellerId) and o.createdAt >= :since "
             + "and o.status not in (com.pacific.marketplace.domain.OrderStatus.CANCELLED, com.pacific.marketplace.domain.OrderStatus.AWAITING_PAYMENT)")
     List<Object[]> linesSince(@Param("sellerId") Long sellerId, @Param("since") java.time.Instant since);
 

@@ -113,10 +113,17 @@ function niceCeil(n: number) {
   return [1, 2, 5, 10].map((m) => m * p).find((v) => v >= n) ?? 10 * p;
 }
 
-/** Seller Central's sales panel: figures with their change, the daily chart and the best sellers. */
-export function SalesInsights() {
+/** Where the panel gets its figures: one seller's own store, or (for the admin) the whole marketplace. */
+const SCOPES = {
+  seller: { endpoint: '/seller/insights', sub: 'Orders placed, excluding cancelled ones · UK time', products: '/seller/products/', showStore: false },
+  admin: { endpoint: '/admin/insights', sub: 'Every store’s orders, excluding cancelled ones · UK time', products: '/admin/products/', showStore: true },
+};
+
+/** The sales panel: figures with their change, the daily chart and the best sellers. */
+export function SalesInsights({ scope = 'seller' }: { scope?: keyof typeof SCOPES }) {
+  const cfg = SCOPES[scope];
   const [days, setDays] = useState<Span>(30);
-  const { data, error } = useAsync(() => api<SellerInsights>(`/seller/insights?days=${days}`), [days]);
+  const { data, error } = useAsync(() => api<SellerInsights>(`${cfg.endpoint}?days=${days}`), [cfg.endpoint, days]);
   const best = data?.topProducts[0]?.revenue ?? 0;
 
   return (
@@ -124,7 +131,7 @@ export function SalesInsights() {
       <header className="ins-head">
         <div>
           <h2 id="ins-title">Sales</h2>
-          <p className="ins-sub">Orders placed, excluding cancelled ones · UK time</p>
+          <p className="ins-sub">{cfg.sub}</p>
         </div>
         <div className="ins-seg" role="group" aria-label="Period">
           {SPANS.map((d) => (
@@ -141,14 +148,17 @@ export function SalesInsights() {
             <div className="ins-top">
               <h3>Best sellers</h3>
               {data.topProducts.length === 0 ? (
-                <p className="ins-empty">No sales in the last {data.days} days yet. <Link to="/seller/promotions">Run a promotion</Link> to get things moving.</p>
+                scope === 'seller'
+                  ? <p className="ins-empty">No sales in the last {data.days} days yet. <Link to="/seller/promotions">Run a promotion</Link> to get things moving.</p>
+                  : <p className="ins-empty">No sales anywhere in the last {data.days} days yet.</p>
               ) : (
                 <ol>
                   {data.topProducts.map((p, i) => (
                     <li key={p.productId}>
                       <span className="ins-rank">{i + 1}</span>
                       <div className="ins-prod">
-                        <Link to={`/seller/products/${p.productId}`}>{p.name}</Link>
+                        <Link to={`${cfg.products}${p.productId}`}>{p.name}</Link>
+                        {cfg.showStore && <span className="ins-store">{p.store}</span>}
                         <span className="ins-bar"><i style={{ width: `${best ? (p.revenue / best) * 100 : 0}%` }} /></span>
                       </div>
                       <span className="ins-amt">{money(p.revenue)}<small>{p.units} sold</small></span>

@@ -181,6 +181,38 @@ class MarketplaceTest extends IntegrationTest {
     }
 
     @Test
+    void adminInsightsAddUpEveryStoreAndNameTheStoreOfEachBestSeller() throws Exception {
+        Seller a = approvedSeller("Gallery North");
+        Seller b = approvedSeller("Gallery South");
+        long statue = listProduct(a, "Admin Insight Statue", "4000.00", 5);
+        long plinth = listProduct(b, "Admin Insight Plinth", "3000.00", 5);
+        String admin = adminToken();
+        JsonNode before = send(get("/api/admin/insights").param("days", "7"), admin, null, 200);
+        String buyer = registerCustomer();
+        addToCart(buyer, statue, 1, 200);
+        addToCart(buyer, plinth, 1, 200);
+        JsonNode placed = checkout(buyer); // one order per store
+        assertThat(placed.get("orders")).hasSize(2);
+        BigDecimal paid = placed.get("orders").get(0).get("total").decimalValue().add(placed.get("orders").get(1).get("total").decimalValue());
+
+        JsonNode week = send(get("/api/admin/insights").param("days", "7"), admin, null, 200);
+        assertThat(week.get("current").get("orders").asLong() - before.get("current").get("orders").asLong()).isEqualTo(2);
+        assertThat(week.get("current").get("sales").decimalValue().subtract(before.get("current").get("sales").decimalValue()))
+                .isEqualByComparingTo(paid);
+        // the dearest products in the whole marketplace lead, each with its store
+        assertThat(week.get("topProducts").get(0).get("name").asText()).isEqualTo("Admin Insight Statue");
+        assertThat(week.get("topProducts").get(0).get("store").asText()).isEqualTo("Gallery North");
+        assertThat(week.get("topProducts").get(1).get("store").asText()).isEqualTo("Gallery South");
+        // a seller still sees only their own store
+        JsonNode mine = send(get("/api/seller/insights").param("days", "7"), a.token(), null, 200);
+        assertThat(mine.get("current").get("orders").asLong()).isEqualTo(1);
+        assertThat(mine.get("topProducts")).hasSize(1);
+
+        send(get("/api/admin/insights").param("days", "5"), admin, null, 400);
+        send(get("/api/admin/insights"), a.token(), null, 403);
+    }
+
+    @Test
     void sellersOnlySeeAndChangeTheirOwnThings() throws Exception {
         Seller a = approvedSeller("Alpha Store");
         Seller b = approvedSeller("Beta Store");

@@ -27,7 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * The sales chart on Seller Central: takings per day over the last 7, 30 or 90 days (in the shop's time zone), the
  * same totals for the span before so each figure can show its change, and the products that brought in the most.
- * Counts the same orders as the dashboard's "Sales": everything except cancelled and unpaid card orders.
+ * Counts the same orders as the dashboard's "Sales": everything except cancelled and unpaid card orders. The admin
+ * dashboard shows the same panel for the whole marketplace.
  */
 @Service
 public class SellerInsightsService {
@@ -53,6 +54,13 @@ public class SellerInsightsService {
         this.zone = ZoneId.of(props.shop().timeZone() == null ? "Europe/London" : props.shop().timeZone());
     }
 
+    /** The whole marketplace: every store's orders together. */
+    @Transactional(readOnly = true)
+    public SellerInsights marketplace(int days) {
+        return insights(null, days);
+    }
+
+    /** One seller's figures, or the whole marketplace's when {@code sellerId} is null. */
     @Transactional(readOnly = true)
     public SellerInsights insights(Long sellerId, int days) {
         if (!SPANS.contains(days)) throw ApiException.badRequest("days must be 7, 30 or 90");
@@ -97,8 +105,8 @@ public class SellerInsightsService {
             units += quantity;
             Long productId = (Long) row[1];
             BigDecimal revenue = ((BigDecimal) row[4]).multiply(BigDecimal.valueOf(quantity));
-            byProduct.merge(productId, new TopProduct(productId, (String) row[2], quantity, revenue),
-                    (a, b) -> new TopProduct(a.productId(), a.name(), a.units() + b.units(), a.revenue().add(b.revenue())));
+            byProduct.merge(productId, new TopProduct(productId, (String) row[2], (String) row[5], quantity, revenue),
+                    (a, b) -> new TopProduct(a.productId(), a.name(), a.store(), a.units() + b.units(), a.revenue().add(b.revenue())));
         }
 
         List<DailySales> daily = new ArrayList<>();

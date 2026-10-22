@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 import type { AdminReview, AdminStats, Page } from '../../api/types';
 import { PieChart } from '../../components/PieChart';
 import { ReviewCard } from '../../components/ReviewCard';
+import { SalesInsights } from '../../components/SalesInsights';
 import { money } from '../../ui/format';
 import { useAsync } from '../../ui/useAsync';
 
@@ -32,6 +33,7 @@ export function AdminDashboard() {
               <Link to="/admin/sellers?status=APPROVED" className="square-review-box kpi" style={{ textDecoration: 'none' }}><span className="value">{s.approvedSellers}</span><span className="label">Active sellers</span></Link>
               <Link to="/admin/sellers?status=PENDING" className="square-review-box kpi" style={{ textDecoration: 'none' }}><span className="value">{s.pendingSellers}</span><span className="label">Applications to review</span></Link>
             </div>
+            <SalesInsights scope="admin" />
           </section>
 
           <section className="stack" style={{ gap: 20 }}>

@@ -885,6 +885,7 @@ button.deliver-to .action-label { font-weight: 700; overflow: hidden; text-overf
 .ins-top li:first-child .ins-rank { background: var(--brand-ink); color: var(--surface); }
 .ins-prod { display: grid; gap: 6px; min-width: 0; }
 .ins-prod a { font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ins-store { margin-top: -4px; font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ins-bar { height: 5px; border-radius: 999px; background: var(--surface-sunk); overflow: hidden; }
 .ins-bar i { display: block; height: 100%; border-radius: inherit; background: var(--brand-ink); transition: width 0.5s ease; }
 .ins-amt { display: grid; justify-items: end; font-size: 13.5px; font-weight: 700; color: var(--text-strong); font-variant-numeric: tabular-nums; }

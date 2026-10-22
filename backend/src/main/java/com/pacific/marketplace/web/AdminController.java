@@ -8,6 +8,7 @@ import com.pacific.marketplace.service.LedgerService;
 import com.pacific.marketplace.service.OrderService;
 import com.pacific.marketplace.service.ProductService;
 import com.pacific.marketplace.service.ReviewService;
+import com.pacific.marketplace.service.SellerInsightsService;
 import com.pacific.marketplace.service.SellerReviewService;
 import com.pacific.marketplace.service.SellerService;
 import com.pacific.marketplace.service.SettingsService;
@@ -34,6 +35,7 @@ import com.pacific.marketplace.web.dto.SellerDtos.AdminSellerDto;
 import com.pacific.marketplace.web.dto.SellerDtos.CommissionRequest;
 import com.pacific.marketplace.web.dto.SellerDtos.DefaultCommissionRequest;
 import com.pacific.marketplace.web.dto.SellerDtos.LedgerEntryDto;
+import com.pacific.marketplace.web.dto.SellerDtos.SellerInsights;
 import com.pacific.marketplace.web.dto.SellerDtos.PayoutRequest;
 import com.pacific.marketplace.web.dto.SellerDtos.SellerStatusRequest;
 import com.pacific.marketplace.web.dto.AuthDtos.AdminVerifyEmailRequest;
@@ -71,12 +73,13 @@ public class AdminController {
     private final NotificationService notifications;
     private final ReturnService returns;
     private final EmailVerificationService verification;
+    private final SellerInsightsService insights;
 
     public AdminController(ProductService products, OrderService orders, ReviewService reviews,
                            AdminStatsService stats, SellerService sellers, LedgerService ledger,
                            SettingsService settings, SellerReviewService sellerReviews,
                            NotificationService notifications, ReturnService returns,
-                           EmailVerificationService verification) {
+                           EmailVerificationService verification, SellerInsightsService insights) {
         this.products = products;
         this.orders = orders;
         this.reviews = reviews;
@@ -88,11 +91,18 @@ public class AdminController {
         this.notifications = notifications;
         this.returns = returns;
         this.verification = verification;
+        this.insights = insights;
     }
 
     @GetMapping("/stats")
     public AdminStatsService.Stats stats() {
         return stats.stats();
+    }
+
+    /** The marketplace's sales chart: every store's orders over the last 7, 30 or 90 days, against the span before. */
+    @GetMapping("/insights")
+    public SellerInsights insights(@RequestParam(defaultValue = "30") int days) {
+        return insights.marketplace(days);
     }
 
     // ----- products & categories -----

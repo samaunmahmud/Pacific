@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/MySQL_8-00758F?style=flat-square&logo=mysql&logoColor=white" alt="MySQL 8" />
   <img src="https://img.shields.io/badge/Stripe-635BFF?style=flat-square&logo=stripe&logoColor=white" alt="Stripe" />
   <img src="https://img.shields.io/badge/Flyway-CC0200?style=flat-square&logo=flyway&logoColor=white" alt="Flyway" />
-  <img src="https://img.shields.io/badge/tests-190_passing-2EA043?style=flat-square" alt="190 tests passing" />
+  <img src="https://img.shields.io/badge/tests-191_passing-2EA043?style=flat-square" alt="191 tests passing" />
 </p>
 
 ## What is Pacific for?
@@ -38,12 +38,12 @@ still here, now inside a full marketplace.
 
 | For shoppers | For sellers | For the people running it |
 | :--- | :--- | :--- |
-| 🔎 Search ranked by best match, suggestions as you type, filters by price and rating | 🏪 **Seller Central**: list products with up to 8 photos, in colours and sizes | 📊 Dashboard: sales, commission, sellers, review stats, low stock |
+| 🔎 Search ranked by best match, suggestions as you type, filters by price and rating | 🏪 **Seller Central**: list products with up to 8 photos, in colours and sizes | 📊 Dashboard: a marketplace sales chart with best sellers by store, commission, review stats, low stock |
 | 🛒 One basket across many sellers, **save for later**, wish list, recently viewed | 🤝 Sell an existing product by adding an offer (new or used), and compete for the buy box | ✅ Approve, suspend and reinstate stores; set commission per seller |
 | 💳 Pay by card with **Stripe**, or pay on delivery | 📦 Ship with tracking, handle returns and refunds, see earnings after commission | 🚩 Moderate reported reviews, answer Q&A, manage Pacific's own products |
 | 🚚 Delivery dates everywhere, standard or express per seller, and **"Deliver to"** with live UK postcode lookup | ⚡ Run Lightning Deals, coupons and promo codes, paid for by your store | 📧 Every email the shop sent, readable in one place |
 | ⭐ Reviews with helpful votes, product Q&A, seller ratings, private messages to sellers | 💬 Messages with buyers, and questions about your products | 🔐 Email confirmation, password reset, rate-limited sign-in |
-| 🔁 "Frequently bought together", related products, **Buy it again** | 🧾 Orders split per seller, each with its own status and delivery | 🧪 190 backend tests and 18 end-to-end browser checks |
+| 🔁 "Frequently bought together", related products, **Buy it again** | 🧾 Orders split per seller, each with its own status and delivery | 🧪 191 backend tests and 18 end-to-end browser checks |
 | 🌗 **Light and dark mode**: follows your device, or switch with one tap | 🌙 Seller Central and admin pages come in both themes too | 🎨 One set of colour tokens, so new pages get both themes for free |
 
 ## A look around
@@ -63,7 +63,7 @@ still here, now inside a full marketplace.
   </tr>
   <tr>
     <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/seller-central.jpg" /><img src="docs/screenshots/seller-central.jpg" alt="Seller Central dashboard" /></picture><br><b>Seller Central:</b> balance, a sales chart over 7, 30 or 90 days with the change on the period before, best sellers and the order pipeline</td>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/admin.jpg" /><img src="docs/screenshots/admin.jpg" alt="Admin store overview" /></picture><br><b>Admin:</b> the whole marketplace, from sales to review moderation</td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/admin.jpg" /><img src="docs/screenshots/admin.jpg" alt="Admin store overview" /></picture><br><b>Admin:</b> the whole marketplace, from a sales chart across every store to review moderation</td>
   </tr>
 </table>
 
@@ -296,11 +296,11 @@ Sign-in pages: customers at `/login`, admins at `/admin/login` (an account only 
 ## Tests
 
 ```bash
-cd backend && mvn test        # 190 tests (H2 in MySQL mode): accounts, checkout and stock, payments, sellers, offers, promotions, search…
+cd backend && mvn test        # 191 tests (H2 in MySQL mode): accounts, checkout and stock, payments, sellers, offers, promotions, search…
 cd frontend && npm run typecheck && npm run build
 ```
 
-The browser checks in [`qa/`](qa/README.md) drive the real app end to end (17 scripts, from a first order to returns,
+The browser checks in [`qa/`](qa/README.md) drive the real app end to end (18 scripts, from a first order to returns,
 messages and variations).
 
 ## What changed from the JavaFX app

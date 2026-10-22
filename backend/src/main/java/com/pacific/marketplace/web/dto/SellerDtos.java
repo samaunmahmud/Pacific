@@ -73,6 +73,22 @@ public final class SellerDtos {
                               List<LowStock> lowStock, int lowStockThreshold) {
     }
 
+    /** One day of sales on the seller's chart (the shop's time zone). */
+    public record DailySales(java.time.LocalDate date, BigDecimal sales, long orders) {
+    }
+
+    /** A period's totals; averageOrder is null when there were no orders. */
+    public record PeriodTotals(BigDecimal sales, long orders, long units, BigDecimal averageOrder) {
+    }
+
+    public record TopProduct(Long productId, String name, long units, BigDecimal revenue) {
+    }
+
+    /** Sales over the last {@code days} days, the same span before it for comparison, and the best sellers. */
+    public record SellerInsights(int days, List<DailySales> daily, PeriodTotals current, PeriodTotals previous,
+                                 List<TopProduct> topProducts) {
+    }
+
     public record LedgerEntryDto(Long id, Long orderId, LedgerType type, BigDecimal amount, String note,
                                  Instant createdAt) {
         public static LedgerEntryDto from(LedgerEntry e) {

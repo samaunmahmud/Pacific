@@ -54,6 +54,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     long countByStatus(OrderStatus status);
 
+    /** A seller's counted orders (not cancelled, not awaiting payment) since a moment: [createdAt, total] rows. */
+    @Query("select o.createdAt, o.total from Order o where o.seller.id = :sellerId and o.createdAt >= :since "
+            + "and o.status not in (com.pacific.marketplace.domain.OrderStatus.CANCELLED, com.pacific.marketplace.domain.OrderStatus.AWAITING_PAYMENT)")
+    List<Object[]> salesSince(@Param("sellerId") Long sellerId, @Param("since") java.time.Instant since);
+
     @Query("select coalesce(sum(o.total), 0) from Order o where o.status not in (com.pacific.marketplace.domain.OrderStatus.CANCELLED, com.pacific.marketplace.domain.OrderStatus.AWAITING_PAYMENT)")
     BigDecimal totalRevenue();
 }

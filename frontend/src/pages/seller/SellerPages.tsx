@@ -4,6 +4,7 @@ import { api } from '../../api/client';
 import type { Earnings, OrderStatus, Page, Product, Seller, SellerQuestion, SellerStats } from '../../api/types';
 import { Pagination } from '../../components/Pagination';
 import { ProductImage } from '../../components/ProductImage';
+import { SalesInsights } from '../../components/SalesInsights';
 import { dateOnly, dateTime, money } from '../../ui/format';
 import { useToast } from '../../ui/Toast';
 import { useAsync } from '../../ui/useAsync';
@@ -14,6 +15,30 @@ import { StatusPill } from '../Orders';
 
 const LEDGER_LABEL: Record<string, string> = { SALE: 'Sale', COMMISSION: 'Commission', PAYOUT: 'Payout', REFUND: 'Refund', COMMISSION_REFUND: 'Commission returned' };
 const cap = (s: string) => LEDGER_LABEL[s] ?? s.charAt(0) + s.slice(1).toLowerCase();
+
+const PIPELINE: OrderStatus[] = ['PLACED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+
+/** Every order as one bar split by status, with each status linking to its orders. */
+function StatusPipeline({ counts }: { counts: Record<OrderStatus, number> }) {
+  const steps = PIPELINE.filter((st) => counts[st] != null);
+  const total = steps.reduce((n, st) => n + counts[st], 0);
+  return (
+    <div className="pipe">
+      <div className="pipe-bar" role="img" aria-label={steps.map((st) => `${cap(st)} ${counts[st]}`).join(', ')}>
+        {total === 0 ? <span className="pipe-empty" /> : steps.filter((st) => counts[st] > 0).map((st) => (
+          <span key={st} className={`pipe-seg st-${st}`} style={{ flexGrow: counts[st] }} />
+        ))}
+      </div>
+      <div className="pipe-legend">
+        {steps.map((st) => (
+          <Link key={st} to={`/seller/orders?status=${st}`} className="pipe-item">
+            <i className={`st-${st}`} aria-hidden="true" />{cap(st)} <b>{counts[st]}</b>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function SellerDashboard() {
   const { seller } = useSeller();
@@ -54,13 +79,16 @@ export function SellerDashboard() {
             <Link to="/seller/products" className="square-review-box kpi" style={{ textDecoration: 'none' }}><span className="value">{s.productCount}</span><span className="label">Products listed</span></Link>
           </div>
 
-          <section className="stack" style={{ gap: 12 }}>
-            <h2 className="page-title" style={{ fontSize: 24 }}>Orders by status</h2>
-            <div className="row-wrap">
-              {(Object.keys(s.ordersByStatus) as OrderStatus[]).map((st) => (
-                <Link key={st} to={`/seller/orders?status=${st}`} className="chip" style={{ display: 'inline-flex', gap: 8 }}>{cap(st)} <b>{s.ordersByStatus[st]}</b></Link>
-              ))}
-            </div>
+          <SalesInsights />
+
+          <section className="ins-panel" aria-labelledby="pipe-title">
+            <header className="ins-head">
+              <div>
+                <h2 id="pipe-title">Orders by status</h2>
+                <p className="ins-sub">All time · select a status to see those orders</p>
+              </div>
+            </header>
+            <StatusPipeline counts={s.ordersByStatus} />
           </section>
 
           {s.lowStock.length > 0 && (

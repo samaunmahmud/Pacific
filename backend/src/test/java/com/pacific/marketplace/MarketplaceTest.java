@@ -130,6 +130,57 @@ class MarketplaceTest extends IntegrationTest {
     }
 
     @Test
+    void sellerInsightsChartSalesComparePeriodsAndRankBestSellers() throws Exception {
+        Seller s = approvedSeller("Insight Ceramics");
+        long mug = listProduct(s, "Insight Mug", "10.00", 20);
+        long vase = listProduct(s, "Insight Vase", "25.00", 10);
+        String buyer = registerCustomer();
+        addToCart(buyer, mug, 2, 200);
+        BigDecimal t1 = checkout(buyer).get("total").decimalValue();
+        addToCart(buyer, vase, 1, 200);
+        BigDecimal t2 = checkout(buyer).get("total").decimalValue();
+        // an order from ten days ago falls in the previous week, and a cancelled one never counts
+        addToCart(buyer, mug, 1, 200);
+        long old = checkout(buyer).get("orders").get(0).get("id").asLong();
+        addToCart(buyer, vase, 3, 200);
+        long cancelled = checkout(buyer).get("orders").get(0).get("id").asLong();
+        send(patch("/api/seller/orders/" + cancelled + "/status"), s.token(), Map.of("status", "CANCELLED"), 200);
+        em.flush();
+        em.createNativeQuery("update orders set created_at = :at where id = :id")
+                .setParameter("at", java.sql.Timestamp.from(java.time.Instant.now().minus(java.time.Duration.ofDays(10))))
+                .setParameter("id", old).executeUpdate();
+        em.clear();
+
+        JsonNode week = send(get("/api/seller/insights").param("days", "7"), s.token(), null, 200);
+        assertThat(week.get("days").asInt()).isEqualTo(7);
+        assertThat(week.get("daily")).hasSize(7);
+        assertThat(week.get("current").get("orders").asLong()).isEqualTo(2);
+        assertThat(week.get("current").get("units").asLong()).isEqualTo(3);
+        assertThat(week.get("current").get("sales").decimalValue()).isEqualByComparingTo(t1.add(t2));
+        assertThat(week.get("daily").get(6).get("sales").decimalValue()).isEqualByComparingTo(t1.add(t2));
+        assertThat(week.get("previous").get("orders").asLong()).isEqualTo(1);
+        assertThat(week.get("previous").get("units").asLong()).isEqualTo(1);
+        // ranked by revenue: one £25 vase beats two £10 mugs
+        assertThat(week.get("topProducts")).hasSize(2);
+        assertThat(week.get("topProducts").get(0).get("name").asText()).isEqualTo("Insight Vase");
+        assertThat(week.get("topProducts").get(1).get("units").asLong()).isEqualTo(2);
+        assertThat(week.get("topProducts").get(1).get("revenue").decimalValue()).isEqualByComparingTo("20.00");
+
+        JsonNode month = send(get("/api/seller/insights").param("days", "30"), s.token(), null, 200);
+        assertThat(month.get("daily")).hasSize(30);
+        assertThat(month.get("current").get("orders").asLong()).isEqualTo(3);
+        assertThat(month.get("previous").get("orders").asLong()).isZero();
+        assertThat(month.get("previous").get("averageOrder").isNull()).isTrue();
+
+        send(get("/api/seller/insights").param("days", "12"), s.token(), null, 400);
+        // another seller sees only their own (empty) figures; a customer can't open it at all
+        JsonNode other = send(get("/api/seller/insights"), approvedSeller("Other Insight").token(), null, 200);
+        assertThat(other.get("current").get("orders").asLong()).isZero();
+        assertThat(other.get("topProducts")).isEmpty();
+        send(get("/api/seller/insights"), registerCustomer(), null, 403);
+    }
+
+    @Test
     void sellersOnlySeeAndChangeTheirOwnThings() throws Exception {
         Seller a = approvedSeller("Alpha Store");
         Seller b = approvedSeller("Beta Store");

@@ -10,6 +10,7 @@ import com.pacific.marketplace.service.OrderService;
 import com.pacific.marketplace.service.ProductService;
 import com.pacific.marketplace.service.QaService;
 import com.pacific.marketplace.service.ReturnService;
+import com.pacific.marketplace.service.SellerInsightsService;
 import com.pacific.marketplace.service.SellerService;
 import com.pacific.marketplace.web.dto.OrderDtos.OrderDto;
 import com.pacific.marketplace.web.dto.OrderDtos.StatusRequest;
@@ -26,6 +27,7 @@ import com.pacific.marketplace.web.dto.SellerDtos.ApplyRequest;
 import com.pacific.marketplace.web.dto.SellerDtos.DeliverySettingsRequest;
 import com.pacific.marketplace.web.dto.SellerDtos.EarningsDto;
 import com.pacific.marketplace.web.dto.SellerDtos.SellerDto;
+import com.pacific.marketplace.web.dto.SellerDtos.SellerInsights;
 import com.pacific.marketplace.web.dto.SellerDtos.SellerStats;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -61,11 +63,12 @@ public class SellerController {
     private final ReturnService returns;
     private final OfferService offers;
     private final EmailVerificationService verification;
+    private final SellerInsightsService insights;
 
     public SellerController(SellerService sellers, ProductService products, OrderService orders, LedgerService ledger,
                             QaService qa, ReturnService returns,
                             EmailVerificationService verification,
-                            OfferService offers) {
+                            OfferService offers, SellerInsightsService insights) {
         this.sellers = sellers;
         this.products = products;
         this.orders = orders;
@@ -74,6 +77,7 @@ public class SellerController {
         this.returns = returns;
         this.offers = offers;
         this.verification = verification;
+        this.insights = insights;
     }
 
     @PostMapping("/apply")
@@ -103,6 +107,11 @@ public class SellerController {
     @GetMapping("/stats")
     public SellerStats stats(@AuthenticationPrincipal Jwt jwt) {
         return sellers.stats(seller(jwt).getId());
+    }
+
+    @GetMapping("/insights")
+    public SellerInsights insights(@RequestParam(defaultValue = "30") int days, @AuthenticationPrincipal Jwt jwt) {
+        return insights.insights(seller(jwt).getId(), days);
     }
 
     // ----- products -----

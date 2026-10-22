@@ -446,6 +446,28 @@ export interface SellerStorePage {
   eligibility: { signedIn: boolean; canRate: boolean; ownStore: boolean };
 }
 
+export interface DailySales {
+  date: string;
+  sales: number;
+  orders: number;
+}
+
+export interface PeriodTotals {
+  sales: number;
+  orders: number;
+  units: number;
+  averageOrder: number | null;
+}
+
+/** GET /seller/insights?days=7|30|90: the span, the same span before it, and the best sellers by revenue. */
+export interface SellerInsights {
+  days: number;
+  daily: DailySales[];
+  current: PeriodTotals;
+  previous: PeriodTotals;
+  topProducts: { productId: number; name: string; units: number; revenue: number }[];
+}
+
 export interface SellerStats {
   openReturns: number;
   grossSales: number;

@@ -20,6 +20,39 @@
   <img src="https://img.shields.io/badge/tests-191_passing-2EA043?style=flat-square" alt="191 tests passing" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/samaunmahmud/Pacific/actions/workflows/ci.yml"><img src="https://github.com/samaunmahmud/Pacific/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/samaunmahmud/Pacific/actions/workflows/codeql.yml"><img src="https://github.com/samaunmahmud/Pacific/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" /></a>
+</p>
+
+<p align="center"><b><i>Many shops, one catalogue, one basket, one checkout.<br>Shoppers compare sellers on a single page, and every store gets a shop window, payments and a dashboard for free.</i></b></p>
+
+---
+
+## The 60-second version
+
+- **What it is:** a full online marketplace in the style of Amazon's: shoppers browse one catalogue and pay once, while
+  each order is split and fulfilled by the store that sold it.
+- **Who it's for:** small independent shops that want to sell online without building a store, the shoppers who buy
+  from them, and the people who run the marketplace and take a commission.
+- **What makes it different:** **one page per product, not one per seller.** A second store selling the same kettle adds
+  an *offer* to the existing page, and the best offer wins the buy box. Sellers and admins get a sales chart over 7, 30
+  or 90 days with the change on the period before, best sellers and an order pipeline.
+- **What it's built from:** Java 21 and Spring Boot 3.5, MySQL 8 with Flyway, React 19 and TypeScript, Stripe for card
+  payments, and **191 backend tests** plus **18 end-to-end browser scripts**, with CI and CodeQL on every pull request.
+
+## Contents
+
+- [What is Pacific for?](#what-is-pacific-for)
+- [Highlights](#highlights)
+- [Results in numbers](#results-in-numbers)
+- [A look around](#a-look-around)
+- [Tech at a glance](#tech-at-a-glance)
+- [How the marketplace works](#how-the-marketplace-works)
+- [Card payments](#card-payments) · [Emails](#emails) · [Demo data](#demo-data-development-only)
+- [Run it locally](#run-it-locally) · [Tests](#tests)
+- [What changed from the JavaFX app](#what-changed-from-the-javafx-app) · [Not built yet](#not-built-yet)
+
 ## What is Pacific for?
 
 Pacific brings **independent shops together in one store**, the way Amazon's marketplace does. Shoppers search one
@@ -45,6 +78,18 @@ still here, now inside a full marketplace.
 | ⭐ Reviews with helpful votes, product Q&A, seller ratings, private messages to sellers | 💬 Messages with buyers, and questions about your products | 🔐 Email confirmation, password reset, rate-limited sign-in |
 | 🔁 "Frequently bought together", related products, **Buy it again** | 🧾 Orders split per seller, each with its own status and delivery | 🧪 191 backend tests and 18 end-to-end browser checks |
 | 🌗 **Light and dark mode**: follows your device, or switch with one tap | 🌙 Seller Central and admin pages come in both themes too | 🎨 One set of colour tokens, so new pages get both themes for free |
+
+## Results in numbers
+
+| | |
+| :--- | :--- |
+| **191** | backend tests (JUnit 5, H2 in MySQL mode), run with the storefront build and CodeQL on every pull request |
+| **18** | end-to-end browser scripts that drive the real app, from a first order to returns, messages and sales charts |
+| **150** | REST endpoints across shoppers, sellers and admins |
+| **13** | Flyway migrations, from the original reviews schema to multi-seller offers and product variations |
+| **~2,150** | demo products from 20 made-up stores, generated on start-up with `DEMO_DATA=true` |
+| **3** | sales spans on the dashboards (7, 30 and 90 days), each compared with the span before |
+| **2** | themes, light and dark, from one set of colour tokens |
 
 ## A look around
 

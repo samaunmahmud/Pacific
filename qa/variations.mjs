@@ -128,6 +128,12 @@ await go(`/products/${blueL}`, 'blue L after removing blue M');
 const mState = await tab.evaluate(() => { const b = [...document.querySelectorAll('.var-size')].find((x) => x.textContent === 'M'); return b ? { disabled: b.disabled, title: b.title } : null; });
 check('a combination that doesn\'t exist is crossed out', !!mState && mState.disabled && mState.title === 'Not available in Blue', JSON.stringify(mState));
 
+// ---------- sizes in size order, whatever order they were added in ----------
+await call('POST', `/seller/products/${blueL}/variations`, seller.token, { option1: 'Blue', option2: 'S', price: 11, stock: 2, imageUrl: null });
+await go(`/products/${blueL}`, 'blue L after adding blue S');
+const sizes = await tab.$$eval('.var-size', (bs) => bs.map((b) => b.textContent));
+check('sizes read S, M, L though S was added last', sizes.join(',') === 'S,M,L', sizes.join(','));
+
 // ---------- demo clothes: colour pictures ----------
 const fashion = await call('GET', '/products?category=fashion&size=48');
 const family = fashion.items.find((p) => p.variationCount >= 9);

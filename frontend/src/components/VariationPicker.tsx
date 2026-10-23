@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import type { VariationOption, Variations } from '../api/types';
 import { money } from '../ui/format';
+import { sizeOrder } from '../ui/sizes';
 import { ProductImage } from './ProductImage';
 
 const same = (a: string | null, b: string | null) => (a ?? '').toLowerCase() === (b ?? '').toLowerCase();
@@ -13,8 +14,8 @@ const distinct = (values: string[]) => values.filter((v, i) => values.findIndex(
 export function VariationPicker({ variations: v, categoryName }: { variations: Variations; categoryName?: string | null }) {
   const navigate = useNavigate();
   const go = (o: VariationOption) => navigate(`/products/${o.productId}`, { replace: true });
-  const firsts = distinct(v.options.map((o) => o.option1));
-  const seconds = v.dim2 ? distinct(v.options.map((o) => o.option2 ?? '')) : [];
+  const firsts = sizeOrder(distinct(v.options.map((o) => o.option1)));
+  const seconds = v.dim2 ? sizeOrder(distinct(v.options.map((o) => o.option2 ?? ''))) : [];
   const pickFirst = (value: string) => v.options.find((o) => same(o.option1, value) && same(o.option2, v.option2))
     ?? v.options.find((o) => same(o.option1, value))!;
   const pickSecond = (value: string) => v.options.find((o) => same(o.option1, v.option1) && same(o.option2, value));
